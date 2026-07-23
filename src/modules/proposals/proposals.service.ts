@@ -232,8 +232,24 @@ export class ProposalsService {
     }
 
     proposal.status = ProposalStatus.REJEITADA;
+    const saved = await this.proposalRepository.save(proposal);
 
-    return this.proposalRepository.save(proposal);
+    if (proposal.createdById) {
+      try {
+        const notification = await this.notificationsService.create({
+          type: NotificationType.PROPOSTA_EXPIRADA,
+          title: 'Proposta rejeitada',
+          message: `A proposta "${proposal.number}" foi rejeitada pelo cliente.`,
+          userId: proposal.createdById,
+          relatedId: proposal.id,
+        });
+        this.notificationsGateway.sendNotificationToUser(proposal.createdById, notification);
+      } catch (err) {
+        this.logger.error('Failed to send proposal-rejected notification', err);
+      }
+    }
+
+    return saved;
   }
 
   async checkExpired(): Promise<number> {

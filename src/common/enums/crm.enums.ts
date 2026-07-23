@@ -65,3 +65,85 @@ export enum NotificationType {
   META_ATINGIDA = 'meta_atingida',
   SISTEMA = 'sistema',
 }
+
+export enum ClientStatus {
+  ATIVO = 'ativo',
+  INATIVO = 'inativo',
+  BLOCKED = 'bloqueado',
+}
+
+export enum AuditAction {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LOGIN = 'login',
+  LOGOUT = 'logout',
+  STATUS_CHANGE = 'status_change',
+}
+
+export enum ColaboradorTipo {
+  FUNCIONARIO = 'funcionario',
+  TERCEIRO = 'terceiro',
+}
+
+export enum ColaboradorStatus {
+  ATIVO = 'ativo',
+  INATIVO = 'inativo',
+  BLOQUEADO = 'bloqueado',
+}
+
+export enum ColaboradorContrato {
+  CLT = 'clt',
+  PJ = 'pj',
+  TEMPORARIO = 'temporario',
+  TERCEIRIZADO = 'terceirizado',
+}
+
+export enum EpiType {
+  CAPACETE = 'capacete',
+  LUVA = 'luva',
+  CINTO = 'cinto',
+  BOTA = 'bota',
+  OCULOS = 'oculos',
+  PROTETOR_AURICULAR = 'protetor_auricular',
+  MASCARA = 'mascara',
+  MACACAO = 'macacao',
+  OTHER = 'other',
+}
+
+export enum EpiStatus {
+  ENTREGUE = 'entregue',
+  DEVOLVIDO = 'devolvido',
+  PERDIDO = 'perdido',
+  DANIFICADO = 'danificado',
+}
+
+export enum AssetTipo {
+  VEICULO = 'veiculo',
+  EQUIPAMENTO = 'equipamento',
+  IMOVEL = 'imovel',
+  MOBILIARIO = 'mobilario',
+}
+
+export enum AssetEstado {
+  BOM = 'bom',
+  REGULAR = 'regular',
+  NECESSITA_REPARO = 'necessita_reparo',
+  INOPERANTE = 'inoperante',
+}
+
+export enum AssetStatus {
+  DISPONIVEL = 'disponivel',
+  EM_USO = 'em_uso',
+  EM_MANUTENCAO = 'em_manutencao',
+  BAIXADO = 'baixado',
+}
+
+export enum CombustivelTipo {
+  GASOLINA = 'gasolina',
+  ETANOL = 'etanol',
+  DIESEL = 'diesel',
+  FLEX = 'flex',
+  ELETRICO = 'eletrico',
+  HIBRIDO = 'hibrido',
+}
