@@ -150,7 +150,23 @@ export class ActivitiesService {
     activity.completedAt = dto.completedAt
       ? new Date(dto.completedAt)
       : new Date();
+    const saved = await this.activityRepository.save(activity);
 
-    return this.activityRepository.save(activity);
+    if (activity.userId) {
+      try {
+        const notification = await this.notificationsService.create({
+          type: NotificationType.META_ATINGIDA,
+          title: 'Atividade concluída',
+          message: `Atividade "${activity.title}" foi concluída.`,
+          userId: activity.userId,
+          relatedId: activity.id,
+        });
+        this.notificationsGateway.sendNotificationToUser(activity.userId, notification);
+      } catch (err) {
+        this.logger.error('Failed to send activity-completed notification', err);
+      }
+    }
+
+    return saved;
   }
 }

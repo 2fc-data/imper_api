@@ -12,6 +12,7 @@ import { OpportunityStatus } from '../../../common/enums/crm.enums.js';
 import { User } from '../../users/entities/user.entity.js';
 import { Lead } from '../../leads/entities/lead.entity.js';
 import { Proposal } from '../../proposals/entities/proposal.entity.js';
+import { Client } from '../../clients/entities/client.entity.js';
 
 @Entity('opportunities')
 export class Opportunity {
@@ -62,6 +63,9 @@ export class Opportunity {
   lossReason: string;
 
   @Column({ type: 'varchar', length: 36, nullable: true })
+  clientId: string;
+
+  @Column({ type: 'varchar', length: 36, nullable: true })
   assignedUserId: string;
 
   @CreateDateColumn()
@@ -73,6 +77,13 @@ export class Opportunity {
   @ManyToOne(() => User, { nullable: true, eager: false })
   @JoinColumn({ name: 'assignedUserId' })
   assignedUser: User;
+
+  @ManyToOne(() => Client, (client) => client.opportunities, {
+    nullable: true,
+    eager: false,
+  })
+  @JoinColumn({ name: 'clientId' })
+  client: Client;
 
   @OneToMany(() => Lead, (lead) => lead.opportunity)
   leads: Lead[];

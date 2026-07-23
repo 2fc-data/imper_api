@@ -17,6 +17,10 @@ import { ServicesModule } from './modules/services/services.module';
 import { OrganizationModule } from './modules/organization/organization.module.js';
 import { IamModule } from './modules/iam/iam.module.js';
 import { ConfigurationModule } from './modules/configuration/configuration.module.js';
+import { ClientsModule } from './modules/clients/clients.module.js';
+import { AuditModule } from './modules/audit/audit.module.js';
+import { ColaboradoresModule } from './modules/colaboradores/colaboradores.module.js';
+import { PatrimonioModule } from './modules/patrimonio/patrimonio.module.js';
 
 @Module({
   imports: [
@@ -41,6 +45,10 @@ import { ConfigurationModule } from './modules/configuration/configuration.modul
     OrganizationModule,
     IamModule,
     ConfigurationModule,
+    ClientsModule,
+    AuditModule,
+    ColaboradoresModule,
+    PatrimonioModule,
   ],
 })
 export class AppModule {}
