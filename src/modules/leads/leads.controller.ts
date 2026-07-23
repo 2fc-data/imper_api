@@ -21,6 +21,7 @@ import { AssignLeadDto } from './dto/assign-lead.dto';
 import { LeadFilterDto } from './dto/lead-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePermission } from '../iam/decorators/require-permission.decorator.js';
 
 @ApiTags('Leads')
 @ApiBearerAuth()
@@ -30,30 +31,35 @@ export class LeadsController {
   constructor(private leadsService: LeadsService) {}
 
   @Post()
+  @RequirePermission('leads:write')
   @ApiOperation({ summary: 'Criar lead' })
   create(@Body() dto: CreateLeadDto, @CurrentUser('id') userId: string) {
     return this.leadsService.create(dto, userId);
   }
 
   @Get()
+  @RequirePermission('leads:read')
   @ApiOperation({ summary: 'Listar leads (filtros, paginação)' })
   findAll(@Query() filters: LeadFilterDto) {
     return this.leadsService.findAll(filters);
   }
 
   @Get(':id')
+  @RequirePermission('leads:read')
   @ApiOperation({ summary: 'Detalhe do lead' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.leadsService.findOne(id);
   }
 
   @Patch(':id')
+  @RequirePermission('leads:write')
   @ApiOperation({ summary: 'Atualizar lead' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLeadDto) {
     return this.leadsService.update(id, dto);
   }
 
   @Delete(':id')
+  @RequirePermission('leads:delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Excluir lead' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
@@ -61,12 +67,14 @@ export class LeadsController {
   }
 
   @Patch(':id/move')
+  @RequirePermission('leads:write')
   @ApiOperation({ summary: 'Mover estágio no funil' })
   move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MoveLeadDto) {
     return this.leadsService.move(id, dto);
   }
 
   @Post(':id/assign')
+  @RequirePermission('leads:write')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Atribuir lead' })
   assign(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssignLeadDto) {

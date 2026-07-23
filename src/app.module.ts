@@ -14,6 +14,9 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { ServicesModule } from './modules/services/services.module';
+import { OrganizationModule } from './modules/organization/organization.module.js';
+import { IamModule } from './modules/iam/iam.module.js';
+import { ConfigurationModule } from './modules/configuration/configuration.module.js';
 
 @Module({
   imports: [
@@ -35,6 +38,9 @@ import { ServicesModule } from './modules/services/services.module';
     ProposalsModule,
     ContactsModule,
     ServicesModule,
+    OrganizationModule,
+    IamModule,
+    ConfigurationModule,
   ],
 })
 export class AppModule {}
