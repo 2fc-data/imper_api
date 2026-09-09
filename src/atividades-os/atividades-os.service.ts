@@ -1,0 +1,152 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
+
+@Injectable()
+export class AtividadesOSService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async listar(params?: { osId?: number; faseOSId?: number; status?: string }) {
+    const where: Record<string, unknown> = {};
+    if (params?.osId) where.osId = params.osId;
+    if (params?.faseOSId) where.faseOSId = params.faseOSId;
+    if (params?.status) where.status = params.status;
+
+    return this.prisma.atividadeOS.findMany({
+      where,
+      include: {
+        os: { select: { id: true, codigo: true } },
+        faseOS: { select: { id: true, nome: true } },
+        catalogoAtividade: true,
+        equipe: {
+          include: {
+            lider: { select: { id: true, nome: true } },
+            membros: {
+              include: { usuario: { select: { id: true, nome: true } } },
+            },
+          },
+        },
+        checklist: true,
+      },
+      orderBy: { criadoEm: 'desc' },
+    });
+  }
+
+  async detalhar(id: string) {
+    const item = await this.prisma.atividadeOS.findUnique({
+      where: { id },
+      include: {
+        os: { select: { id: true, codigo: true } },
+        faseOS: { select: { id: true, nome: true } },
+        catalogoAtividade: {
+          include: { subSteps: { orderBy: { ordem: 'asc' } }, recursos: true },
+        },
+        equipe: {
+          include: {
+            lider: { select: { id: true, nome: true } },
+            membros: {
+              include: {
+                usuario: { select: { id: true, nome: true, telefone: true } },
+              },
+            },
+          },
+        },
+        checklist: {
+          include: {
+            subStepAtividade: true,
+            concluidoPor: { select: { id: true, nome: true } },
+          },
+        },
+      },
+    });
+    if (!item) throw new NotFoundException(`AtividadeOS ${id} não encontrada`);
+    return item;
+  }
+
+  async planificar(data: {
+    osId: number;
+    faseOSId: number;
+    atividades: {
+      catalogoAtividadeId: string;
+      equipeId?: string;
+      dataPrevisao?: string;
+    }[];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const criadas = [];
+
+      for (const ativ of data.atividades) {
+        const catalogo = await tx.catalogoAtividade.findUnique({
+          where: { id: ativ.catalogoAtividadeId },
+          include: { subSteps: true, recursos: true },
+        });
+        if (!catalogo)
+          throw new NotFoundException(
+            `Catálogo ${ativ.catalogoAtividadeId} não encontrado`,
+          );
+
+        const atividadeOS = await tx.atividadeOS.create({
+          data: {
+            osId: data.osId,
+            faseOSId: data.faseOSId,
+            catalogoAtividadeId: ativ.catalogoAtividadeId,
+            equipeId: ativ.equipeId,
+            dataPrevisao: ativ.dataPrevisao
+              ? new Date(ativ.dataPrevisao)
+              : undefined,
+          },
+        });
+
+        for (const sub of catalogo.subSteps) {
+          await tx.checklistExecucao.create({
+            data: {
+              atividadeOSId: atividadeOS.id,
+              subStepAtividadeId: sub.id,
+            },
+          });
+        }
+
+        for (const recurso of catalogo.recursos) {
+          if (recurso.tipo === 'MATERIAL') {
+            await tx.separacao.create({
+              data: {
+                codigo: `SEP-${data.osId}-${Date.now()}`,
+                faseOsId: data.faseOSId,
+                dataNecessidade: ativ.dataPrevisao
+                  ? new Date(ativ.dataPrevisao)
+                  : new Date(),
+                osId: data.osId,
+                equipeId: ativ.equipeId,
+                itens: {
+                  create: {
+                    materialId: recurso.itemCatalogoId,
+                    quantidadeNecessaria: Number(recurso.quantidade),
+                  },
+                },
+              },
+            });
+          }
+        }
+
+        criadas.push(atividadeOS);
+      }
+
+      return criadas;
+    });
+  }
+
+  async atualizarStatus(id: string, status: string) {
+    await this.detalhar(id);
+    return this.prisma.atividadeOS.update({
+      where: { id },
+      data: { status: status as any },
+    });
+  }
+
+  async associarEquipe(id: string, equipeId: string) {
+    await this.detalhar(id);
+    return this.prisma.atividadeOS.update({
+      where: { id },
+      data: { equipeId },
+    });
+  }
+}
