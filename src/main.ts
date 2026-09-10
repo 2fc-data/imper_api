@@ -7,13 +7,23 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  const allowedOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  console.log('CORS_ORIGINS carregado:', allowedOrigins);
   app.enableCors({
-    origin: (process.env.CORS_ORIGINS || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
+    origin: allowedOrigins,
     credentials: true,
   });
+
+  // app.enableCors({
+  //   origin: (process.env.CORS_ORIGINS || '')
+  //     .split(',')
+  //     .map((s) => s.trim())
+  //     .filter(Boolean),
+  //   credentials: true,
+  // });
 
   await app.listen(process.env.PORT ?? 3000);
 }
