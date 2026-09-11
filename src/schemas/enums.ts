@@ -58,8 +58,6 @@ export type StatusManutencao =
 
 export type TipoMaterial = 'MATERIAL' | 'EQUIPAMENTO';
 
-export type TipoCategoria = 'EQUIPAMENTO' | 'EPI';
-
 export type StatusMaterial = 'ATIVO' | 'INATIVO';
 
 export type TipoMovimento = 'ENTRADA' | 'SAIDA';

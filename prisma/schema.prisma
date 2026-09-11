@@ -828,9 +828,7 @@ model CategoriaEquipamento {
   ordem         Int                       @default(0)
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
-  tipo          TipoCategoria             @default(EQUIPAMENTO)
-  Epi          Epi[]
-  equipamentos Equipamento[]
+  equipamentos  Equipamento[]
   subcategorias SubcategoriaEquipamento[]
 
   @@map("categorias_equipamentos")
@@ -845,12 +843,41 @@ model SubcategoriaEquipamento {
   ordem        Int                  @default(0)
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
-  Epi          Epi[]
   equipamentos Equipamento[]
   categoria    CategoriaEquipamento @relation(fields: [categoriaId], references: [id])
 
   @@index([categoriaId])
   @@map("subcategorias_equipamentos")
+}
+
+model CategoriaEpi {
+  id            Int                @id @default(autoincrement())
+  nome          String             @db.VarChar(120)
+  descricao     String?            @db.VarChar(255)
+  ativo         Boolean            @default(true)
+  ordem         Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  subcategorias SubcategoriaEpi[]
+  epis          Epi[]
+
+  @@map("categorias_epis")
+}
+
+model SubcategoriaEpi {
+  id          Int          @id @default(autoincrement())
+  categoriaId Int
+  nome        String       @db.VarChar(120)
+  descricao   String?      @db.VarChar(255)
+  ativo       Boolean      @default(true)
+  ordem       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  categoria   CategoriaEpi @relation(fields: [categoriaId], references: [id])
+  epis        Epi[]
+
+  @@index([categoriaId])
+  @@map("subcategorias_epis")
 }
 
 model Marca {
@@ -1080,12 +1107,12 @@ model Epi {
   tamanhoId        Int?
   unidadeMedidaId  Int?
   entregas         EntregaEpi[]
-  categoria        CategoriaEquipamento?    @relation(fields: [categoriaId], references: [id])
-  cor              Cor?                     @relation(fields: [corId], references: [id])
-  fornecedor       Fornecedor?              @relation(fields: [fornecedorId], references: [id])
-  localizacao      Localizacao?             @relation(fields: [localizacaoId], references: [id])
-  marca            Marca?                   @relation(fields: [marcaId], references: [id])
-  subcategoria     SubcategoriaEquipamento? @relation(fields: [subcategoriaId], references: [id])
+  categoria        CategoriaEpi?          @relation(fields: [categoriaId], references: [id])
+  cor              Cor?                   @relation(fields: [corId], references: [id])
+  fornecedor       Fornecedor?            @relation(fields: [fornecedorId], references: [id])
+  localizacao      Localizacao?           @relation(fields: [localizacaoId], references: [id])
+  marca            Marca?                 @relation(fields: [marcaId], references: [id])
+  subcategoria     SubcategoriaEpi?       @relation(fields: [subcategoriaId], references: [id])
   tamanho          TamanhoEquipamento?      @relation(fields: [tamanhoId], references: [id])
   unidadeMedida    UnidadeMedida?           @relation(fields: [unidadeMedidaId], references: [id])
 
@@ -1336,11 +1363,6 @@ enum StatusManutencao {
   EM_ANDAMENTO
   CONCLUIDA
   CANCELADA
-}
-
-enum TipoCategoria {
-  EQUIPAMENTO
-  EPI
 }
 
 enum EspecialidadeAtividade {

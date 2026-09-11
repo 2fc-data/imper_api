@@ -42,11 +42,11 @@ export class EpisService {
       colaboradores,
     ] = await Promise.all([
       this.prisma.marca.findMany({ where: { ativo: true } }),
-      this.prisma.categoriaEquipamento.findMany({
-        where: { ativo: true, tipo: 'EPI' },
+      this.prisma.categoriaEpi.findMany({
+        where: { ativo: true },
       }),
-      this.prisma.subcategoriaEquipamento.findMany({
-        where: { ativo: true, categoria: { tipo: 'EPI' } },
+      this.prisma.subcategoriaEpi.findMany({
+        where: { ativo: true },
       }),
       this.prisma.cor.findMany({ where: { ativo: true } }),
       this.prisma.tamanhoEquipamento.findMany({ where: { ativo: true } }),
@@ -71,15 +71,15 @@ export class EpisService {
   }
 
   async listarCategorias() {
-    return this.prisma.categoriaEquipamento.findMany({
-      where: { ativo: true, tipo: 'EPI' },
+    return this.prisma.categoriaEpi.findMany({
+      where: { ativo: true },
       orderBy: { ordem: 'asc' },
     });
   }
 
   async listarSubcategorias() {
-    return this.prisma.subcategoriaEquipamento.findMany({
-      where: { ativo: true, categoria: { tipo: 'EPI' } },
+    return this.prisma.subcategoriaEpi.findMany({
+      where: { ativo: true },
       include: { categoria: true },
       orderBy: { ordem: 'asc' },
     });
@@ -153,18 +153,16 @@ export class EpisService {
   }
 
   async criarCategoria(data: { nome: string; descricao?: string }) {
-    return this.prisma.categoriaEquipamento.create({
-      data: { ...data, tipo: 'EPI' },
-    });
+    return this.prisma.categoriaEpi.create({ data });
   }
   async atualizarCategoria(
     id: number,
     data: { nome?: string; ativo?: boolean },
   ) {
-    return this.prisma.categoriaEquipamento.update({ where: { id }, data });
+    return this.prisma.categoriaEpi.update({ where: { id }, data });
   }
   async desativarCategoria(id: number) {
-    return this.prisma.categoriaEquipamento.update({
+    return this.prisma.categoriaEpi.update({
       where: { id },
       data: { ativo: false },
     });
@@ -175,16 +173,16 @@ export class EpisService {
     descricao?: string;
     categoriaId: number;
   }) {
-    return this.prisma.subcategoriaEquipamento.create({ data });
+    return this.prisma.subcategoriaEpi.create({ data });
   }
   async atualizarSubcategoria(
     id: number,
     data: { nome?: string; ativo?: boolean },
   ) {
-    return this.prisma.subcategoriaEquipamento.update({ where: { id }, data });
+    return this.prisma.subcategoriaEpi.update({ where: { id }, data });
   }
   async desativarSubcategoria(id: number) {
-    return this.prisma.subcategoriaEquipamento.update({
+    return this.prisma.subcategoriaEpi.update({
       where: { id },
       data: { ativo: false },
     });

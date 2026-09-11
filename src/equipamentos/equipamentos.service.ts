@@ -51,10 +51,10 @@ export class EquipamentosService {
     ] = await Promise.all([
       this.prisma.marca.findMany({ where: { ativo: true } }),
       this.prisma.categoriaEquipamento.findMany({
-        where: { ativo: true, tipo: 'EQUIPAMENTO' },
+        where: { ativo: true },
       }),
       this.prisma.subcategoriaEquipamento.findMany({
-        where: { ativo: true, categoria: { tipo: 'EQUIPAMENTO' } },
+        where: { ativo: true },
       }),
       this.prisma.localizacao.findMany({ where: { ativo: true } }),
       this.prisma.fornecedor.findMany({ where: { ativo: true } }),
@@ -89,7 +89,7 @@ export class EquipamentosService {
 
   async listarCategorias() {
     return this.prisma.categoriaEquipamento.findMany({
-      where: { ativo: true, tipo: 'EQUIPAMENTO' },
+      where: { ativo: true },
       orderBy: { ordem: 'asc' },
     });
   }
@@ -108,7 +108,7 @@ export class EquipamentosService {
 
   async listarSubcategorias() {
     return this.prisma.subcategoriaEquipamento.findMany({
-      where: { ativo: true, categoria: { tipo: 'EQUIPAMENTO' } },
+      where: { ativo: true },
       include: { categoria: true },
       orderBy: { ordem: 'asc' },
     });
