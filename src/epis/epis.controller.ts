@@ -73,6 +73,11 @@ export class EpisController {
     return this.episService.listarColaboradores();
   }
 
+  @Get('lookups/unidades-medida')
+  async listarUnidadesMedida() {
+    return this.episService.listarUnidadesMedida();
+  }
+
   @Post('lookups/categorias')
   async criarCategoria(@Body() body: { nome: string; descricao?: string }) {
     return this.episService.criarCategoria(body);

@@ -565,12 +565,14 @@ model Material {
   marcaId          Int?
   modelo           String?            @db.VarChar(150)
   unidadeId        Int
+  fornecedorId     Int?
   categoria        CategoriaMaterial? @relation(fields: [categoriaId], references: [id])
   itensCompra      CompraItem[]
   faseOsMateriais  FaseOSMaterial[]
   cor              Cor?               @relation(fields: [corId], references: [id])
   marca            Marca?             @relation(fields: [marcaId], references: [id])
   unidade          UnidadeMedida      @relation(fields: [unidadeId], references: [id])
+  fornecedor       Fornecedor?        @relation(fields: [fornecedorId], references: [id])
   movimentos       MovimentoEstoque[]
   saldo            SaldoEstoque?
   itensSeparacao   SeparacaoItem[]
@@ -580,6 +582,7 @@ model Material {
   @@index([marcaId])
   @@index([corId])
   @@index([categoriaId])
+  @@index([fornecedorId])
   @@index([unidadeId], map: "materiais_unidadeId_fkey")
   @@map("materiais")
 }
@@ -826,8 +829,8 @@ model CategoriaEquipamento {
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
   tipo          TipoCategoria             @default(EQUIPAMENTO)
-  Epi           Epi[]
-  equipamentos  Equipamento[]
+  Epi          Epi[]
+  equipamentos Equipamento[]
   subcategorias SubcategoriaEquipamento[]
 
   @@map("categorias_equipamentos")
@@ -875,6 +878,7 @@ model Fornecedor {
   updatedAt    DateTime      @updatedAt
   Epi          Epi[]
   equipamentos Equipamento[]
+  materiais    Material[]
 
   @@map("fornecedores")
 }
@@ -1059,6 +1063,7 @@ model Epi {
   codigo           String                   @unique @db.VarChar(50)
   nome             String                   @db.VarChar(150)
   numeroCa         String?                  @db.VarChar(50)
+  numeroPatrimonio String?                  @db.VarChar(50)
   dataValidade     DateTime?
   quantidade       Decimal                  @default(0.000) @db.Decimal(12, 3)
   quantidadeMinima Decimal?                 @db.Decimal(12, 3)

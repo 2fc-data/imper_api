@@ -112,6 +112,10 @@ export class EpisService {
     });
   }
 
+  async listarUnidadesMedida() {
+    return this.prisma.unidadeMedida.findMany({ orderBy: { ordem: 'asc' } });
+  }
+
   async detalhar(id: number) {
     const epi = await this.prisma.epi.findUnique({
       where: { id },
