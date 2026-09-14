@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const criarUsuarioSchema = z.object({
-  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  email: z.string().email('E-mail inválido').optional(),
+  nome: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().trim().email('E-mail inválido').optional(),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  telefone: z.string().regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000').optional(),
+  telefone: z.string().trim().regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000').optional(),
   papelId: z.number(),
   cargoId: z.number().nullable().optional(),
   cpfCnpj: z.string().optional(),
@@ -18,8 +18,8 @@ export const criarUsuarioSchema = z.object({
 });
 
 export const atualizarUsuarioSchema = z.object({
-  nome: z.string().min(2).optional(),
-  telefone: z.string().optional(),
+  nome: z.string().trim().min(2).optional(),
+  telefone: z.string().trim().optional(),
   papelId: z.number().optional(),
   cargoId: z.number().nullable().optional(),
   ativo: z.boolean().optional(),

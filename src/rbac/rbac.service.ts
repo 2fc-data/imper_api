@@ -1,13 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AppError } from '../lib/errors.js';
+import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-
-function normalize(str: string) {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase();
-}
 
 @Injectable()
 export class RbacService {
@@ -16,6 +10,7 @@ export class RbacService {
   async listarPapeis() {
     const papeis = await this.prisma.papelRbac.findMany({
       include: { permissoes: { include: { permissao: true } } },
+      orderBy: { nome: 'asc' },
     });
     return {
       papeis: papeis.map((p) => ({

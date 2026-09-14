@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const itemOrcamentoSchema = z.object({
   servicoItemId: z.number().int().nullable().optional(),
-  nome: z.string().min(1).max(150),
+  nome: z.string().trim().min(1).max(150),
   tipo: z.enum(['SERVICO', 'MATERIAL', 'EQUIPAMENTO']),
   quantidade: z.number().positive(),
   unidadeId: z.number().int(),

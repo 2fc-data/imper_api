@@ -7,9 +7,9 @@ export const loginSchema = z.object({
 });
 
 export const cadastrarSchema = z.object({
-  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  telefone: z.string().regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000'),
-  email: z.string().email('E-mail inválido').optional(),
+  nome: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  telefone: z.string().trim().regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000'),
+  email: z.string().trim().email('E-mail inválido').optional(),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   turnstileToken: z.string().optional(),
 });

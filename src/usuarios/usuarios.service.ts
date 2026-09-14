@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../lib/errors.js';
+import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const selectPublico = {
@@ -314,7 +315,7 @@ export class UsuariosService {
 
   async criarCargo(data: { nome: string; descricao?: string }) {
     const existente = await this.prisma.cargo.findFirst({
-      where: { nome: data.nome },
+      where: { nome: normalize(data.nome) },
     });
     if (existente) throw new AppError(409, 'Já existe um cargo com esse nome');
     return this.prisma.cargo.create({
@@ -329,9 +330,9 @@ export class UsuariosService {
   ) {
     const cargo = await this.prisma.cargo.findUnique({ where: { id } });
     if (!cargo) throw new AppError(404, 'Cargo não encontrado');
-    if (data.nome && data.nome !== cargo.nome) {
+    if (data.nome) {
       const existente = await this.prisma.cargo.findFirst({
-        where: { nome: data.nome, id: { not: id } },
+        where: { nome: normalize(data.nome), NOT: { id } },
       });
       if (existente)
         throw new AppError(409, 'Já existe um cargo com esse nome');

@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AppError } from '../lib/errors.js';
+import { normalize } from '../lib/utils.js';
 
 @Injectable()
 export class CatalogoAtividadesService {
@@ -52,6 +54,11 @@ export class CatalogoAtividadesService {
     subSteps?: { ordem: number; descricao: string; observacao?: string }[];
     recursos?: { tipo: string; itemCatalogoId: number; quantidade?: number }[];
   }) {
+    const exists = await this.prisma.catalogoAtividade.findFirst({
+      where: { nome: normalize(data.nome) },
+    });
+    if (exists) throw new AppError(409, 'Atividade já cadastrada');
+
     return this.prisma.catalogoAtividade.create({
       data: {
         nome: data.nome,
@@ -92,6 +99,14 @@ export class CatalogoAtividadesService {
     },
   ) {
     await this.detalhar(id);
+
+    if (data.nome) {
+      const exists = await this.prisma.catalogoAtividade.findFirst({
+        where: { nome: normalize(data.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Atividade já cadastrada');
+    }
+
     return this.prisma.catalogoAtividade.update({
       where: { id },
       data: {

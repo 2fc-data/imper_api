@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import type { StatusMaterial, TipoMaterial } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AppError } from '../lib/errors.js';
+import { normalize } from '../lib/utils.js';
 
 export interface MaterialInputDto {
   nome: string;
@@ -65,14 +67,11 @@ export class MateriaisService {
   async lookups() {
     const [categorias, subcategorias, marcas, cores, unidadesMedida] =
       await Promise.all([
-        this.prisma.categoriaMaterial.findMany({
-          where: { ativo: true },
-          orderBy: { ordem: 'asc' },
-        }),
+        this.prisma.categoriaMaterial.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
         this.prisma.subcategoriaMaterial.findMany({
           where: { ativo: true },
           include: { categoria: true },
-          orderBy: { ordem: 'asc' },
+          orderBy: { nome: 'asc' },
         }),
         this.prisma.marca.findMany({
           where: { ativo: true },
@@ -115,6 +114,11 @@ export class MateriaisService {
   }
 
   async criar(dto: MaterialInputDto) {
+    const exists = await this.prisma.material.findFirst({
+      where: { nome: normalize(dto.nome) },
+    });
+    if (exists) throw new AppError(409, 'Material já cadastrado');
+
     return this.prisma.material.create({
       data: {
         nome: dto.nome,
@@ -140,6 +144,13 @@ export class MateriaisService {
 
   async atualizar(id: number, dto: MaterialUpdateDto) {
     await this.detalhar(id);
+
+    if (dto.nome) {
+      const exists = await this.prisma.material.findFirst({
+        where: { nome: normalize(dto.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Material já cadastrado');
+    }
 
     return this.prisma.material.update({
       where: { id },
@@ -211,13 +222,23 @@ export class MateriaisService {
   async listarCategorias() {
     return this.prisma.categoriaMaterial.findMany({
       where: { ativo: true },
-      orderBy: { ordem: 'asc' },
+      orderBy: { nome: 'asc' },
     });
   }
   async criarCategoria(data: any) {
+    const exists = await this.prisma.categoriaMaterial.findFirst({
+      where: { nome: normalize(data.nome) },
+    });
+    if (exists) throw new AppError(409, 'Categoria já cadastrada');
     return this.prisma.categoriaMaterial.create({ data });
   }
   async atualizarCategoria(id: number, data: any) {
+    if (data.nome) {
+      const exists = await this.prisma.categoriaMaterial.findFirst({
+        where: { nome: normalize(data.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Categoria já cadastrada');
+    }
     return this.prisma.categoriaMaterial.update({ where: { id }, data });
   }
   async desativarCategoria(id: number) {
@@ -231,13 +252,23 @@ export class MateriaisService {
     return this.prisma.subcategoriaMaterial.findMany({
       where: { ativo: true },
       include: { categoria: true },
-      orderBy: { ordem: 'asc' },
+      orderBy: { nome: 'asc' },
     });
   }
   async criarSubcategoria(data: any) {
+    const exists = await this.prisma.subcategoriaMaterial.findFirst({
+      where: { nome: normalize(data.nome) },
+    });
+    if (exists) throw new AppError(409, 'Subcategoria já cadastrada');
     return this.prisma.subcategoriaMaterial.create({ data });
   }
   async atualizarSubcategoria(id: number, data: any) {
+    if (data.nome) {
+      const exists = await this.prisma.subcategoriaMaterial.findFirst({
+        where: { nome: normalize(data.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Subcategoria já cadastrada');
+    }
     return this.prisma.subcategoriaMaterial.update({ where: { id }, data });
   }
   async desativarSubcategoria(id: number) {
@@ -254,9 +285,19 @@ export class MateriaisService {
     });
   }
   async criarMarca(data: any) {
+    const exists = await this.prisma.marca.findFirst({
+      where: { nome: normalize(data.nome) },
+    });
+    if (exists) throw new AppError(409, 'Marca já cadastrada');
     return this.prisma.marca.create({ data });
   }
   async atualizarMarca(id: number, data: any) {
+    if (data.nome) {
+      const exists = await this.prisma.marca.findFirst({
+        where: { nome: normalize(data.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Marca já cadastrada');
+    }
     return this.prisma.marca.update({ where: { id }, data });
   }
   async desativarMarca(id: number) {
@@ -270,9 +311,19 @@ export class MateriaisService {
     });
   }
   async criarCor(data: any) {
+    const exists = await this.prisma.cor.findFirst({
+      where: { nome: normalize(data.nome) },
+    });
+    if (exists) throw new AppError(409, 'Cor já cadastrada');
     return this.prisma.cor.create({ data });
   }
   async atualizarCor(id: number, data: any) {
+    if (data.nome) {
+      const exists = await this.prisma.cor.findFirst({
+        where: { nome: normalize(data.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Cor já cadastrada');
+    }
     return this.prisma.cor.update({ where: { id }, data });
   }
   async desativarCor(id: number) {
@@ -283,12 +334,22 @@ export class MateriaisService {
     return this.prisma.unidadeMedida.findMany({ orderBy: { nome: 'asc' } });
   }
   async criarUnidadeMedida(data: { nome: string }) {
+    const exists = await this.prisma.unidadeMedida.findFirst({
+      where: { nome: normalize(data.nome) },
+    });
+    if (exists) throw new AppError(409, 'Unidade de medida já cadastrada');
     return this.prisma.unidadeMedida.create({ data });
   }
   async atualizarUnidadeMedida(
     id: number,
     data: { nome?: string; ativo?: boolean },
   ) {
+    if (data.nome) {
+      const exists = await this.prisma.unidadeMedida.findFirst({
+        where: { nome: normalize(data.nome), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Unidade de medida já cadastrada');
+    }
     return this.prisma.unidadeMedida.update({ where: { id }, data });
   }
   async desativarUnidadeMedida(id: number) {
