@@ -39,16 +39,34 @@ export class UsuariosService {
 
   async criar(data: {
     nome: string;
-    email: string;
+    email?: string;
     senha: string;
     telefone?: string;
     papelId: number;
     cargoId?: number | null;
+    cpfCnpj?: string;
+    cep?: string;
+    endereco?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    numero?: string;
+    complemento?: string;
   }) {
-    const existente = await this.prisma.user.findUnique({
-      where: { email: data.email },
-    });
-    if (existente) throw new AppError(409, 'E-mail já cadastrado');
+    if (data.email) {
+      const existente = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
+      if (existente) throw new AppError(409, 'E-mail já cadastrado');
+    }
+
+    if (data.cpfCnpj) {
+      const cpfLimpo = data.cpfCnpj.replace(/\D/g, '');
+      const existente = await this.prisma.cliente.findUnique({
+        where: { cpfCnpj: cpfLimpo },
+      });
+      if (existente) throw new AppError(409, 'CPF/CNPJ já cadastrado');
+    }
 
     const papel = await this.prisma.papelRbac.findUnique({
       where: { id: data.papelId },
@@ -57,12 +75,43 @@ export class UsuariosService {
 
     const senhaHash = await bcrypt.hash(data.senha, 10);
     const user = await this.prisma.$transaction(async (tx) => {
+      let clienteId: number | null = null;
+
+      if (data.cpfCnpj || data.cep) {
+        const cliente = await tx.cliente.create({
+          data: {
+            nome: data.nome,
+            cpfCnpj: data.cpfCnpj?.replace(/\D/g, '') ?? null,
+            telefone: data.telefone ?? null,
+            email: data.email ?? null,
+          },
+        });
+        clienteId = cliente.id;
+
+        if (data.endereco) {
+          await tx.endereco.create({
+            data: {
+              clienteId: cliente.id,
+              logradouro: data.endereco,
+              numero: data.numero ?? null,
+              complemento: data.complemento ?? null,
+              bairro: data.bairro ?? null,
+              cidade: data.cidade ?? null,
+              estado: data.estado ?? null,
+              cep: data.cep?.replace(/\D/g, '') ?? null,
+              principal: true,
+            },
+          });
+        }
+      }
+
       const novoUser = await tx.user.create({
         data: {
           nome: data.nome,
           email: data.email,
           telefone: data.telefone,
           cargoId: data.cargoId ?? null,
+          clienteId,
           senhaHash,
         },
         select: selectPublico,
