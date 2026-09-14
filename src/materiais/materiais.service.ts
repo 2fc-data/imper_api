@@ -114,14 +114,15 @@ export class MateriaisService {
   }
 
   async criar(dto: MaterialInputDto) {
+    const nomeUpper = dto.nome.toUpperCase();
     const exists = await this.prisma.material.findFirst({
-      where: { nome: normalize(dto.nome) },
+      where: { nome: normalize(nomeUpper) },
     });
     if (exists) throw new AppError(409, 'Material já cadastrado');
 
     return this.prisma.material.create({
       data: {
-        nome: dto.nome,
+        nome: nomeUpper,
         tipo: dto.tipo,
         categoriaId: dto.categoriaId ?? null,
         unidadeId: dto.unidadeId,
@@ -146,8 +147,9 @@ export class MateriaisService {
     await this.detalhar(id);
 
     if (dto.nome) {
+      const nomeUpper = dto.nome.toUpperCase();
       const exists = await this.prisma.material.findFirst({
-        where: { nome: normalize(dto.nome), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Material já cadastrado');
     }
@@ -155,7 +157,7 @@ export class MateriaisService {
     return this.prisma.material.update({
       where: { id },
       data: {
-        ...(dto.nome !== undefined && { nome: dto.nome }),
+        ...(dto.nome !== undefined && { nome: dto.nome.toUpperCase() }),
         ...(dto.tipo !== undefined && { tipo: dto.tipo }),
         ...(dto.categoriaId !== undefined && {
           categoriaId: dto.categoriaId ?? null,
@@ -226,20 +228,23 @@ export class MateriaisService {
     });
   }
   async criarCategoria(data: any) {
+    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
     const exists = await this.prisma.categoriaMaterial.findFirst({
-      where: { nome: normalize(data.nome) },
+      where: { nome: normalize(nomeUpper) },
     });
     if (exists) throw new AppError(409, 'Categoria já cadastrada');
-    return this.prisma.categoriaMaterial.create({ data });
+    return this.prisma.categoriaMaterial.create({ data: { ...data, nome: nomeUpper } });
   }
   async atualizarCategoria(id: number, data: any) {
     if (data.nome) {
+      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
       const exists = await this.prisma.categoriaMaterial.findFirst({
-        where: { nome: normalize(data.nome), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Categoria já cadastrada');
     }
-    return this.prisma.categoriaMaterial.update({ where: { id }, data });
+    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    return this.prisma.categoriaMaterial.update({ where: { id }, data: { ...data, nome: nomeValue } });
   }
   async desativarCategoria(id: number) {
     return this.prisma.categoriaMaterial.update({
@@ -256,20 +261,23 @@ export class MateriaisService {
     });
   }
   async criarSubcategoria(data: any) {
+    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
     const exists = await this.prisma.subcategoriaMaterial.findFirst({
-      where: { nome: normalize(data.nome) },
+      where: { nome: normalize(nomeUpper) },
     });
     if (exists) throw new AppError(409, 'Subcategoria já cadastrada');
-    return this.prisma.subcategoriaMaterial.create({ data });
+    return this.prisma.subcategoriaMaterial.create({ data: { ...data, nome: nomeUpper } });
   }
   async atualizarSubcategoria(id: number, data: any) {
     if (data.nome) {
+      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
       const exists = await this.prisma.subcategoriaMaterial.findFirst({
-        where: { nome: normalize(data.nome), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Subcategoria já cadastrada');
     }
-    return this.prisma.subcategoriaMaterial.update({ where: { id }, data });
+    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    return this.prisma.subcategoriaMaterial.update({ where: { id }, data: { ...data, nome: nomeValue } });
   }
   async desativarSubcategoria(id: number) {
     return this.prisma.subcategoriaMaterial.update({
@@ -285,20 +293,23 @@ export class MateriaisService {
     });
   }
   async criarMarca(data: any) {
+    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
     const exists = await this.prisma.marca.findFirst({
-      where: { nome: normalize(data.nome) },
+      where: { nome: normalize(nomeUpper) },
     });
     if (exists) throw new AppError(409, 'Marca já cadastrada');
-    return this.prisma.marca.create({ data });
+    return this.prisma.marca.create({ data: { ...data, nome: nomeUpper } });
   }
   async atualizarMarca(id: number, data: any) {
     if (data.nome) {
+      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
       const exists = await this.prisma.marca.findFirst({
-        where: { nome: normalize(data.nome), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Marca já cadastrada');
     }
-    return this.prisma.marca.update({ where: { id }, data });
+    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    return this.prisma.marca.update({ where: { id }, data: { ...data, nome: nomeValue } });
   }
   async desativarMarca(id: number) {
     return this.prisma.marca.update({ where: { id }, data: { ativo: false } });
@@ -311,20 +322,23 @@ export class MateriaisService {
     });
   }
   async criarCor(data: any) {
+    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
     const exists = await this.prisma.cor.findFirst({
-      where: { nome: normalize(data.nome) },
+      where: { nome: normalize(nomeUpper) },
     });
     if (exists) throw new AppError(409, 'Cor já cadastrada');
-    return this.prisma.cor.create({ data });
+    return this.prisma.cor.create({ data: { ...data, nome: nomeUpper } });
   }
   async atualizarCor(id: number, data: any) {
     if (data.nome) {
+      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
       const exists = await this.prisma.cor.findFirst({
-        where: { nome: normalize(data.nome), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Cor já cadastrada');
     }
-    return this.prisma.cor.update({ where: { id }, data });
+    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    return this.prisma.cor.update({ where: { id }, data: { ...data, nome: nomeValue } });
   }
   async desativarCor(id: number) {
     return this.prisma.cor.update({ where: { id }, data: { ativo: false } });
