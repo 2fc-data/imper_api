@@ -1,11 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { config } from '../config.js';
+import { EmailService } from '../email/email.service.js';
 import { AppError } from '../lib/errors.js';
 import { notificarPapeis } from '../lib/notificacao.js';
 import { verificarTurnstile } from '../lib/turnstile.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 import type {
   AlterarSenhaDto,
   CadastrarDto,
@@ -16,16 +19,28 @@ import type {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly whatsappService: WhatsAppService,
+    private readonly emailService: EmailService,
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (!user) throw new UnauthorizedException('E-mail ou senha inválidos');
+    let user;
+    if (dto.email.includes('@')) {
+      user = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+    } else {
+      const telefoneLimpo = dto.email.replace(/\D/g, '');
+      user = await this.prisma.user.findFirst({
+        where: { telefone: { contains: telefoneLimpo } },
+      });
+    }
+    if (!user) throw new UnauthorizedException('E-mail/telefone ou senha inválidos');
 
     const senhaValida = await bcrypt.compare(dto.senha, user.senhaHash);
     if (!senhaValida)
@@ -75,10 +90,18 @@ export class AuthService {
   }
 
   async cadastrar(dto: CadastrarDto) {
-    const existente = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    const telefoneLimpo = dto.telefone.replace(/\D/g, '');
+    const existenteTelefone = await this.prisma.user.findFirst({
+      where: { telefone: { contains: telefoneLimpo } },
     });
-    if (existente) throw new AppError(409, 'E-mail já cadastrado');
+    if (existenteTelefone) throw new AppError(409, 'Telefone já cadastrado');
+
+    if (dto.email) {
+      const existenteEmail = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (existenteEmail) throw new AppError(409, 'E-mail já cadastrado');
+    }
 
     if (config.turnstileSecret && !config.isDev) {
       await verificarTurnstile(dto.turnstileToken as string);
@@ -103,8 +126,8 @@ export class AuthService {
       const novoUser = await tx.user.create({
         data: {
           nome: dto.nome,
-          email: dto.email,
-          telefone: dto.telefone ?? null,
+          email: dto.email || null,
+          telefone: dto.telefone,
           senhaHash,
         },
       });
@@ -141,19 +164,76 @@ export class AuthService {
   }
 
   async recuperarSenha(dto: RecuperarSenhaDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    let user;
+    if (dto.canal === 'email' && dto.email) {
+      user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    } else if (dto.canal === 'whatsapp' && dto.telefone) {
+      const telefoneLimpo = dto.telefone.replace(/\D/g, '');
+      user = await this.prisma.user.findFirst({
+        where: { telefone: { contains: telefoneLimpo } },
+      });
+    }
+
+    if (!user) {
+      return {
+        ok: true,
+        mensagem:
+          'Se as credenciais estiverem corretas, um código de recuperação será enviado',
+      };
+    }
+
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
     });
-    if (!user) throw new AppError(404, 'Usuário não encontrado');
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiraEm = new Date(Date.now() + config.resetTokenExpiresMin * 60 * 1000);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiraEm,
+      },
+    });
+
+    if (dto.canal === 'email' && dto.email) {
+      await this.emailService.enviarLinkRecuperacao(dto.email, token, user.nome);
+    } else if (dto.canal === 'whatsapp' && dto.telefone) {
+      const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+      await this.whatsappService.enviarCodigoRecuperacao(dto.telefone, codigo);
+    }
+
     return {
       ok: true,
       mensagem:
-        'Se as credenciais estiverem corretas, um e-mail de reset será enviado',
+        'Se as credenciais estiverem corretas, um código de recuperação será enviado',
+      ...(config.isDev && dto.canal === 'email' ? { devToken: token } : {}),
     };
   }
 
   async redefinirSenha(dto: RedefinirSenhaDto) {
-    await bcrypt.hash(dto.senha, 10);
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token: dto.token },
+    });
+
+    if (!resetToken) throw new AppError(400, 'Token inválido');
+    if (resetToken.usadoEm) throw new AppError(400, 'Token já utilizado');
+    if (new Date() > resetToken.expiraEm) throw new AppError(400, 'Token expirado');
+
+    const novaSenhaHash = await bcrypt.hash(dto.senha, 10);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: resetToken.userId },
+        data: { senhaHash: novaSenhaHash },
+      });
+      await tx.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usadoEm: new Date() },
+      });
+    });
+
     return { ok: true };
   }
 

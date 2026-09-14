@@ -1,23 +1,32 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
+  email: z.string().min(1, 'E-mail ou telefone obrigatório'),
   senha: z.string().min(1, 'Senha obrigatória'),
   turnstileToken: z.string().optional(),
 });
 
 export const cadastrarSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  email: z.string().email('E-mail inválido'),
+  telefone: z.string().regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000'),
+  email: z.string().email('E-mail inválido').optional(),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  telefone: z.string().optional(),
   turnstileToken: z.string().optional(),
 });
 
 export const recuperarSenhaSchema = z.object({
-  email: z.string().email('E-mail inválido'),
+  canal: z.enum(['email', 'whatsapp']),
+  email: z.string().email('E-mail inválido').optional(),
+  telefone: z.string().optional(),
   turnstileToken: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.canal === 'email') return !!data.email;
+    if (data.canal === 'whatsapp') return !!data.telefone;
+    return false;
+  },
+  { message: 'E-mail obrigatório para recuperação por e-mail, telefone obrigatório para recuperação por WhatsApp' },
+);
 
 export const redefinirSenhaSchema = z.object({
   token: z.string().min(1, 'Token obrigatório'),

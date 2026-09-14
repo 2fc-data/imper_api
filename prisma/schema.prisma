@@ -27,7 +27,7 @@ model UnidadeMedida {
 model User {
   id                       Int                    @id @default(autoincrement())
   nome                     String                 @db.VarChar(120)
-  email                    String                 @unique @db.VarChar(120)
+  email                    String?                @unique @db.VarChar(120)
   senhaHash                String                 @db.VarChar(255)
   ativo                    Boolean                @default(true)
   cargoId                  Int?
