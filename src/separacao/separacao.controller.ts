@@ -1,5 +1,7 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   Param,
   Put,
@@ -52,5 +54,36 @@ export class SeparacaoController {
   @Put(':id/devolucao')
   async registrarDevolucao(@Param('id') id: string) {
     return this.service.registrarDevolucao(Number(id));
+  }
+
+  @Put(':id/itens/:itemId/retirar')
+  async registrarRetiradaItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() body: { colaboradorId: number; observacao?: string },
+    @Req() req: Request,
+  ) {
+    return this.service.registrarRetiradaItem(Number(id), Number(itemId), {
+      ...body,
+      registradoPorId: (req as any).user.id,
+    });
+  }
+
+  @Put(':id/itens/:itemId/devolver')
+  async registrarDevolucaoItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() body: { observacao?: string; status?: 'DEVOLVIDO' | 'PERDIDO' },
+    @Req() req: Request,
+  ) {
+    return this.service.registrarDevolucaoItem(Number(id), Number(itemId), {
+      ...body,
+      registradoPorId: (req as any).user.id,
+    });
+  }
+
+  @Delete(':id')
+  async excluir(@Param('id') id: string) {
+    return this.service.excluir(Number(id));
   }
 }

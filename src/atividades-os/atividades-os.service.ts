@@ -106,7 +106,23 @@ export class AtividadesOSService {
         }
 
         for (const recurso of catalogo.recursos) {
-          if (recurso.tipo === 'MATERIAL') {
+          if (
+            recurso.tipo === 'MATERIAL' ||
+            recurso.tipo === 'EPI' ||
+            recurso.tipo === 'EQUIPAMENTO'
+          ) {
+            const itemData: {
+              materialId?: number;
+              epiId?: number;
+              equipamentoId?: number;
+              quantidadeNecessaria: number;
+            } = {
+              quantidadeNecessaria: Number(recurso.quantidade),
+            };
+            if (recurso.tipo === 'MATERIAL') itemData.materialId = recurso.itemCatalogoId;
+            if (recurso.tipo === 'EPI') itemData.epiId = recurso.itemCatalogoId;
+            if (recurso.tipo === 'EQUIPAMENTO') itemData.equipamentoId = recurso.itemCatalogoId;
+
             await tx.separacao.create({
               data: {
                 codigo: `SEP-${data.osId}-${Date.now()}`,
@@ -116,12 +132,7 @@ export class AtividadesOSService {
                   : new Date(),
                 osId: data.osId,
                 equipeId: ativ.equipeId,
-                itens: {
-                  create: {
-                    materialId: recurso.itemCatalogoId,
-                    quantidadeNecessaria: Number(recurso.quantidade),
-                  },
-                },
+                itens: { create: itemData },
               },
             });
           }
