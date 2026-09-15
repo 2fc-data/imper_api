@@ -348,23 +348,26 @@ export class MateriaisService {
     return this.prisma.unidadeMedida.findMany({ orderBy: { nome: 'asc' } });
   }
   async criarUnidadeMedida(data: { nome: string }) {
+    const nomeUpper = data.nome.toUpperCase();
     const exists = await this.prisma.unidadeMedida.findFirst({
-      where: { nome: normalize(data.nome) },
+      where: { nome: normalize(nomeUpper) },
     });
     if (exists) throw new AppError(409, 'Unidade de medida já cadastrada');
-    return this.prisma.unidadeMedida.create({ data });
+    return this.prisma.unidadeMedida.create({ data: { ...data, nome: nomeUpper } });
   }
   async atualizarUnidadeMedida(
     id: number,
     data: { nome?: string; ativo?: boolean },
   ) {
     if (data.nome) {
+      const nomeUpper = data.nome.toUpperCase();
       const exists = await this.prisma.unidadeMedida.findFirst({
-        where: { nome: normalize(data.nome), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Unidade de medida já cadastrada');
     }
-    return this.prisma.unidadeMedida.update({ where: { id }, data });
+    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    return this.prisma.unidadeMedida.update({ where: { id }, data: { ...data, nome: nomeValue } });
   }
   async desativarUnidadeMedida(id: number) {
     return this.prisma.unidadeMedida.update({
