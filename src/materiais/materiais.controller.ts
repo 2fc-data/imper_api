@@ -160,6 +160,11 @@ export class MateriaisController {
     return this.materiaisService.desativarCor(Number(id));
   }
 
+  @Delete(':id')
+  async excluir(@Param('id') id: string) {
+    return this.materiaisService.excluir(Number(id));
+  }
+
   @Get(':id')
   async detalhar(@Param('id') id: string) {
     return this.materiaisService.detalhar(Number(id));
