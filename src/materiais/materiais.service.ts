@@ -376,6 +376,11 @@ export class MateriaisService {
     });
   }
 
+  async excluir(id: number) {
+    await this.detalhar(id);
+    return this.prisma.material.update({ where: { id }, data: { status: 'INATIVO' } });
+  }
+
   async registrarSaida(id: number, dto: MaterialMovimentoDto, userId?: number) {
     if (dto.quantidade <= 0) {
       throw new BadRequestException(
