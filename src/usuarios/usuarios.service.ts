@@ -174,7 +174,7 @@ export class UsuariosService {
     });
     if (!user) throw new AppError(404, 'Usuário não encontrado');
 
-    const { cpfCnpj, cep, endereco, bairro, cidade, estado, numero, complemento, ...userData } = data;
+    const { cpfCnpj, cep, endereco, bairro, cidade, estado, numero, complemento, papelId: _papelId, ...userData } = data;
 
     if (data.papelId !== undefined) {
       const papel = await this.prisma.papelRbac.findUnique({
