@@ -53,7 +53,7 @@ describe('AtendimentoController', () => {
 
   describe('detalhar', () => {
     it('should return atendimento by id', async () => {
-      const item = { id: 1, canal: 'LOJA', motivo: 'Consulta' };
+      const item = { id: 1, canal: 'LOJA' };
       mockService.detalhar.mockResolvedValue(item);
       const result = await controller.detalhar('1');
       expect(result).toEqual(item);
@@ -63,7 +63,7 @@ describe('AtendimentoController', () => {
 
   describe('criar', () => {
     it('should create a new atendimento', async () => {
-      const dto = { canal: 'LOJA' as const, motivo: 'Duvida' };
+      const dto = { canal: 'LOJA' as const };
       const created = { id: 1, ...dto, status: 'NOVO' };
       mockService.criar.mockResolvedValue(created);
       const result = await controller.criar(dto);

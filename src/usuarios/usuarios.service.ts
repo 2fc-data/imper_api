@@ -154,6 +154,7 @@ export class UsuariosService {
     id: number,
     data: {
       nome?: string;
+      email?: string;
       telefone?: string;
       papelId?: number;
       cargoId?: number | null;

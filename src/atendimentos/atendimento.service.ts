@@ -19,7 +19,6 @@ export class AtendimentoService {
 
     if (params?.q) {
       where.OR = [
-        { motivo: { contains: params.q } },
         { cliente: { nome: { contains: params.q } } },
       ];
     }
@@ -51,17 +50,17 @@ export class AtendimentoService {
 
   async criar(data: {
     canal: CanalAtendimento;
-    motivo: string;
     urgencia?: Urgencia;
+    descricao?: string;
     clienteId?: number;
     atendenteId?: number;
   }) {
     return this.prisma.atendimento.create({
       data: {
         canal: data.canal,
-        motivo: data.motivo,
         urgencia: data.urgencia ?? 'NORMAL',
         status: 'NOVO',
+        descricao: data.descricao ?? null,
         clienteId: data.clienteId ?? null,
         atendenteId: data.atendenteId ?? null,
       },

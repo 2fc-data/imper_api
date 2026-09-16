@@ -19,7 +19,7 @@ async function main() {
     const fase = await p.faseOS.deleteMany({ where: { ordemServico: { codigo: { startsWith: PREFIX } } } });
     const os = await p.ordemServico.deleteMany({ where: { codigo: { startsWith: PREFIX } } });
     const orc = await p.orcamento.deleteMany({ where: { codigo: { startsWith: PREFIX } } });
-    const atend = await p.atendimento.deleteMany({ where: { motivo: { startsWith: PREFIX } } });
+    const atend = await p.atendimento.deleteMany({ where: { descricao: { startsWith: PREFIX } } });
     const rec = await p.recursoAtividade.deleteMany({ where: { catalogoAtividade: { nome: { startsWith: PREFIX } } } });
     const sub = await p.subStepAtividade.deleteMany({ where: { catalogoAtividade: { nome: { startsWith: PREFIX } } } });
     const cat = await p.catalogoAtividade.deleteMany({ where: { nome: { startsWith: PREFIX } } });
@@ -42,7 +42,7 @@ async function main() {
   const atendimento = await p.atendimento.create({
     data: {
       canal: 'WHATSAPP',
-      motivo: `${PREFIX} - Atendimento inicial`,
+      descricao: `${PREFIX} - Atendimento inicial`,
       clienteId: cliente.id,
       atendenteId: 1,
       status: 'CONCLUIDO',

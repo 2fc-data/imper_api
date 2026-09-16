@@ -116,8 +116,7 @@ model Cliente {
 model Atendimento {
   id           Int               @id @default(autoincrement())
   canal        CanalAtendimento
-  motivo       String
-  urgencia     Urgencia?
+  urgencia     Urgencia?    @default(NORMAL)
   status       StatusAtendimento @default(NOVO)
   descricao    String?           @db.VarChar(1000)
   clienteId    Int?

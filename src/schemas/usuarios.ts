@@ -19,6 +19,7 @@ export const criarUsuarioSchema = z.object({
 
 export const atualizarUsuarioSchema = z.object({
   nome: z.string().trim().min(2).optional(),
+  email: z.string().trim().email('E-mail inválido').optional(),
   telefone: z.string().trim().optional(),
   papelId: z.number().optional(),
   cargoId: z.number().nullable().optional(),

@@ -5,7 +5,6 @@ export interface SolicitarOrcamentoDto {
   nome: string;
   telefone: string;
   email?: string;
-  motivo?: string;
   mensagem?: string;
   cep?: string;
   endereco?: string;
@@ -149,7 +148,6 @@ export class PublicoService {
     const atendimento = await this.prisma.atendimento.create({
       data: {
         canal: 'FORMULARIO',
-        motivo: dto.motivo ?? 'AGENDAR_AVALIACAO_ORCAMENTO',
         status: 'NOVO',
         descricao:
           dto.mensagem ?? 'Solicitação de orçamento via formulário web',
@@ -161,7 +159,6 @@ export class PublicoService {
       id: atendimento.id,
       nome: cliente.nome,
       canal: atendimento.canal,
-      motivo: atendimento.motivo,
       status: atendimento.status,
       createdAt: atendimento.createdAt.toISOString(),
     };
