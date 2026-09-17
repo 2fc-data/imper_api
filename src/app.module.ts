@@ -19,6 +19,7 @@ import { OrcamentosModule } from './orcamentos/orcamentos.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { PublicoModule } from './publico/publico.module.js';
 import { RbacModule } from './rbac/rbac.module.js';
+import { DisponibilidadeModule } from './disponibilidade/disponibilidade.module.js';
 import { SeparacaoModule } from './separacao/separacao.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { WhatsAppService } from './whatsapp/whatsapp.service.js';
@@ -39,6 +40,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     RbacModule,
     UsuariosModule,
     CatalogoAtividadesModule,
+    DisponibilidadeModule,
     EquipesModule,
     AtividadesOSModule,
     ChecklistModule,
