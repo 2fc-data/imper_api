@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { config } from '../config.js';
 import { EmailModule } from '../email/email.module.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
 import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -19,6 +20,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
       signOptions: { expiresIn: config.jwtExpires },
     } as any),
     EmailModule,
+    PrismaModule,
   ],
   providers: [
     AuthService,

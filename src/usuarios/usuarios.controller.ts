@@ -6,6 +6,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
@@ -32,6 +33,11 @@ export class UsuariosController {
   @Get()
   async listar() {
     return this.usuariosService.listar();
+  }
+
+  @Get('buscar')
+  async buscar(@Query('q') q: string) {
+    return this.usuariosService.buscar(q ?? '');
   }
 
   @Get('papeis')

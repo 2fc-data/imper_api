@@ -28,20 +28,24 @@ model User {
   id                       Int                    @id @default(autoincrement())
   nome                     String                 @db.VarChar(120)
   email                    String?                @unique @db.VarChar(120)
+  cpfCnpj                  String?                @unique @db.VarChar(20)
   senhaHash                String                 @db.VarChar(255)
   ativo                    Boolean                @default(true)
   cargoId                  Int?
   telefone                 String?                @db.VarChar(20)
-  clienteId                Int?                   @unique
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
+  acessosCliente           AcessoCliente[]
   agendamentosCriados      Agendamento[]          @relation("AgendamentoCriadoPor")
+  agendamentosCliente      Agendamento[]          @relation("AgendamentoCliente")
   agendamentosProfissional Agendamento[]          @relation("AgendamentoProfissional")
-  atendimentosLog          AtendimentoLog[]       @relation("AtendimentoLogAtendente")
   atendimentos             Atendimento[]          @relation("AtendimentoAtendente")
+  atendimentosCliente      Atendimento[]          @relation("AtendimentoCliente")
+  atendimentosLog          AtendimentoLog[]       @relation("AtendimentoLogAtendente")
   checklistConcluido       ChecklistExecucao[]
   comprasAprovadas         Compra[]               @relation("CompraAprovador")
   comprasCriadas           Compra[]               @relation("CompraCriador")
+  enderecos                Endereco[]
   entregasEpiRecebidas     EntregaEpi[]           @relation("EpiColaborador")
   entregasEpiRegistradas   EntregaEpi[]           @relation("EntregaEpiRegistradoPor")
   equipamentosResponsaveis Equipamento[]          @relation("EquipamentoResponsavel")
@@ -51,8 +55,10 @@ model User {
   membrosEquipe            MembroEquipe[]
   movimentos               MovimentoEstoque[]     @relation("MovimentoRegistradoPor")
   notificacoes             Notificacao[]
+  orcamentos               Orcamento[]            @relation("OrcamentoCliente")
   orcamentosAprovados      Orcamento[]            @relation("OrcamentoAprovador")
   orcamentosCriados        Orcamento[]            @relation("OrcamentoCriador")
+  os                       OrdemServico[]         @relation("OSCliente")
   osAprovadas              OrdemServico[]         @relation("AprovadorOS")
   osExecutadas             OrdemServico[]         @relation("TecnicoOS")
   pagamentosRegistrados    PagamentoOS[]          @relation("PagamentoRegistradoPor")
@@ -65,7 +71,6 @@ model User {
   separacoesCriadas        Separacao[]            @relation("SeparacaoCriador")
   uploads                  Upload[]               @relation("UploadUploader")
   cargo                    Cargo?                 @relation(fields: [cargoId], references: [id])
-  cliente                  Cliente?               @relation(fields: [clienteId], references: [id])
   papeis                   UsuarioPapel[]
   visitas                  VisitaTecnica[]        @relation("TecnicoVisita")
 
@@ -94,29 +99,10 @@ model Configuracao {
   @@map("configuracoes")
 }
 
-model Cliente {
-  id           Int             @id @default(autoincrement())
-  nome         String          @db.VarChar(120)
-  cpfCnpj      String?         @unique @db.VarChar(20)
-  telefone     String?         @db.VarChar(20)
-  email        String?         @db.VarChar(120)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  acessos      AcessoCliente[]
-  agendamentos Agendamento[]
-  atendimentos Atendimento[]
-  enderecos    Endereco[]
-  orcamentos   Orcamento[]
-  os           OrdemServico[]
-  usuario      User?
-
-  @@map("clientes")
-}
-
 model Atendimento {
   id           Int               @id @default(autoincrement())
   canal        CanalAtendimento
-  urgencia     Urgencia?    @default(NORMAL)
+  urgencia     Urgencia?         @default(NORMAL)
   status       StatusAtendimento @default(NOVO)
   descricao    String?           @db.VarChar(1000)
   clienteId    Int?
@@ -126,7 +112,7 @@ model Atendimento {
   agendamentos Agendamento[]
   logs         AtendimentoLog[]
   atendente    User?             @relation("AtendimentoAtendente", fields: [atendenteId], references: [id])
-  cliente      Cliente?          @relation(fields: [clienteId], references: [id])
+  cliente      User?             @relation("AtendimentoCliente", fields: [clienteId], references: [id])
   orcamentos   Orcamento[]
   os           OrdemServico[]
   visitas      VisitaTecnica[]
@@ -168,7 +154,7 @@ model Endereco {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   agendamentos Agendamento[]
-  cliente      Cliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente      User            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   orcamentos   Orcamento[]
   os           OrdemServico[]
   visitas      VisitaTecnica[]
@@ -259,7 +245,7 @@ model Agendamento {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   atendimento   Atendimento?      @relation(fields: [atendimentoId], references: [id])
-  cliente       Cliente           @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente       User              @relation("AgendamentoCliente", fields: [clienteId], references: [id], onDelete: Cascade)
   criadoPor     User?             @relation("AgendamentoCriadoPor", fields: [criadoPorId], references: [id])
   endereco      Endereco?         @relation(fields: [enderecoId], references: [id])
   user          User?             @relation("AgendamentoProfissional", fields: [userId], references: [id])
@@ -336,7 +322,7 @@ model Orcamento {
   itens                OrcamentoItem[]
   aprovadoPor          User?           @relation("OrcamentoAprovador", fields: [aprovadoPorId], references: [id])
   atendimento          Atendimento     @relation(fields: [atendimentoId], references: [id])
-  cliente              Cliente?        @relation(fields: [clienteId], references: [id])
+  cliente              User?           @relation("OrcamentoCliente", fields: [clienteId], references: [id])
   criadoPor            User            @relation("OrcamentoCriador", fields: [criadoPorId], references: [id])
   endereco             Endereco?       @relation(fields: [enderecoId], references: [id])
   visita               VisitaTecnica?  @relation(fields: [visitaId], references: [id], onDelete: Restrict)
@@ -409,7 +395,7 @@ model OrdemServico {
   notificacoes         Notificacao[]
   aprovadoPor          User?                 @relation("AprovadorOS", fields: [aprovadoPorId], references: [id])
   atendimento          Atendimento?          @relation(fields: [atendimentoId], references: [id])
-  cliente              Cliente?              @relation(fields: [clienteId], references: [id])
+  cliente              User?                 @relation("OSCliente", fields: [clienteId], references: [id])
   endereco             Endereco?             @relation(fields: [enderecoId], references: [id])
   orcamento            Orcamento             @relation(fields: [orcamentoId], references: [id])
   tecnicoResponsavel   User?                 @relation("TecnicoOS", fields: [tecnicoResponsavelId], references: [id])
@@ -776,7 +762,7 @@ model AcessoCliente {
   ativo          Boolean      @default(true)
   ultimoAcesso   DateTime?
   createdAt      DateTime     @default(now())
-  cliente        Cliente?     @relation(fields: [clienteId], references: [id])
+  cliente        User?        @relation(fields: [clienteId], references: [id])
   ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
 
   @@index([ordemServicoId])
@@ -1137,25 +1123,25 @@ model Epi {
 }
 
 model EntregaEpi {
-  id              Int               @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   epiId           Int
   colaboradorId   Int
-  quantidade      Decimal           @db.Decimal(12, 3)
-  data            DateTime          @default(now())
-  observacao      String?           @db.VarChar(500)
+  quantidade      Decimal          @db.Decimal(12, 3)
+  data            DateTime         @default(now())
+  observacao      String?          @db.VarChar(500)
   registradoPorId Int?
-  createdAt       DateTime          @default(now())
+  createdAt       DateTime         @default(now())
   osId            Int?
   atividadeOSId   String?
   separacaoId     Int?
   dataDevolucao   DateTime?
-  status          StatusEntregaEpi  @default(EM_USO)
-  colaborador     User              @relation("EpiColaborador", fields: [colaboradorId], references: [id])
-  epi             Epi               @relation(fields: [epiId], references: [id], onDelete: Cascade)
-  registradoPor   User?             @relation("EntregaEpiRegistradoPor", fields: [registradoPorId], references: [id])
-  os              OrdemServico?     @relation(fields: [osId], references: [id])
-  atividadeOS     AtividadeOS?      @relation(fields: [atividadeOSId], references: [id])
-  separacao       Separacao?        @relation(fields: [separacaoId], references: [id])
+  status          StatusEntregaEpi @default(EM_USO)
+  colaborador     User             @relation("EpiColaborador", fields: [colaboradorId], references: [id])
+  epi             Epi              @relation(fields: [epiId], references: [id], onDelete: Cascade)
+  registradoPor   User?            @relation("EntregaEpiRegistradoPor", fields: [registradoPorId], references: [id])
+  os              OrdemServico?    @relation(fields: [osId], references: [id])
+  atividadeOS     AtividadeOS?     @relation(fields: [atividadeOSId], references: [id])
+  separacao       Separacao?       @relation(fields: [separacaoId], references: [id])
 
   @@index([epiId])
   @@index([colaboradorId], map: "entregas_epi_colaboradorId_fkey")

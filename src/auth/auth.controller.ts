@@ -19,10 +19,14 @@ import type {
 } from './dto/auth.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { ThrottlerGuard } from '../throttler/throttler.guard.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Public()
   @UseGuards(ThrottlerGuard)
@@ -68,7 +72,42 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getMe(@Request() req: { user: unknown }) {
-    return req.user;
+  async getMe(@Request() req: { user: { id: number } }) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        telefone: true,
+        cpfCnpj: true,
+        enderecos: {
+          select: {
+            id: true,
+            logradouro: true,
+            numero: true,
+            complemento: true,
+            bairro: true,
+            cidade: true,
+            estado: true,
+            cep: true,
+          },
+          take: 1,
+        },
+        papeis: {
+          select: {
+            papel: { select: { nome: true } },
+          },
+          take: 1,
+        },
+      },
+    });
+    if (!user) return req.user;
+    const { enderecos, papeis, ...rest } = user;
+    return {
+      ...rest,
+      papel: papeis[0]?.papel.nome ?? null,
+      endereco: enderecos[0] ?? null,
+    };
   }
 }

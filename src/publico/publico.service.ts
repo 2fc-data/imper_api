@@ -110,7 +110,7 @@ export class PublicoService {
   }
 
   async solicitarOrcamento(dto: SolicitarOrcamentoDto) {
-    let cliente = await this.prisma.cliente.findFirst({
+    let user = await this.prisma.user.findFirst({
       where: {
         OR: [
           { telefone: dto.telefone },
@@ -119,20 +119,32 @@ export class PublicoService {
       },
     });
 
-    if (!cliente) {
-      cliente = await this.prisma.cliente.create({
+    if (!user) {
+      const bcrypt = await import('bcryptjs');
+      const senhaHash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+      user = await this.prisma.user.create({
         data: {
           nome: dto.nome,
           telefone: dto.telefone,
           email: dto.email ?? null,
+          senhaHash,
         },
       });
+      // Assign CLIENTE role if it exists
+      const papelCliente = await this.prisma.papelRbac.findFirst({
+        where: { nome: 'CLIENTE' },
+      });
+      if (papelCliente) {
+        await this.prisma.usuarioPapel.create({
+          data: { userId: user.id, papelId: papelCliente.id },
+        });
+      }
     }
 
     if (dto.endereco) {
       await this.prisma.endereco.create({
         data: {
-          clienteId: cliente.id,
+          clienteId: user.id,
           logradouro: dto.endereco,
           numero: dto.numero ?? null,
           complemento: dto.complemento ?? null,
@@ -151,13 +163,13 @@ export class PublicoService {
         status: 'NOVO',
         descricao:
           dto.mensagem ?? 'Solicitação de orçamento via formulário web',
-        clienteId: cliente.id,
+        clienteId: user.id,
       },
     });
 
     return {
       id: atendimento.id,
-      nome: cliente.nome,
+      nome: user.nome,
       canal: atendimento.canal,
       status: atendimento.status,
       createdAt: atendimento.createdAt.toISOString(),
