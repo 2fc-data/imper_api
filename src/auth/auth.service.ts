@@ -109,13 +109,13 @@ export class AuthService {
 
     let papelId: number;
     const papelExistente = await this.prisma.papelRbac.findFirst({
-      where: { nome: 'ATENDENTE' },
+      where: { nome: 'CLIENTE' },
     });
     if (papelExistente) {
       papelId = papelExistente.id;
     } else {
       const novoPapel = await this.prisma.papelRbac.create({
-        data: { nome: 'ATENDENTE', descricao: 'Usuário padrão' },
+        data: { nome: 'CLIENTE', descricao: 'Cliente padrão' },
       });
       papelId = novoPapel.id;
     }
@@ -135,7 +135,7 @@ export class AuthService {
       return novoUser;
     });
 
-    await notificarPapeis(['ATENDENTE'], {
+    await notificarPapeis(['CLIENTE'], {
       titulo: 'Bem-vindo!',
       mensagem: `Bem-vindo ao sistema, ${user.nome}!`,
       link: '/login',

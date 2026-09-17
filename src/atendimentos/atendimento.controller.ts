@@ -45,8 +45,8 @@ export class AtendimentoController {
   @Post()
   async criar(@Body() dto: {
     canal: CanalAtendimento;
-    motivo: string;
     urgencia?: Urgencia;
+    descricao?: string;
     clienteId?: number;
     atendenteId?: number;
   }) {

@@ -11,7 +11,6 @@ import { DashboardModule } from './dashboard/dashboard.module.js';
 import { EmailModule } from './email/email.module.js';
 import { EpisModule } from './epis/epis.module.js';
 import { AtendimentoModule } from './atendimentos/atendimento.module.js';
-import { ClientesModule } from './clientes/clientes.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 import { EquipesModule } from './equipes/equipes.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
@@ -45,7 +44,6 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     ChecklistModule,
     SeparacaoModule,
     EmailModule,
-    ClientesModule,
   ],
   controllers: [AppController],
   providers: [AppService, WhatsAppService, CronService],
