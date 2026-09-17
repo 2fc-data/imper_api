@@ -96,17 +96,29 @@ export class AuthController {
         },
         papeis: {
           select: {
-            papel: { select: { nome: true } },
+            papel: {
+              select: {
+                nome: true,
+                permissoes: { select: { permissao: { select: { chave: true } } } },
+              },
+            },
           },
-          take: 1,
         },
       },
     });
     if (!user) return req.user;
     const { enderecos, papeis, ...rest } = user;
+    const papelNome = papeis[0]?.papel.nome ?? null;
+    const permissoes = new Set<string>();
+    for (const up of papeis) {
+      for (const pp of up.papel.permissoes) {
+        permissoes.add(pp.permissao.chave);
+      }
+    }
     return {
       ...rest,
-      papel: papeis[0]?.papel.nome ?? null,
+      papel: papelNome,
+      permissoes: Array.from(permissoes),
       endereco: enderecos[0] ?? null,
     };
   }
