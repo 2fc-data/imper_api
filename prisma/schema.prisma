@@ -72,6 +72,8 @@ model User {
   uploads                  Upload[]               @relation("UploadUploader")
   cargo                    Cargo?                 @relation(fields: [cargoId], references: [id])
   papeis                   UsuarioPapel[]
+  disponibilidadePadroes   DisponibilidadePadrao[]
+  disponibilidadeDatas    DisponibilidadeData[]
   visitas                  VisitaTecnica[]        @relation("TecnicoVisita")
 
   @@index([cargoId], map: "users_cargoId_fkey")
@@ -258,6 +260,40 @@ model Agendamento {
   @@index([enderecoId], map: "agendamentos_enderecoId_fkey")
   @@index([userId], map: "agendamentos_userId_fkey")
   @@map("agendamentos")
+}
+
+model DisponibilidadePadrao {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  diaSemana   Int      // 1=Monday ... 6=Saturday
+  horaInicio  String   @db.VarChar(5)
+  horaFim     String   @db.VarChar(5)
+  capacidade  Int      @default(1)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([diaSemana])
+  @@map("disponibilidade_padroes")
+}
+
+model DisponibilidadeData {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  data        DateTime
+  horaInicio  String   @db.VarChar(5)
+  horaFim     String   @db.VarChar(5)
+  capacidade  Int      @default(1)
+  excluida    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([data])
+  @@map("disponibilidade_datas")
 }
 
 model Fase {
