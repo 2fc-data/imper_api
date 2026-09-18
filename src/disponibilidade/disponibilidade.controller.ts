@@ -45,6 +45,7 @@ export class DisponibilidadeController {
   @Delete('padroes/:id')
   async excluirPadrao(@Param('id') id: string) {
     await this.service.excluirPadrao(Number(id));
+    return { success: true };
   }
 
   // ---------- DATAS ----------
@@ -84,6 +85,7 @@ export class DisponibilidadeController {
   @Delete('datas/:id')
   async excluirData(@Param('id') id: string) {
     await this.service.excluirData(Number(id));
+    return { success: true };
   }
 
   // ---------- SLOTS ----------
