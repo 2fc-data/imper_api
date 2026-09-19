@@ -96,19 +96,46 @@ export class UsuariosService {
     numero?: string;
     complemento?: string;
   }) {
-    if (data.email) {
-      const existente = await this.prisma.user.findUnique({
-        where: { email: data.email },
+    if (data.nome) {
+      const nomeTrimmed = data.nome.trim();
+      const existenteNome = await this.prisma.user.findFirst({
+        where: { nome: { equals: nomeTrimmed, mode: 'insensitive' } },
       });
-      if (existente) throw new AppError(409, 'E-mail já cadastrado');
+      if (existenteNome) throw new AppError(409, 'Nome já cadastrado');
+    }
+
+    if (data.email) {
+      const emailTrimmed = data.email.trim();
+      const existenteEmail = await this.prisma.user.findFirst({
+        where: { email: { equals: emailTrimmed, mode: 'insensitive' } },
+      });
+      if (existenteEmail) throw new AppError(409, 'E-mail já cadastrado');
+    }
+
+    if (data.telefone) {
+      const telLimpo = data.telefone.replace(/\D/g, '');
+      if (telLimpo) {
+        const existenteTel = await this.prisma.user.findFirst({
+          where: {
+            OR: [
+              { telefone: data.telefone },
+              { telefone: telLimpo },
+              { telefone: { contains: telLimpo } },
+            ],
+          },
+        });
+        if (existenteTel) throw new AppError(409, 'Telefone já cadastrado');
+      }
     }
 
     if (data.cpfCnpj) {
       const cpfLimpo = data.cpfCnpj.replace(/\D/g, '');
-      const existente = await this.prisma.user.findUnique({
-        where: { cpfCnpj: cpfLimpo },
-      });
-      if (existente) throw new AppError(409, 'CPF/CNPJ já cadastrado');
+      if (cpfLimpo) {
+        const existenteCpf = await this.prisma.user.findFirst({
+          where: { cpfCnpj: cpfLimpo },
+        });
+        if (existenteCpf) throw new AppError(409, 'CPF/CNPJ já cadastrado');
+      }
     }
 
     const papel = await this.prisma.papelRbac.findUnique({
@@ -180,6 +207,45 @@ export class UsuariosService {
     if (!user) throw new AppError(404, 'Usuário não encontrado');
 
     const { cpfCnpj, cep, endereco, bairro, cidade, estado, numero, complemento, papelId: _papelId, ...userData } = data;
+
+    if (data.nome !== undefined && data.nome) {
+      const nomeTrimmed = data.nome.trim();
+      const existenteNome = await this.prisma.user.findFirst({
+        where: {
+          nome: { equals: nomeTrimmed, mode: 'insensitive' },
+          id: { not: id },
+        },
+      });
+      if (existenteNome) throw new AppError(409, 'Nome já cadastrado por outro usuário');
+    }
+
+    if (data.email !== undefined && data.email) {
+      const emailTrimmed = data.email.trim();
+      const existenteEmail = await this.prisma.user.findFirst({
+        where: {
+          email: { equals: emailTrimmed, mode: 'insensitive' },
+          id: { not: id },
+        },
+      });
+      if (existenteEmail) throw new AppError(409, 'E-mail já cadastrado por outro usuário');
+    }
+
+    if (data.telefone !== undefined && data.telefone) {
+      const telLimpo = data.telefone.replace(/\D/g, '');
+      if (telLimpo) {
+        const existenteTel = await this.prisma.user.findFirst({
+          where: {
+            id: { not: id },
+            OR: [
+              { telefone: data.telefone },
+              { telefone: telLimpo },
+              { telefone: { contains: telLimpo } },
+            ],
+          },
+        });
+        if (existenteTel) throw new AppError(409, 'Telefone já cadastrado por outro usuário');
+      }
+    }
 
     if (data.papelId !== undefined) {
       const papel = await this.prisma.papelRbac.findUnique({

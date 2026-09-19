@@ -90,6 +90,12 @@ export class AuthService {
   }
 
   async cadastrar(dto: CadastrarDto) {
+    const nomeTrimmed = dto.nome.trim();
+    const existenteNome = await this.prisma.user.findFirst({
+      where: { nome: { equals: nomeTrimmed, mode: 'insensitive' } },
+    });
+    if (existenteNome) throw new AppError(409, 'Nome já cadastrado');
+
     const telefoneLimpo = dto.telefone.replace(/\D/g, '');
     const existenteTelefone = await this.prisma.user.findFirst({
       where: { telefone: { contains: telefoneLimpo } },
