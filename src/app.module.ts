@@ -3,12 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { AgendamentoModule } from './agendamentos/agendamento.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { CommonModule } from './common/common.module.js';
 import { AtendimentoModule } from './atendimentos/atendimento.module.js';
 import { AtividadesOSModule } from './atividades-os/atividades-os.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CatalogoAtividadesModule } from './catalogo-atividades/catalogo-atividades.module.js';
 import { ChecklistModule } from './checklist/checklist.module.js';
-import { CronService } from './cron/cron.service.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DisponibilidadeModule } from './disponibilidade/disponibilidade.module.js';
 import { EmailModule } from './email/email.module.js';
@@ -29,6 +29,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    CommonModule,
     AuthModule,
     DashboardModule,
     AtendimentoModule,
@@ -50,6 +51,6 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     EmailModule,
   ],
   controllers: [AppController],
-  providers: [AppService, WhatsAppService, CronService],
+  providers: [AppService, WhatsAppService],
 })
 export class AppModule {}

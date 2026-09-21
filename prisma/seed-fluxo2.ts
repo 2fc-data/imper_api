@@ -9,7 +9,7 @@ async function main() {
 
   if (rollback) {
     console.log('Rollback: removendo dados do seed-fluxo2...');
-    const cli = await p.cliente.deleteMany({ where: { nome: { startsWith: PREFIX } } });
+    const cli = await p.user.deleteMany({ where: { perfil: 'CLIENTE' } });
     const sepItens = await p.separacaoItem.deleteMany({ where: { separacao: { os: { codigo: { startsWith: PREFIX } } } } });
     const sep = await p.separacao.deleteMany({ where: { os: { codigo: { startsWith: PREFIX } } } });
     const check = await p.checklistExecucao.deleteMany({ where: { atividadeOS: { os: { codigo: { startsWith: PREFIX } } } } });
@@ -28,22 +28,23 @@ async function main() {
   }
 
   // 1. Criar cliente
-  const cliente = await p.cliente.create({
+  const clienteUser = await p.user.create({
     data: {
       nome: `${PREFIX} - Obra Teste`,
+      perfil: 'CLIENTE',
       cpfCnpj: '999.999.999-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
       telefone: '(00) 0000-0000',
       email: 'seed@example.com',
     },
   });
-  console.log('Cliente criado:', cliente.id);
+  console.log('Cliente criado:', clienteUser.id);
 
   // 2. Criar atendimento
   const atendimento = await p.atendimento.create({
     data: {
       canal: 'WHATSAPP',
       descricao: `${PREFIX} - Atendimento inicial`,
-      clienteId: cliente.id,
+      clienteId: clienteUser.id,
       atendenteId: 1,
       status: 'CONCLUIDO',
     },
@@ -54,7 +55,7 @@ async function main() {
   const orcamento = await p.orcamento.create({
     data: {
       codigo: `${PREFIX}-${TS}-ORC`,
-      clienteId: cliente.id,
+      clienteId: clienteUser.id,
       atendimentoId: atendimento.id,
       criadoPorId: 1,
       status: 'APROVADO',
@@ -70,7 +71,7 @@ async function main() {
     data: {
       codigo: `${PREFIX}-${TS}-OS`,
       orcamentoId: orcamento.id,
-      clienteId: cliente.id,
+      clienteId: clienteUser.id,
       atendimentoId: atendimento.id,
       urgencia: 'NORMAL',
       status: 'EM_ANDAMENTO',
@@ -205,7 +206,7 @@ async function main() {
   console.log(`Separação Itens criados: ${materiais.length} materiais`);
 
   console.log('\n✅ Seed completo!');
-  console.log(`   Cliente: ${cliente.id}`);
+  console.log(`   Cliente: ${clienteUser.id}`);
   console.log(`   OS: ${os.id} (${os.codigo})`);
   console.log(`   Equipe: ${equipe.id}`);
   console.log(`   AtividadeOS: ${atv.id}`);

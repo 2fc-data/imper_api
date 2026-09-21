@@ -126,7 +126,7 @@ async function main() {
   }
 
   const categorias = await prisma.categoriaEquipamento.findMany({
-    select: { id: true, nome: true, tipo: true },
+    select: { id: true, nome: true },
   });
   const catMap = new Map(categorias.map((c) => [c.id, c]));
 
@@ -137,7 +137,7 @@ async function main() {
       console.log(`  ⚠️  Categoria ${catId} não encontrada — ignorando`);
       continue;
     }
-    console.log(`\n  ${cat.tipo} · ${cat.nome} (id=${catId})`);
+    console.log(`\n  ${cat.nome} (id=${catId})`);
     for (const s of lista) {
       await prisma.subcategoriaEquipamento.create({
         data: {

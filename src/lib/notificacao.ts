@@ -1,6 +1,7 @@
-import { prisma } from './db.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export async function notificarUsuarios(
+  prisma: PrismaService,
   userIds: number[],
   input: {
     titulo: string;
@@ -23,6 +24,7 @@ export async function notificarUsuarios(
 }
 
 export async function notificarPapeis(
+  prisma: PrismaService,
   nomesPapeis: string[],
   input: {
     titulo: string;
@@ -41,6 +43,6 @@ export async function notificarPapeis(
   });
   const uniqueIds = [...new Set(vinculacoes.map((v) => v.userId))];
   if (uniqueIds.length) {
-    await notificarUsuarios(uniqueIds, input);
+    await notificarUsuarios(prisma, uniqueIds, input);
   }
 }

@@ -7,6 +7,7 @@ import type { StatusMaterial, TipoMaterial } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
+import { LookupService, type LookupCrud } from '../common/services/lookup.service.js';
 
 export interface MaterialInputDto {
   nome: string;
@@ -34,7 +35,37 @@ export interface MaterialMovimentoDto {
 
 @Injectable()
 export class MateriaisService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly categorias: LookupCrud;
+  private readonly subcategorias: LookupCrud;
+  private readonly marcas: LookupCrud;
+  private readonly cores: LookupCrud;
+  private readonly unidadesMedida: LookupCrud;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly lookup: LookupService,
+  ) {
+    this.categorias = this.lookup.criarCrud(this.prisma.categoriaMaterial, {
+      labelSingular: 'Categoria',
+      duplicateMessage: () => 'Categoria já cadastrada',
+    });
+    this.subcategorias = this.lookup.criarCrud(this.prisma.subcategoriaMaterial, {
+      labelSingular: 'Subcategoria',
+      duplicateMessage: () => 'Subcategoria já cadastrada',
+    });
+    this.marcas = this.lookup.criarCrud(this.prisma.marca, {
+      labelSingular: 'Marca',
+      duplicateMessage: () => 'Marca já cadastrada',
+    });
+    this.cores = this.lookup.criarCrud(this.prisma.cor, {
+      labelSingular: 'Cor',
+      duplicateMessage: () => 'Cor já cadastrada',
+    });
+    this.unidadesMedida = this.lookup.criarCrud(this.prisma.unidadeMedida, {
+      labelSingular: 'Unidade de medida',
+      duplicateMessage: () => 'Unidade de medida já cadastrada',
+    });
+  }
 
   async listar(params?: { q?: string; tipo?: TipoMaterial }) {
     const where: Record<string, unknown> = {};
@@ -221,37 +252,10 @@ export class MateriaisService {
 
   // --- CRUD para Lookups de Materiais ---
 
-  async listarCategorias() {
-    return this.prisma.categoriaMaterial.findMany({
-      where: { ativo: true },
-      orderBy: { nome: 'asc' },
-    });
-  }
-  async criarCategoria(data: any) {
-    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    const exists = await this.prisma.categoriaMaterial.findFirst({
-      where: { nome: normalize(nomeUpper) },
-    });
-    if (exists) throw new AppError(409, 'Categoria já cadastrada');
-    return this.prisma.categoriaMaterial.create({ data: { ...data, nome: nomeUpper } });
-  }
-  async atualizarCategoria(id: number, data: any) {
-    if (data.nome) {
-      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-      const exists = await this.prisma.categoriaMaterial.findFirst({
-        where: { nome: normalize(nomeUpper), NOT: { id } },
-      });
-      if (exists) throw new AppError(409, 'Categoria já cadastrada');
-    }
-    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    return this.prisma.categoriaMaterial.update({ where: { id }, data: { ...data, nome: nomeValue } });
-  }
-  async desativarCategoria(id: number) {
-    return this.prisma.categoriaMaterial.update({
-      where: { id },
-      data: { ativo: false },
-    });
-  }
+  async listarCategorias() { return this.categorias.listar(); }
+  async criarCategoria(data: any) { return this.categorias.criar(data); }
+  async atualizarCategoria(id: number, data: any) { return this.categorias.atualizar(id, data); }
+  async desativarCategoria(id: number) { return this.categorias.desativar(id); }
 
   async listarSubcategorias() {
     return this.prisma.subcategoriaMaterial.findMany({
@@ -260,121 +264,24 @@ export class MateriaisService {
       orderBy: { nome: 'asc' },
     });
   }
-  async criarSubcategoria(data: any) {
-    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    const exists = await this.prisma.subcategoriaMaterial.findFirst({
-      where: { nome: normalize(nomeUpper) },
-    });
-    if (exists) throw new AppError(409, 'Subcategoria já cadastrada');
-    return this.prisma.subcategoriaMaterial.create({ data: { ...data, nome: nomeUpper } });
-  }
-  async atualizarSubcategoria(id: number, data: any) {
-    if (data.nome) {
-      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-      const exists = await this.prisma.subcategoriaMaterial.findFirst({
-        where: { nome: normalize(nomeUpper), NOT: { id } },
-      });
-      if (exists) throw new AppError(409, 'Subcategoria já cadastrada');
-    }
-    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    return this.prisma.subcategoriaMaterial.update({ where: { id }, data: { ...data, nome: nomeValue } });
-  }
-  async desativarSubcategoria(id: number) {
-    return this.prisma.subcategoriaMaterial.update({
-      where: { id },
-      data: { ativo: false },
-    });
-  }
+  async criarSubcategoria(data: any) { return this.subcategorias.criar(data); }
+  async atualizarSubcategoria(id: number, data: any) { return this.subcategorias.atualizar(id, data); }
+  async desativarSubcategoria(id: number) { return this.subcategorias.desativar(id); }
 
-  async listarMarcas() {
-    return this.prisma.marca.findMany({
-      where: { ativo: true },
-      orderBy: { nome: 'asc' },
-    });
-  }
-  async criarMarca(data: any) {
-    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    const exists = await this.prisma.marca.findFirst({
-      where: { nome: normalize(nomeUpper) },
-    });
-    if (exists) throw new AppError(409, 'Marca já cadastrada');
-    return this.prisma.marca.create({ data: { ...data, nome: nomeUpper } });
-  }
-  async atualizarMarca(id: number, data: any) {
-    if (data.nome) {
-      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-      const exists = await this.prisma.marca.findFirst({
-        where: { nome: normalize(nomeUpper), NOT: { id } },
-      });
-      if (exists) throw new AppError(409, 'Marca já cadastrada');
-    }
-    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    return this.prisma.marca.update({ where: { id }, data: { ...data, nome: nomeValue } });
-  }
-  async desativarMarca(id: number) {
-    return this.prisma.marca.update({ where: { id }, data: { ativo: false } });
-  }
+  async listarMarcas() { return this.marcas.listar(); }
+  async criarMarca(data: any) { return this.marcas.criar(data); }
+  async atualizarMarca(id: number, data: any) { return this.marcas.atualizar(id, data); }
+  async desativarMarca(id: number) { return this.marcas.desativar(id); }
 
-  async listarCores() {
-    return this.prisma.cor.findMany({
-      where: { ativo: true },
-      orderBy: { nome: 'asc' },
-    });
-  }
-  async criarCor(data: any) {
-    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    const exists = await this.prisma.cor.findFirst({
-      where: { nome: normalize(nomeUpper) },
-    });
-    if (exists) throw new AppError(409, 'Cor já cadastrada');
-    return this.prisma.cor.create({ data: { ...data, nome: nomeUpper } });
-  }
-  async atualizarCor(id: number, data: any) {
-    if (data.nome) {
-      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-      const exists = await this.prisma.cor.findFirst({
-        where: { nome: normalize(nomeUpper), NOT: { id } },
-      });
-      if (exists) throw new AppError(409, 'Cor já cadastrada');
-    }
-    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    return this.prisma.cor.update({ where: { id }, data: { ...data, nome: nomeValue } });
-  }
-  async desativarCor(id: number) {
-    return this.prisma.cor.update({ where: { id }, data: { ativo: false } });
-  }
+  async listarCores() { return this.cores.listar(); }
+  async criarCor(data: any) { return this.cores.criar(data); }
+  async atualizarCor(id: number, data: any) { return this.cores.atualizar(id, data); }
+  async desativarCor(id: number) { return this.cores.desativar(id); }
 
-  async listarUnidadesMedida() {
-    return this.prisma.unidadeMedida.findMany({ orderBy: { nome: 'asc' } });
-  }
-  async criarUnidadeMedida(data: { nome: string }) {
-    const nomeUpper = data.nome.toUpperCase();
-    const exists = await this.prisma.unidadeMedida.findFirst({
-      where: { nome: normalize(nomeUpper) },
-    });
-    if (exists) throw new AppError(409, 'Unidade de medida já cadastrada');
-    return this.prisma.unidadeMedida.create({ data: { ...data, nome: nomeUpper } });
-  }
-  async atualizarUnidadeMedida(
-    id: number,
-    data: { nome?: string; ativo?: boolean },
-  ) {
-    if (data.nome) {
-      const nomeUpper = data.nome.toUpperCase();
-      const exists = await this.prisma.unidadeMedida.findFirst({
-        where: { nome: normalize(nomeUpper), NOT: { id } },
-      });
-      if (exists) throw new AppError(409, 'Unidade de medida já cadastrada');
-    }
-    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    return this.prisma.unidadeMedida.update({ where: { id }, data: { ...data, nome: nomeValue } });
-  }
-  async desativarUnidadeMedida(id: number) {
-    return this.prisma.unidadeMedida.update({
-      where: { id },
-      data: { ativo: false },
-    });
-  }
+  async listarUnidadesMedida() { return this.unidadesMedida.listar(); }
+  async criarUnidadeMedida(data: { nome: string }) { return this.unidadesMedida.criar(data); }
+  async atualizarUnidadeMedida(id: number, data: { nome?: string; ativo?: boolean }) { return this.unidadesMedida.atualizar(id, data); }
+  async desativarUnidadeMedida(id: number) { return this.unidadesMedida.desativar(id); }
 
   async excluir(id: number) {
     await this.detalhar(id);

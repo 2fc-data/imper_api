@@ -141,7 +141,7 @@ export class AuthService {
       return novoUser;
     });
 
-    await notificarPapeis(['CLIENTE'], {
+    await notificarPapeis(this.prisma, ['CLIENTE'], {
       titulo: 'Bem-vindo!',
       mensagem: `Bem-vindo ao sistema, ${user.nome}!`,
       link: '/login',

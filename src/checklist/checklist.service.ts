@@ -28,7 +28,7 @@ export class ChecklistService {
       data: {
         status: 'CONCLUIDA',
         concluidoPorId: usuarioId,
-        dataConclusao: new Date(),
+        concluidoEm: new Date(),
       },
     });
 
