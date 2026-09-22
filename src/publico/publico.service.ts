@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface SolicitarOrcamentoDto {
@@ -120,7 +121,6 @@ export class PublicoService {
     });
 
     if (!user) {
-      const bcrypt = await import('bcryptjs');
       const senhaHash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
       user = await this.prisma.user.create({
         data: {

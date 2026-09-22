@@ -49,6 +49,10 @@ export class AtendimentoController {
     descricao?: string;
     clienteId?: number;
     atendenteId?: number;
+    clienteNome?: string;
+    clienteTelefone?: string;
+    clienteEmail?: string;
+    clienteCpfCnpj?: string;
   }) {
     return this.atendimentoService.criar(dto);
   }

@@ -55,8 +55,15 @@ export const criarUsuarioSchema = z.object({
   telefone: z
     .string()
     .trim()
-    .regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000')
-    .optional(),
+    .optional()
+    .refine(
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        const digits = val.replace(/\D/g, '');
+        return digits.length >= 10 && digits.length <= 11;
+      },
+      { message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos' },
+    ),
   papelId: z.number(),
   cargoId: z.number().nullable().optional(),
   cpfCnpj: cpfCnpjValidator,
@@ -72,7 +79,18 @@ export const criarUsuarioSchema = z.object({
 export const atualizarUsuarioSchema = z.object({
   nome: z.string().trim().min(2).optional(),
   email: z.string().trim().email('E-mail inválido').optional(),
-  telefone: z.string().trim().optional(),
+  telefone: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        const digits = val.replace(/\D/g, '');
+        return digits.length >= 10 && digits.length <= 11;
+      },
+      { message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos' },
+    ),
   papelId: z.number().optional(),
   cargoId: z.number().nullable().optional(),
   ativo: z.boolean().optional(),
