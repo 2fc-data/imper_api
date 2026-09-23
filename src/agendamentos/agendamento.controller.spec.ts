@@ -9,7 +9,6 @@ const mockService = {
   criar: vi.fn(),
   atualizar: vi.fn(),
   atualizarStatus: vi.fn(),
-  remover: vi.fn(),
 };
 
 const mockRotaService = {
@@ -142,14 +141,6 @@ describe('AgendamentoController', () => {
         'REALIZADO',
         '2026-09-18T15:00:00Z',
       );
-    });
-  });
-
-  describe('remover', () => {
-    it('should remove agendamento', async () => {
-      mockService.remover.mockResolvedValue(undefined);
-      await controller.remover('1');
-      expect(mockService.remover).toHaveBeenCalledWith(1);
     });
   });
 });

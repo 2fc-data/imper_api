@@ -193,9 +193,4 @@ export class AgendamentoService {
       include: includeStandard,
     });
   }
-
-  async remover(id: number) {
-    await this.detalhar(id);
-    await this.prisma.agendamento.delete({ where: { id } });
-  }
 }

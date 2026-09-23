@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -82,10 +81,5 @@ export class AgendamentoController {
       body.status,
       body.dataRealizada,
     );
-  }
-
-  @Delete(':id')
-  async remover(@Param('id') id: string) {
-    return this.agendamentoService.remover(Number(id));
   }
 }
