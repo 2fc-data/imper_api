@@ -7,6 +7,8 @@ const mockService = {
   detalhar: vi.fn(),
   criar: vi.fn(),
   atualizarStatus: vi.fn(),
+  listarLogs: vi.fn(),
+  criarLog: vi.fn(),
 };
 
 describe('AtendimentoController', () => {
@@ -15,9 +17,7 @@ describe('AtendimentoController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AtendimentoController],
-      providers: [
-        { provide: AtendimentoService, useValue: mockService },
-      ],
+      providers: [{ provide: AtendimentoService, useValue: mockService }],
     }).compile();
 
     controller = module.get<AtendimentoController>(AtendimentoController);
@@ -31,15 +31,25 @@ describe('AtendimentoController', () => {
       const response = await controller.listar();
       expect(response).toEqual(result);
       expect(mockService.listar).toHaveBeenCalledWith({
-        q: undefined, status: undefined,
-        criadoDe: undefined, criadoAte: undefined,
-        atualizadoDe: undefined, atualizadoAte: undefined,
+        q: undefined,
+        status: undefined,
+        criadoDe: undefined,
+        criadoAte: undefined,
+        atualizadoDe: undefined,
+        atualizadoAte: undefined,
       });
     });
 
     it('should pass filters to service', async () => {
       mockService.listar.mockResolvedValue({ itens: [], count: 0 });
-      await controller.listar('teste', 'NOVO', '2026-01-01', '2026-12-31', undefined, undefined);
+      await controller.listar(
+        'teste',
+        'NOVO',
+        '2026-01-01',
+        '2026-12-31',
+        undefined,
+        undefined,
+      );
       expect(mockService.listar).toHaveBeenCalledWith({
         q: 'teste',
         status: 'NOVO',
@@ -74,10 +84,40 @@ describe('AtendimentoController', () => {
 
   describe('atualizarStatus', () => {
     it('should update status of an atendimento', async () => {
-      mockService.atualizarStatus.mockResolvedValue({ id: 1, status: 'EM_ANDAMENTO' });
-      const result = await controller.atualizarStatus('1', 'EM_ANDAMENTO');
+      mockService.atualizarStatus.mockResolvedValue({
+        id: 1,
+        status: 'EM_ANDAMENTO',
+      });
+      const req = { user: { id: 7 } } as any;
+      const result = await controller.atualizarStatus('1', 'EM_ANDAMENTO', req);
       expect(result).toEqual({ id: 1, status: 'EM_ANDAMENTO' });
-      expect(mockService.atualizarStatus).toHaveBeenCalledWith(1, 'EM_ANDAMENTO');
+      expect(mockService.atualizarStatus).toHaveBeenCalledWith(
+        1,
+        'EM_ANDAMENTO',
+        7,
+      );
+    });
+  });
+
+  describe('listarLogs', () => {
+    it('should return logs for an atendimento', async () => {
+      const logs = [{ id: 1, atendimentoId: 1, tipo: 'TEXTO' }];
+      mockService.listarLogs.mockResolvedValue(logs);
+      const result = await controller.listarLogs('1');
+      expect(result).toEqual(logs);
+      expect(mockService.listarLogs).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('criarLog', () => {
+    it('should create a log with atendente id', async () => {
+      const dto = { descricao: 'Cliente ligou' };
+      const created = { id: 1, atendimentoId: 1, ...dto, tipo: 'TEXTO' };
+      mockService.criarLog.mockResolvedValue(created);
+      const req = { user: { id: 9 } } as any;
+      const result = await controller.criarLog('1', dto, req);
+      expect(result).toEqual(created);
+      expect(mockService.criarLog).toHaveBeenCalledWith(1, dto, 9);
     });
   });
 });

@@ -35,12 +35,11 @@ model User {
   telefone                 String?                 @db.VarChar(20)
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
-  acessosCliente           AcessoCliente[]
+  acessosUser              AcessoUser[]
   agendamentosCriados      Agendamento[]           @relation("AgendamentoCriadoPor")
-  agendamentosCliente      Agendamento[]           @relation("AgendamentoCliente")
-  agendamentosProfissional Agendamento[]           @relation("AgendamentoProfissional")
+  agendamentosUser         Agendamento[]           @relation("AgendamentoUser")
   atendimentos             Atendimento[]           @relation("AtendimentoAtendente")
-  atendimentosCliente      Atendimento[]           @relation("AtendimentoCliente")
+  atendimentosUser         Atendimento[]           @relation("AtendimentoUser")
   atendimentosLog          AtendimentoLog[]        @relation("AtendimentoLogAtendente")
   checklistConcluido       ChecklistExecucao[]
   comprasAprovadas         Compra[]                @relation("CompraAprovador")
@@ -55,10 +54,10 @@ model User {
   membrosEquipe            MembroEquipe[]
   movimentos               MovimentoEstoque[]      @relation("MovimentoRegistradoPor")
   notificacoes             Notificacao[]
-  orcamentos               Orcamento[]             @relation("OrcamentoCliente")
+  orcamentosUser           Orcamento[]             @relation("OrcamentoUser")
   orcamentosAprovados      Orcamento[]             @relation("OrcamentoAprovador")
   orcamentosCriados        Orcamento[]             @relation("OrcamentoCriador")
-  os                       OrdemServico[]          @relation("OSCliente")
+  ordensServico            OrdemServico[]          @relation("OSUser")
   osAprovadas              OrdemServico[]          @relation("AprovadorOS")
   osExecutadas             OrdemServico[]          @relation("TecnicoOS")
   pagamentosRegistrados    PagamentoOS[]           @relation("PagamentoRegistradoPor")
@@ -107,20 +106,20 @@ model Atendimento {
   urgencia     Urgencia?         @default(NORMAL)
   status       StatusAtendimento @default(NOVO)
   descricao    String?           @db.VarChar(1000)
-  clienteId    Int?
+  userId       Int?
   atendenteId  Int?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   agendamentos Agendamento[]
   logs         AtendimentoLog[]
   atendente    User?             @relation("AtendimentoAtendente", fields: [atendenteId], references: [id])
-  cliente      User?             @relation("AtendimentoCliente", fields: [clienteId], references: [id])
+  user         User?             @relation("AtendimentoUser", fields: [userId], references: [id])
   orcamentos   Orcamento[]
   os           OrdemServico[]
   visitas      VisitaTecnica[]
 
   @@index([atendenteId], map: "atendimentos_atendenteId_fkey")
-  @@index([clienteId], map: "atendimentos_clienteId_fkey")
+  @@index([userId], map: "atendimentos_clienteId_fkey")
   @@map("atendimentos")
 }
 
@@ -143,7 +142,7 @@ model AtendimentoLog {
 
 model Endereco {
   id           Int             @id @default(autoincrement())
-  clienteId    Int
+  userId       Int
   rotulo       EnderecoRotulo  @default(RESIDENCIAL)
   logradouro   String          @db.VarChar(255)
   numero       String?         @db.VarChar(10)
@@ -156,12 +155,12 @@ model Endereco {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   agendamentos Agendamento[]
-  cliente      User            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   orcamentos   Orcamento[]
   os           OrdemServico[]
   visitas      VisitaTecnica[]
 
-  @@index([clienteId], map: "enderecos_clienteId_fkey")
+  @@index([userId], map: "enderecos_clienteId_fkey")
   @@map("enderecos")
 }
 
@@ -234,10 +233,9 @@ model FotosVisita {
 
 model Agendamento {
   id            Int               @id @default(autoincrement())
-  clienteId     Int
+  userId        Int?
   atendimentoId Int?
   enderecoId    Int?
-  userId        Int?
   tipo          TipoAgendamento   @default(VISITA)
   status        StatusAgendamento @default(PENDENTE)
   dataPrevista  DateTime
@@ -247,18 +245,16 @@ model Agendamento {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   atendimento   Atendimento?      @relation(fields: [atendimentoId], references: [id])
-  cliente       User              @relation("AgendamentoCliente", fields: [clienteId], references: [id], onDelete: Cascade)
+  user          User?             @relation("AgendamentoUser", fields: [userId], references: [id], onDelete: Cascade)
   criadoPor     User?             @relation("AgendamentoCriadoPor", fields: [criadoPorId], references: [id])
   endereco      Endereco?         @relation(fields: [enderecoId], references: [id])
-  user          User?             @relation("AgendamentoProfissional", fields: [userId], references: [id])
 
-  @@index([clienteId])
+  @@index([userId])
   @@index([dataPrevista])
   @@index([status])
   @@index([atendimentoId], map: "agendamentos_atendimentoId_fkey")
   @@index([criadoPorId], map: "agendamentos_criadoPorId_fkey")
   @@index([enderecoId], map: "agendamentos_enderecoId_fkey")
-  @@index([userId], map: "agendamentos_userId_fkey")
   @@map("agendamentos")
 }
 
@@ -337,7 +333,7 @@ model Orcamento {
   codigo               String          @unique @db.VarChar(20)
   atendimentoId        Int
   visitaId             Int?
-  clienteId            Int?
+  userId               Int?
   enderecoId           Int?
   urgencia             Urgencia
   status               StatusOrcamento @default(RASCUNHO)
@@ -348,7 +344,7 @@ model Orcamento {
   criadoPorId          Int
   aprovadoPorId        Int?
   aprovadoEm           DateTime?
-  confirmadoPorCliente Boolean         @default(false)
+  confirmadoPorUser    Boolean         @default(false)
   dataConfirmacao      DateTime?
   formaPagamento       FormaPagamento?
   tokenConfirmacao     String?         @unique @db.VarChar(64)
@@ -358,7 +354,7 @@ model Orcamento {
   itens                OrcamentoItem[]
   aprovadoPor          User?           @relation("OrcamentoAprovador", fields: [aprovadoPorId], references: [id])
   atendimento          Atendimento     @relation(fields: [atendimentoId], references: [id])
-  cliente              User?           @relation("OrcamentoCliente", fields: [clienteId], references: [id])
+  user                 User?           @relation("OrcamentoUser", fields: [userId], references: [id])
   criadoPor            User            @relation("OrcamentoCriador", fields: [criadoPorId], references: [id])
   endereco             Endereco?       @relation(fields: [enderecoId], references: [id])
   visita               VisitaTecnica?  @relation(fields: [visitaId], references: [id], onDelete: Restrict)
@@ -366,7 +362,7 @@ model Orcamento {
 
   @@index([atendimentoId])
   @@index([aprovadoPorId], map: "orcamentos_aprovadoPorId_fkey")
-  @@index([clienteId], map: "orcamentos_clienteId_fkey")
+  @@index([userId], map: "orcamentos_clienteId_fkey")
   @@index([criadoPorId], map: "orcamentos_criadoPorId_fkey")
   @@index([enderecoId], map: "orcamentos_enderecoId_fkey")
   @@index([visitaId], map: "orcamentos_visitaId_fkey")
@@ -397,7 +393,7 @@ model OrdemServico {
   id                   Int                   @id @default(autoincrement())
   codigo               String                @unique @db.VarChar(20)
   orcamentoId          Int                   @unique
-  clienteId            Int?
+  userId               Int?
   atendimentoId        Int?
   urgencia             Urgencia
   status               StatusOS              @default(AGUARDANDO_APROVACAO)
@@ -412,14 +408,14 @@ model OrdemServico {
   rejeitadoEm          DateTime?
   motivoRejeicao       String?               @db.VarChar(500)
   observacoes          String?               @db.VarChar(2000)
-  confirmadoPorCliente Boolean               @default(false)
+  confirmadoPorUser    Boolean               @default(false)
   confirmadoEm         DateTime?
   avaliacao            Int?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   dataFimExecucao      DateTime?             @db.DateTime(0)
   dataInicioExecucao   DateTime?             @db.DateTime(0)
-  acessosCliente       AcessoCliente[]
+  acessosUser          AcessoUser[]
   aditivos             AditivoOS[]
   assinatura           Assinatura?
   atividadesOS         AtividadeOS[]
@@ -431,7 +427,7 @@ model OrdemServico {
   notificacoes         Notificacao[]
   aprovadoPor          User?                 @relation("AprovadorOS", fields: [aprovadoPorId], references: [id])
   atendimento          Atendimento?          @relation(fields: [atendimentoId], references: [id])
-  cliente              User?                 @relation("OSCliente", fields: [clienteId], references: [id])
+  user                 User?                 @relation("OSUser", fields: [userId], references: [id])
   endereco             Endereco?             @relation(fields: [enderecoId], references: [id])
   orcamento            Orcamento             @relation(fields: [orcamentoId], references: [id])
   tecnicoResponsavel   User?                 @relation("TecnicoOS", fields: [tecnicoResponsavelId], references: [id])
@@ -444,7 +440,7 @@ model OrdemServico {
   @@index([urgencia])
   @@index([aprovadoPorId], map: "ordens_servico_aprovadoPorId_fkey")
   @@index([atendimentoId], map: "ordens_servico_atendimentoId_fkey")
-  @@index([clienteId], map: "ordens_servico_clienteId_fkey")
+  @@index([userId], map: "ordens_servico_clienteId_fkey")
   @@index([enderecoId], map: "ordens_servico_enderecoId_fkey")
   @@index([tecnicoResponsavelId], map: "ordens_servico_tecnicoResponsavelId_fkey")
   @@map("ordens_servico")
@@ -537,7 +533,7 @@ model Assinatura {
   id             Int          @id @default(autoincrement())
   ordemServicoId Int          @unique
   url            String       @db.VarChar(255)
-  nomeCliente    String       @db.VarChar(120)
+  nomeUser       String       @db.VarChar(120)
   assinadoEm     DateTime     @default(now())
   ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
 
@@ -788,21 +784,21 @@ model PagamentoOS {
   @@map("pagamentos_os")
 }
 
-model AcessoCliente {
+model AcessoUser {
   id             Int          @id @default(autoincrement())
   ordemServicoId Int
-  clienteId      Int?
+  userId         Int?
   nome           String       @db.VarChar(120)
   token          String       @unique @db.VarChar(64)
   expiraEm       DateTime
   ativo          Boolean      @default(true)
   ultimoAcesso   DateTime?
   createdAt      DateTime     @default(now())
-  cliente        User?        @relation(fields: [clienteId], references: [id])
+  user           User?        @relation(fields: [userId], references: [id])
   ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
 
   @@index([ordemServicoId])
-  @@index([clienteId], map: "acessos_cliente_clienteId_fkey")
+  @@index([userId], map: "acessos_cliente_clienteId_fkey")
   @@map("acessos_cliente")
 }
 

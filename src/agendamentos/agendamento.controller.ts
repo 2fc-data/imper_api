@@ -32,7 +32,6 @@ export class AgendamentoController {
   async listar(
     @Query('status') status?: StatusAgendamento,
     @Query('tipo') tipo?: TipoAgendamento,
-    @Query('clienteId') clienteId?: string,
     @Query('userId') userId?: string,
     @Query('dataDe') dataDe?: string,
     @Query('dataAte') dataAte?: string,
@@ -40,7 +39,6 @@ export class AgendamentoController {
     return this.agendamentoService.listar({
       status,
       tipo,
-      clienteId: clienteId ? Number(clienteId) : undefined,
       userId: userId ? Number(userId) : undefined,
       dataDe,
       dataAte,

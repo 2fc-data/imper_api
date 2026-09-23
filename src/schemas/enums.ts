@@ -4,11 +4,11 @@ export type StatusAtendimento =
   | 'CONCLUIDO'
   | 'INATIVO';
 
+export type TipoAtendimento = 'TEXTO' | 'STATUS';
+
 export type CanalAtendimento = 'WHATSAPP' | 'FORMULARIO' | 'LOJA' | 'TELEFONE';
 
-export type MotivoAtendimento =
-  | 'DUVIDA'
-  | 'AGENDAR_AVALIACAO_ORCAMENTO';
+export type MotivoAtendimento = 'DUVIDA' | 'AGENDAR_AVALIACAO_ORCAMENTO';
 
 export type Urgencia = 'NORMAL' | 'URGENTE' | 'URGENTISSIMO';
 
@@ -71,15 +71,9 @@ export type EspecialidadeAtividade =
   | 'LIMPEZA'
   | 'OUTROS';
 
-export type EnumTipoRecursoAtividade =
-  | 'EQUIPAMENTO'
-  | 'EPI'
-  | 'MATERIAL';
+export type EnumTipoRecursoAtividade = 'EQUIPAMENTO' | 'EPI' | 'MATERIAL';
 
-export type EnumStatusEquipe =
-  | 'PENDENTE'
-  | 'EM_EXECUCAO'
-  | 'CONCLUIDA';
+export type EnumStatusEquipe = 'PENDENTE' | 'EM_EXECUCAO' | 'CONCLUIDA';
 
 export type EnumStatusAtividadeOS =
   | 'PENDENTE'
@@ -87,10 +81,7 @@ export type EnumStatusAtividadeOS =
   | 'CONCLUIDA'
   | 'CANCELADA';
 
-export type EnumStatusChecklist =
-  | 'PENDENTE'
-  | 'CONCLUIDA'
-  | 'BLOQUEADA';
+export type EnumStatusChecklist = 'PENDENTE' | 'CONCLUIDA' | 'BLOQUEADA';
 
 export type EnumStatusSeparacaoNovo =
   | 'SEPARACAO_PENDENTE'
@@ -101,7 +92,4 @@ export type EnumStatusSeparacaoNovo =
   | 'DEVOLUCAO_PENDENTE'
   | 'DEVOLUCAO_CONCLUIDA';
 
-export type EnumStatusEquipamento =
-  | 'EM_USO'
-  | 'DEVOLVIDO'
-  | 'EM_MANUTENCAO';
+export type EnumStatusEquipamento = 'EM_USO' | 'DEVOLVIDO' | 'EM_MANUTENCAO';

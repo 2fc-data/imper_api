@@ -1,17 +1,27 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import type { CanalAtendimento, Urgencia, StatusAtendimento } from '../schemas/enums.js';
+import type {
+  CanalAtendimento,
+  StatusAtendimento,
+  TipoAtendimento,
+  Urgencia,
+} from '../schemas/enums.js';
 import { AtendimentoService } from './atendimento.service.js';
+
+interface RequestWithUser extends Request {
+  user?: { id: number };
+}
 
 @Controller('atendimentos')
 @UseGuards(JwtAuthGuard)
@@ -42,18 +52,39 @@ export class AtendimentoController {
     return this.atendimentoService.detalhar(Number(id));
   }
 
+  @Get(':id/atendimentos')
+  async listarLogs(@Param('id') id: string) {
+    return this.atendimentoService.listarLogs(Number(id));
+  }
+
+  @Post(':id/atendimentos')
+  async criarLog(
+    @Param('id') id: string,
+    @Body() dto: {
+      descricao?: string;
+      tipo?: TipoAtendimento;
+      statusDe?: StatusAtendimento;
+      statusPara?: StatusAtendimento;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    return this.atendimentoService.criarLog(Number(id), dto, req.user?.id);
+  }
+
   @Post()
-  async criar(@Body() dto: {
-    canal: CanalAtendimento;
-    urgencia?: Urgencia;
-    descricao?: string;
-    clienteId?: number;
-    atendenteId?: number;
-    clienteNome?: string;
-    clienteTelefone?: string;
-    clienteEmail?: string;
-    clienteCpfCnpj?: string;
-  }) {
+  async criar(
+    @Body() dto: {
+      canal: CanalAtendimento;
+      urgencia?: Urgencia;
+      descricao?: string;
+      userId?: number;
+      atendenteId?: number;
+      userName?: string;
+      userTelefone?: string;
+      userEmail?: string;
+      userCpfCnpj?: string;
+    },
+  ) {
     return this.atendimentoService.criar(dto);
   }
 
@@ -61,7 +92,12 @@ export class AtendimentoController {
   async atualizarStatus(
     @Param('id') id: string,
     @Body('status') status: StatusAtendimento,
+    @Req() req: RequestWithUser,
   ) {
-    return this.atendimentoService.atualizarStatus(Number(id), status);
+    return this.atendimentoService.atualizarStatus(
+      Number(id),
+      status,
+      req.user?.id,
+    );
   }
 }

@@ -131,12 +131,12 @@ export class PublicoService {
         },
       });
       // Assign CLIENTE role if it exists
-      const papelCliente = await this.prisma.papelRbac.findFirst({
+      const papelUser = await this.prisma.papelRbac.findFirst({
         where: { nome: 'CLIENTE' },
       });
-      if (papelCliente) {
+      if (papelUser) {
         await this.prisma.usuarioPapel.create({
-          data: { userId: user.id, papelId: papelCliente.id },
+          data: { userId: user.id, papelId: papelUser.id },
         });
       }
     }
@@ -144,7 +144,7 @@ export class PublicoService {
     if (dto.endereco) {
       await this.prisma.endereco.create({
         data: {
-          clienteId: user.id,
+          userId: user.id,
           logradouro: dto.endereco,
           numero: dto.numero ?? null,
           complemento: dto.complemento ?? null,
@@ -163,7 +163,7 @@ export class PublicoService {
         status: 'NOVO',
         descricao:
           dto.mensagem ?? 'Solicitação de orçamento via formulário web',
-        clienteId: user.id,
+        userId: user.id,
       },
     });
 
