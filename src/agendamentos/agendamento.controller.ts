@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -18,6 +17,7 @@ import {
   type AtualizarAgendamentoDto,
   type CriarAgendamentoDto,
 } from './agendamento.service.js';
+import { RotaAgendamentoService } from './rota-agendamento.service.js';
 
 interface RequestWithUser extends Request {
   user?: { id: number };
@@ -26,7 +26,10 @@ interface RequestWithUser extends Request {
 @Controller('agendamentos')
 @UseGuards(JwtAuthGuard)
 export class AgendamentoController {
-  constructor(private readonly agendamentoService: AgendamentoService) {}
+  constructor(
+    private readonly agendamentoService: AgendamentoService,
+    private readonly rotaService: RotaAgendamentoService,
+  ) {}
 
   @Get()
   async listar(
@@ -50,11 +53,13 @@ export class AgendamentoController {
     return this.agendamentoService.detalhar(Number(id));
   }
 
+  @Get(':id/rota')
+  async rota(@Param('id') id: string) {
+    return this.rotaService.calcularRota(Number(id));
+  }
+
   @Post()
-  async criar(
-    @Body() dto: CriarAgendamentoDto,
-    @Req() req: RequestWithUser,
-  ) {
+  async criar(@Body() dto: CriarAgendamentoDto, @Req() req: RequestWithUser) {
     return this.agendamentoService.criar(dto, req.user?.id);
   }
 
@@ -76,10 +81,5 @@ export class AgendamentoController {
       body.status,
       body.dataRealizada,
     );
-  }
-
-  @Delete(':id')
-  async remover(@Param('id') id: string) {
-    return this.agendamentoService.remover(Number(id));
   }
 }
