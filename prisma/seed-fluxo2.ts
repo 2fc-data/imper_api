@@ -27,7 +27,7 @@ async function main() {
     return;
   }
 
-  // 1. Criar cliente
+  // 1. Criar usuário cliente
   const clienteUser = await p.user.create({
     data: {
       nome: `${PREFIX} - Obra Teste`,
@@ -44,7 +44,7 @@ async function main() {
     data: {
       canal: 'WHATSAPP',
       descricao: `${PREFIX} - Atendimento inicial`,
-      clienteId: clienteUser.id,
+      userId: clienteUser.id,
       atendenteId: 1,
       status: 'CONCLUIDO',
     },
@@ -55,7 +55,7 @@ async function main() {
   const orcamento = await p.orcamento.create({
     data: {
       codigo: `${PREFIX}-${TS}-ORC`,
-      clienteId: clienteUser.id,
+      userId: clienteUser.id,
       atendimentoId: atendimento.id,
       criadoPorId: 1,
       status: 'APROVADO',
@@ -71,7 +71,7 @@ async function main() {
     data: {
       codigo: `${PREFIX}-${TS}-OS`,
       orcamentoId: orcamento.id,
-      clienteId: clienteUser.id,
+      userId: clienteUser.id,
       atendimentoId: atendimento.id,
       urgencia: 'NORMAL',
       status: 'EM_ANDAMENTO',

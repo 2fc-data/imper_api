@@ -47,12 +47,12 @@ export class AtendimentoController {
     canal: CanalAtendimento;
     urgencia?: Urgencia;
     descricao?: string;
-    clienteId?: number;
+    userId?: number;
     atendenteId?: number;
-    clienteNome?: string;
-    clienteTelefone?: string;
-    clienteEmail?: string;
-    clienteCpfCnpj?: string;
+    userName?: string;
+    userTelefone?: string;
+    userEmail?: string;
+    userCpfCnpj?: string;
   }) {
     return this.atendimentoService.criar(dto);
   }

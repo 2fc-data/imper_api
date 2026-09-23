@@ -163,7 +163,7 @@ export class UsuariosService {
       if (data.endereco) {
         await tx.endereco.create({
           data: {
-            clienteId: novoUser.id,
+            userId: novoUser.id,
             logradouro: data.endereco,
             numero: data.numero ?? null,
             complemento: data.complemento ?? null,
@@ -286,7 +286,7 @@ export class UsuariosService {
         } else {
           await tx.endereco.create({
             data: {
-              clienteId: id,
+            userId: id,
               logradouro: endereco,
               numero: numero ?? null,
               complemento: complemento ?? null,

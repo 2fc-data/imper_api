@@ -19,7 +19,7 @@ export class OrcamentosService {
       where.OR = [
         { codigo: { contains: params.q } },
         { observacoes: { contains: params.q } },
-        { atendimento: { cliente: { nome: { contains: params.q } } } },
+        { atendimento: { user: { nome: { contains: params.q } } } },
       ];
     }
 
@@ -30,10 +30,10 @@ export class OrcamentosService {
         atendimento: {
           select: {
             id: true,
-            cliente: { select: { id: true, nome: true } },
+            user: { select: { id: true, nome: true } },
           },
         },
-        cliente: { select: { id: true, nome: true } },
+        user: { select: { id: true, nome: true } },
         ordemServico: {
           select: { id: true, codigo: true, status: true },
         },
@@ -67,7 +67,7 @@ export class OrcamentosService {
 
     const atendimento = await this.prisma.atendimento.findUnique({
       where: { id: dto.atendimentoId },
-      select: { clienteId: true },
+      select: { userId: true },
     });
     if (!atendimento) throw new AppError(404, 'Atendimento não encontrado');
 
@@ -76,7 +76,7 @@ export class OrcamentosService {
         codigo,
         atendimentoId: dto.atendimentoId,
         visitaId: dto.visitaId ?? null,
-        clienteId: atendimento.clienteId,
+        userId: atendimento.userId,
         enderecoId: dto.enderecoId ?? null,
         urgencia: 'NORMAL',
         status: 'RASCUNHO',
@@ -102,10 +102,10 @@ export class OrcamentosService {
         atendimento: {
           select: {
             id: true,
-            cliente: { select: { id: true, nome: true } },
+            user: { select: { id: true, nome: true } },
           },
         },
-        cliente: { select: { id: true, nome: true } },
+        user: { select: { id: true, nome: true } },
         _count: { select: { itens: true } },
       },
     });
@@ -129,10 +129,10 @@ export class OrcamentosService {
         atendimento: {
           select: {
             id: true,
-            cliente: { select: { id: true, nome: true } },
+            user: { select: { id: true, nome: true } },
           },
         },
-        cliente: { select: { id: true, nome: true } },
+        user: { select: { id: true, nome: true } },
         _count: { select: { itens: true } },
       },
     });
