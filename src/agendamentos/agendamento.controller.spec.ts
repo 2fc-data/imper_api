@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AgendamentoController } from './agendamento.controller.js';
 import { AgendamentoService } from './agendamento.service.js';
+import { RotaAgendamentoService } from './rota-agendamento.service.js';
 
 const mockService = {
   listar: vi.fn(),
@@ -11,13 +12,20 @@ const mockService = {
   remover: vi.fn(),
 };
 
+const mockRotaService = {
+  calcularRota: vi.fn(),
+};
+
 describe('AgendamentoController', () => {
   let controller: AgendamentoController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AgendamentoController],
-      providers: [{ provide: AgendamentoService, useValue: mockService }],
+      providers: [
+        { provide: AgendamentoService, useValue: mockService },
+        { provide: RotaAgendamentoService, useValue: mockRotaService },
+      ],
     }).compile();
 
     controller = module.get<AgendamentoController>(AgendamentoController);
@@ -41,7 +49,13 @@ describe('AgendamentoController', () => {
 
     it('should pass parameters to service', async () => {
       mockService.listar.mockResolvedValue([]);
-      await controller.listar('PENDENTE', 'VISITA', '10', '2026-09-01', '2026-09-30');
+      await controller.listar(
+        'PENDENTE',
+        'VISITA',
+        '10',
+        '2026-09-01',
+        '2026-09-30',
+      );
       expect(mockService.listar).toHaveBeenCalledWith({
         status: 'PENDENTE',
         tipo: 'VISITA',
@@ -59,6 +73,35 @@ describe('AgendamentoController', () => {
       const result = await controller.detalhar('1');
       expect(result).toEqual(item);
       expect(mockService.detalhar).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('rota', () => {
+    it('should return rota result', async () => {
+      const rota = {
+        disponivel: true,
+        distanciaM: 1234.5,
+        duracaoSeg: 300.2,
+        fonte: 'cep',
+        aviso: null,
+      };
+      mockRotaService.calcularRota.mockResolvedValue(rota);
+      const result = await controller.rota('1');
+      expect(result).toEqual(rota);
+      expect(mockRotaService.calcularRota).toHaveBeenCalledWith(1);
+    });
+
+    it('should return indisponivel when service fails softly', async () => {
+      const rota = {
+        disponivel: false,
+        distanciaM: null,
+        duracaoSeg: null,
+        fonte: 'indisponivel',
+        aviso: 'Endereço sem CEP ou cidade',
+      };
+      mockRotaService.calcularRota.mockResolvedValue(rota);
+      const result = await controller.rota('2');
+      expect(result).toEqual(rota);
     });
   });
 
