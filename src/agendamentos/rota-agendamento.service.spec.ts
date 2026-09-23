@@ -16,6 +16,24 @@ function enderecoAgendamento(endereco: unknown, userId = 1) {
   };
 }
 
+function geocodeRes(lat = '-21.79', lon = '-46.56') {
+  return {
+    ok: true,
+    json: async () => [{ lat, lon }],
+  };
+}
+
+function geocodeEmpty() {
+  return { ok: true, json: async () => [] };
+}
+
+function osrmRes(distance = 1234.5, duration = 300.2) {
+  return {
+    ok: true,
+    json: async () => ({ routes: [{ distance, duration }] }),
+  };
+}
+
 describe('RotaAgendamentoService', () => {
   let service: RotaAgendamentoService;
 
@@ -64,16 +82,8 @@ describe('RotaAgendamentoService', () => {
       }),
     );
     fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [{ lat: '-21.79', lon: '-46.56' }],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          routes: [{ distance: 1234.5, duration: 300.2 }],
-        }),
-      });
+      .mockResolvedValueOnce(geocodeRes())
+      .mockResolvedValueOnce(osrmRes());
 
     const result = await service.calcularRota(1);
     expect(result).toEqual({
@@ -84,6 +94,8 @@ describe('RotaAgendamentoService', () => {
       aviso: null,
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    const geocodeUrl = String(fetchMock.mock.calls[0][0]);
+    expect(geocodeUrl).toContain('postalcode=');
     const osrmUrl = String(fetchMock.mock.calls[1][0]);
     expect(osrmUrl).toContain('/route/v1/driving/');
     expect(osrmUrl).toContain('overview=false');
@@ -97,18 +109,9 @@ describe('RotaAgendamentoService', () => {
         estado: 'MG',
       }),
     );
-    const geocodeRes = () => ({
-      ok: true,
-      json: async () => [{ lat: '-21.79', lon: '-46.56' }],
-    });
     fetchMock
       .mockResolvedValueOnce(geocodeRes())
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          routes: [{ distance: 100, duration: 60 }],
-        }),
-      })
+      .mockResolvedValueOnce(osrmRes(100, 60))
       .mockResolvedValueOnce(geocodeRes());
 
     const first = await service.calcularRota(1);
@@ -116,7 +119,6 @@ describe('RotaAgendamentoService', () => {
 
     expect(first.disponivel).toBe(true);
     expect(second.disponivel).toBe(true);
-    // second call: geocode re-fetched, but OSRM cached
     const osrmCalls = fetchMock.mock.calls.filter((c: any[]) =>
       String(c[0]).includes('/route/v1/driving/'),
     );
@@ -132,10 +134,7 @@ describe('RotaAgendamentoService', () => {
       }),
     );
     fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [{ lat: '-21.79', lon: '-46.56' }],
-      })
+      .mockResolvedValueOnce(geocodeRes())
       .mockRejectedValueOnce(new Error('timeout'));
 
     const result = await service.calcularRota(1);
@@ -153,16 +152,8 @@ describe('RotaAgendamentoService', () => {
       }),
     );
     fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [{ lat: '-21.78', lon: '-46.55' }],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          routes: [{ distance: 500, duration: 120 }],
-        }),
-      });
+      .mockResolvedValueOnce(geocodeRes('-21.78', '-46.55'))
+      .mockResolvedValueOnce(osrmRes(500, 120));
 
     const result = await service.calcularRota(1);
     expect(result.fonte).toBe('cidade');
@@ -172,7 +163,7 @@ describe('RotaAgendamentoService', () => {
     expect(geocodeUrl).toContain('country=BR');
   });
 
-  it('returns indisponivel when geocode returns empty', async () => {
+  it('returns indisponivel when geocode cascade is empty', async () => {
     mockPrisma.agendamento.findUnique.mockResolvedValue(
       enderecoAgendamento({
         cep: '00000-000',
@@ -180,11 +171,103 @@ describe('RotaAgendamentoService', () => {
         estado: 'XX',
       }),
     );
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [] });
+    fetchMock.mockResolvedValue(geocodeEmpty());
 
     const result = await service.calcularRota(1);
     expect(result.disponivel).toBe(false);
     expect(result.fonte).toBe('cep');
     expect(result.aviso).toBeTruthy();
+    // postalcode then city — both empty
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to city when postalcode geocode is empty', async () => {
+    mockPrisma.agendamento.findUnique.mockResolvedValue(
+      enderecoAgendamento({
+        cep: '37701018',
+        cidade: 'Poços de Caldas',
+        estado: 'MG',
+      }),
+    );
+    fetchMock
+      .mockResolvedValueOnce(geocodeEmpty())
+      .mockResolvedValueOnce(geocodeRes('-21.79003', '-46.56479'))
+      .mockResolvedValueOnce(osrmRes(800, 200));
+
+    const result = await service.calcularRota(1);
+    expect(result).toMatchObject({
+      disponivel: true,
+      fonte: 'cidade',
+      distanciaM: 800,
+      duracaoSeg: 200,
+      aviso: null,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const postalUrl = String(fetchMock.mock.calls[0][0]);
+    expect(postalUrl).toContain('postalcode=37701018');
+    const cityUrl = String(fetchMock.mock.calls[1][0]);
+    expect(cityUrl).toContain('city=');
+    expect(cityUrl).not.toContain('postalcode=');
+  });
+
+  it('geocodes street+cep first when logradouro present', async () => {
+    mockPrisma.agendamento.findUnique.mockResolvedValue(
+      enderecoAgendamento({
+        logradouro: 'Rua Barros Cobra',
+        cidade: 'Poços de Caldas',
+        estado: 'MG',
+        cep: '37701018',
+      }),
+    );
+    fetchMock
+      .mockResolvedValueOnce(geocodeRes('-21.79017', '-46.56102'))
+      .mockResolvedValueOnce(osrmRes());
+
+    const result = await service.calcularRota(1);
+    expect(result).toMatchObject({ disponivel: true, fonte: 'cep' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const url = String(fetchMock.mock.calls[0][0]);
+    expect(url).toContain('street=');
+    expect(url).toContain('city=');
+    expect(url).toContain('postalcode=37701018');
+  });
+
+  it('falls back from street to postalcode when street geocode is empty', async () => {
+    mockPrisma.agendamento.findUnique.mockResolvedValue(
+      enderecoAgendamento({
+        logradouro: 'Rua Inexistente XYZ',
+        cidade: 'Poços de Caldas',
+        estado: 'MG',
+        cep: '37701018',
+      }),
+    );
+    fetchMock
+      .mockResolvedValueOnce(geocodeEmpty())
+      .mockResolvedValueOnce(geocodeRes())
+      .mockResolvedValueOnce(osrmRes(900, 250));
+
+    const result = await service.calcularRota(1);
+    expect(result).toMatchObject({ disponivel: true, fonte: 'cep' });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('street=');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('postalcode=');
+    expect(String(fetchMock.mock.calls[1][0])).not.toContain('street=');
+  });
+
+  it('returns indisponivel when only logradouro and no city/cep', async () => {
+    mockPrisma.agendamento.findUnique.mockResolvedValue(
+      enderecoAgendamento({
+        logradouro: 'Rua Guaporé',
+        cidade: null,
+        cep: null,
+      }),
+    );
+    const result = await service.calcularRota(1);
+    expect(result).toMatchObject({
+      disponivel: false,
+      fonte: 'indisponivel',
+    });
+    expect(result.aviso).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

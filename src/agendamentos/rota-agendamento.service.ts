@@ -74,7 +74,7 @@ export class RotaAgendamentoService {
       };
     }
 
-    const dest = await this.resolveDestino(endereco, fonteAttempt);
+    const dest = await this.resolveDestino(endereco);
     if (!dest) {
       return {
         disponivel: false,
@@ -88,7 +88,7 @@ export class RotaAgendamentoService {
     const cacheKey = this.cacheKey(dest);
     const hit = this.cache.get(cacheKey);
     if (hit && hit.exp > Date.now()) {
-      return { ...hit.value, fonte: fonteAttempt };
+      return { ...hit.value, fonte: dest.fonte };
     }
     if (hit) this.cache.delete(cacheKey);
 
@@ -98,7 +98,7 @@ export class RotaAgendamentoService {
         disponivel: false,
         distanciaM: null,
         duracaoSeg: null,
-        fonte: fonteAttempt,
+        fonte: dest.fonte,
         aviso: 'Falha ao calcular rota',
       };
     }
@@ -107,7 +107,7 @@ export class RotaAgendamentoService {
       disponivel: true,
       distanciaM: rota.distanciaM,
       duracaoSeg: rota.duracaoSeg,
-      fonte: fonteAttempt,
+      fonte: dest.fonte,
       aviso: null,
     };
     this.cache.set(cacheKey, {
@@ -123,30 +123,54 @@ export class RotaAgendamentoService {
     return `${config.sedeLat},${config.sedeLng}|${lat},${lng}`;
   }
 
-  private async resolveDestino(
-    endereco: {
-      cep?: string | null;
-      cidade?: string | null;
-      estado?: string | null;
-    },
-    fonte: FonteRota,
-  ): Promise<Coords | null> {
-    const params = new URLSearchParams({
-      country: 'BR',
-      format: 'json',
-      limit: '1',
-    });
-
+  private async resolveDestino(endereco: {
+    logradouro?: string | null;
+    cep?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+  }): Promise<(Coords & { fonte: FonteRota }) | null> {
     const cep = endereco.cep?.replace(/\D/g, '') ?? '';
-    if (fonte === 'cep' && cep.length === 8) {
-      params.set('postalcode', cep);
-    } else if (endereco.cidade) {
-      params.set('city', endereco.cidade);
-      if (endereco.estado) params.set('state', endereco.estado);
-    } else {
-      return null;
+    const cepOk = cep.length === 8;
+    const cidade = endereco.cidade?.trim() || null;
+    const estado = endereco.estado?.trim() || null;
+    const logradouro = endereco.logradouro?.trim() || null;
+
+    const attempts: Array<{ params: URLSearchParams; fonte: FonteRota }> = [];
+    const base = () =>
+      new URLSearchParams({ country: 'BR', format: 'json', limit: '1' });
+
+    if (logradouro && cidade) {
+      const p = base();
+      p.set('street', logradouro);
+      p.set('city', cidade);
+      if (estado) p.set('state', estado);
+      if (cepOk) p.set('postalcode', cep);
+      attempts.push({ params: p, fonte: cepOk ? 'cep' : 'cidade' });
     }
 
+    if (cepOk) {
+      const p = base();
+      p.set('postalcode', cep);
+      attempts.push({ params: p, fonte: 'cep' });
+    }
+
+    if (cidade) {
+      const p = base();
+      p.set('city', cidade);
+      if (estado) p.set('state', estado);
+      attempts.push({ params: p, fonte: 'cidade' });
+    }
+
+    if (attempts.length === 0) return null;
+
+    for (const attempt of attempts) {
+      const coords = await this.geocode(attempt.params);
+      if (coords) return { ...coords, fonte: attempt.fonte };
+    }
+    return null;
+  }
+
+  private async geocode(params: URLSearchParams): Promise<Coords | null> {
     try {
       const res = await fetch(`${config.geocodeUrl}/search?${params}`, {
         headers: GEOCODE_HEADERS,
