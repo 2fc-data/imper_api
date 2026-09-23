@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { AppError } from '../lib/errors.js';
-import type { TipoAgendamento, StatusAgendamento } from '../schemas/enums.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type { StatusAgendamento, TipoAgendamento } from '../schemas/enums.js';
 
 export interface CriarAgendamentoDto {
   userId: number;
@@ -78,7 +78,9 @@ export class AgendamentoService {
   }
 
   async criar(dto: CriarAgendamentoDto, criadoPorId?: number) {
-    this.logger.log(`[criar] dto=${JSON.stringify(dto)} criadoPorId=${criadoPorId}`);
+    this.logger.log(
+      `[criar] dto=${JSON.stringify(dto)} criadoPorId=${criadoPorId}`,
+    );
 
     if (!dto.userId) {
       this.logger.warn('[criar] userId é obrigatório');
@@ -87,6 +89,10 @@ export class AgendamentoService {
     if (!dto.dataPrevista) {
       this.logger.warn('[criar] dataPrevista é obrigatória');
       throw new AppError(400, 'dataPrevista é obrigatória');
+    }
+    if (dto.enderecoNovo && !dto.enderecoNovo.cep?.trim()) {
+      this.logger.warn('[criar] enderecoNovo sem cep');
+      throw new AppError(400, 'CEP é obrigatório quando enviado enderecoNovo');
     }
 
     try {
@@ -115,7 +121,9 @@ export class AgendamentoService {
         return dto.enderecoId ? Number(dto.enderecoId) : null;
       });
 
-      this.logger.log(`[criar] enderecoId=${enderecoId}, criando agendamento...`);
+      this.logger.log(
+        `[criar] enderecoId=${enderecoId}, criando agendamento...`,
+      );
       const agendamento = await this.prisma.agendamento.create({
         data: {
           userId: Number(dto.userId),
@@ -153,7 +161,9 @@ export class AgendamentoService {
     if (dto.dataPrevista !== undefined)
       data.dataPrevista = new Date(dto.dataPrevista);
     if (dto.dataRealizada !== undefined)
-      data.dataRealizada = dto.dataRealizada ? new Date(dto.dataRealizada) : null;
+      data.dataRealizada = dto.dataRealizada
+        ? new Date(dto.dataRealizada)
+        : null;
     if (dto.observacoes !== undefined) data.observacoes = dto.observacoes;
 
     return this.prisma.agendamento.update({

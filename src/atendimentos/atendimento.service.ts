@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { AppError } from '../lib/errors.js';
-import type { CanalAtendimento, Urgencia, StatusAtendimento } from '../schemas/enums.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type {
+  CanalAtendimento,
+  StatusAtendimento,
+  TipoAtendimento,
+  Urgencia,
+} from '../schemas/enums.js';
 
 @Injectable()
 export class AtendimentoService {
@@ -19,9 +24,7 @@ export class AtendimentoService {
     const where: any = {};
 
     if (params?.q) {
-      where.OR = [
-        { user: { nome: { contains: params.q } } },
-      ];
+      where.OR = [{ user: { nome: { contains: params.q } } }];
     }
 
     if (params?.status) {
@@ -82,7 +85,10 @@ export class AtendimentoService {
         if (existing) {
           userId = existing.id;
         } else {
-          const senhaHash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+          const senhaHash = await bcrypt.hash(
+            Math.random().toString(36).slice(2),
+            10,
+          );
           const user = await tx.user.create({
             data: {
               nome: data.userName,
@@ -121,10 +127,73 @@ export class AtendimentoService {
     });
   }
 
-  async atualizarStatus(id: number, status: StatusAtendimento) {
-    return this.prisma.atendimento.update({
-      where: { id },
-      data: { status },
+  async atualizarStatus(
+    id: number,
+    status: StatusAtendimento,
+    atendenteId?: number,
+  ) {
+    const atual = await this.prisma.atendimento.findUnique({ where: { id } });
+    if (!atual) {
+      throw new AppError(404, 'Atendimento não encontrado');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.atendimento.update({
+        where: { id },
+        data: { status },
+      });
+      if (atual.status !== status) {
+        await tx.atendimentoLog.create({
+          data: {
+            atendimentoId: id,
+            atendenteId: atendenteId ?? null,
+            tipo: 'STATUS',
+            statusDe: atual.status,
+            statusPara: status,
+          },
+        });
+      }
+      return updated;
+    });
+  }
+
+  async listarLogs(atendimentoId: number) {
+    await this.detalhar(atendimentoId);
+    return this.prisma.atendimentoLog.findMany({
+      where: { atendimentoId },
+      include: { atendente: { select: { id: true, nome: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async criarLog(
+    atendimentoId: number,
+    dto: {
+      descricao?: string;
+      tipo?: TipoAtendimento;
+      statusDe?: StatusAtendimento;
+      statusPara?: StatusAtendimento;
+    },
+    atendenteId?: number,
+  ) {
+    await this.detalhar(atendimentoId);
+
+    const descricao = dto.descricao?.trim();
+    const tipo: TipoAtendimento = dto.tipo ?? 'TEXTO';
+    if (tipo === 'TEXTO' && !descricao) {
+      throw new AppError(400, 'descricao é obrigatória para logs de texto');
+    }
+
+    return this.prisma.atendimentoLog.create({
+      data: {
+        atendimentoId,
+        atendenteId: atendenteId ?? null,
+        tipo,
+        descricao: descricao ?? null,
+        statusDe: dto.statusDe ?? null,
+        statusPara: dto.statusPara ?? null,
+      },
+      include: { atendente: { select: { id: true, nome: true } } },
     });
   }
 }
