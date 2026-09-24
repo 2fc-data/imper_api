@@ -5,17 +5,21 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class AtividadesOSService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listar(params?: { osId?: number; faseOSId?: number; status?: string }) {
+  async listar(params?: {
+    osId?: number;
+    etapaOSId?: number;
+    status?: string;
+  }) {
     const where: Record<string, unknown> = {};
     if (params?.osId) where.osId = params.osId;
-    if (params?.faseOSId) where.faseOSId = params.faseOSId;
+    if (params?.etapaOSId) where.etapaOSId = params.etapaOSId;
     if (params?.status) where.status = params.status;
 
     return this.prisma.atividadeOS.findMany({
       where,
       include: {
         os: { select: { id: true, codigo: true } },
-        faseOS: { select: { id: true, nome: true } },
+        etapaOS: { select: { id: true, nome: true } },
         catalogoAtividade: true,
         equipe: {
           include: {
@@ -36,7 +40,7 @@ export class AtividadesOSService {
       where: { id },
       include: {
         os: { select: { id: true, codigo: true } },
-        faseOS: { select: { id: true, nome: true } },
+        etapaOS: { select: { id: true, nome: true } },
         catalogoAtividade: {
           include: { subSteps: { orderBy: { ordem: 'asc' } }, recursos: true },
         },
@@ -64,7 +68,7 @@ export class AtividadesOSService {
 
   async planificar(data: {
     osId: number;
-    faseOSId: number;
+    etapaOSId: number;
     atividades: {
       catalogoAtividadeId: string;
       equipeId?: string;
@@ -87,7 +91,7 @@ export class AtividadesOSService {
         const atividadeOS = await tx.atividadeOS.create({
           data: {
             osId: data.osId,
-            faseOSId: data.faseOSId,
+            etapaOSId: data.etapaOSId,
             catalogoAtividadeId: ativ.catalogoAtividadeId,
             equipeId: ativ.equipeId,
             dataPrevisao: ativ.dataPrevisao
@@ -119,14 +123,16 @@ export class AtividadesOSService {
             } = {
               quantidadeNecessaria: Number(recurso.quantidade),
             };
-            if (recurso.tipo === 'MATERIAL') itemData.materialId = recurso.itemCatalogoId;
+            if (recurso.tipo === 'MATERIAL')
+              itemData.materialId = recurso.itemCatalogoId;
             if (recurso.tipo === 'EPI') itemData.epiId = recurso.itemCatalogoId;
-            if (recurso.tipo === 'EQUIPAMENTO') itemData.equipamentoId = recurso.itemCatalogoId;
+            if (recurso.tipo === 'EQUIPAMENTO')
+              itemData.equipamentoId = recurso.itemCatalogoId;
 
             await tx.separacao.create({
               data: {
                 codigo: `SEP-${data.osId}-${Date.now()}`,
-                faseOsId: data.faseOSId,
+                etapaOsId: data.etapaOSId,
                 dataNecessidade: ativ.dataPrevisao
                   ? new Date(ativ.dataPrevisao)
                   : new Date(),

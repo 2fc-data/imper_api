@@ -292,24 +292,24 @@ model DisponibilidadeData {
   @@map("disponibilidade_datas")
 }
 
-model Fase {
+model Etapa {
   id           Int           @id @default(autoincrement())
   nome         String        @db.VarChar(120)
   ordem        Int           @default(0)
   ativo        Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  osFases      FaseOS[]
+  osEtapas     EtapaOS[]
   itensServico ServicoItem[]
 
-  @@map("fases")
+  @@map("etapas")
 }
 
 model ServicoItem {
   id             Int             @id @default(autoincrement())
   nome           String          @db.VarChar(150)
   tipo           TipoItemServico
-  faseId         Int?
+  etapaId         Int?
   materialId     Int?
   precoSugerido  Decimal?        @db.Decimal(12, 2)
   ativo          Boolean         @default(true)
@@ -318,11 +318,11 @@ model ServicoItem {
   unidadeId      Int
   aditivoItens   AditivoItem[]
   orcamentoItens OrcamentoItem[]
-  fase           Fase?           @relation(fields: [faseId], references: [id])
+  etapa          Etapa?          @relation(fields: [etapaId], references: [id])
   material       Material?       @relation(fields: [materialId], references: [id])
   unidade        UnidadeMedida   @relation(fields: [unidadeId], references: [id])
 
-  @@index([faseId], map: "servico_itens_faseId_fkey")
+  @@index([etapaId], map: "servico_itens_etapaId_fkey")
   @@index([materialId], map: "servico_itens_materialId_fkey")
   @@index([unidadeId], map: "servico_itens_unidadeId_fkey")
   @@map("servico_itens")
@@ -421,7 +421,7 @@ model OrdemServico {
   atividadesOS         AtividadeOS[]
   compras              Compra[]
   equipes              Equipe[]
-  fases                FaseOS[]
+  etapas               EtapaOS[]
   historico            HistoricoPosicao[]
   movimentos           MovimentoEstoque[]
   notificacoes         Notificacao[]
@@ -446,39 +446,39 @@ model OrdemServico {
   @@map("ordens_servico")
 }
 
-model FaseOS {
+model EtapaOS {
   id             Int              @id @default(autoincrement())
   ordemServicoId Int
-  faseId         Int
+  etapaId        Int
   nome           String           @db.VarChar(120)
   ordem          Int              @default(0)
-  status         StatusFaseOS     @default(PENDENTE)
+  status         StatusEtapaOS    @default(PENDENTE)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   dataFimReal    DateTime?        @db.DateTime(0)
   dataInicioReal DateTime?        @db.DateTime(0)
   atividadesOS   AtividadeOS[]
-  materiais      FaseOSMaterial[]
-  fase           Fase             @relation(fields: [faseId], references: [id])
+  materiais      EtapaOSMaterial[]
+  etapa          Etapa            @relation(fields: [etapaId], references: [id])
   ordemServico   OrdemServico     @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
   separacoes     Separacao[]
 
-  @@unique([ordemServicoId, faseId])
-  @@index([faseId], map: "fases_os_faseId_fkey")
-  @@map("fases_os")
+  @@unique([ordemServicoId, etapaId])
+  @@index([etapaId], map: "etapas_os_etapaId_fkey")
+  @@map("etapas_os")
 }
 
-model FaseOSMaterial {
+model EtapaOSMaterial {
   id                  Int      @id @default(autoincrement())
-  faseOsId            Int
+  etapaOsId           Int
   materialId          Int
   quantidadePlanejada Decimal  @db.Decimal(12, 3)
-  faseOs              FaseOS   @relation(fields: [faseOsId], references: [id], onDelete: Cascade)
+  etapaOs             EtapaOS  @relation(fields: [etapaOsId], references: [id], onDelete: Cascade)
   material            Material @relation(fields: [materialId], references: [id])
 
-  @@unique([faseOsId, materialId])
+  @@unique([etapaOsId, materialId])
   @@index([materialId])
-  @@map("fase_os_materiais")
+  @@map("etapa_os_materiais")
 }
 
 model AditivoOS {
@@ -585,7 +585,7 @@ model Material {
   categoriaId      Int?
   fornecedorId     Int?
   itensCompra      CompraItem[]
-  faseOsMateriais  FaseOSMaterial[]
+  etapaOsMateriais EtapaOSMaterial[]
   categoria        CategoriaMaterial? @relation(fields: [categoriaId], references: [id])
   cor              Cor?               @relation(fields: [corId], references: [id])
   fornecedor       Fornecedor?        @relation(fields: [fornecedorId], references: [id])
@@ -685,7 +685,7 @@ model CompraItem {
 model Separacao {
   id              Int                     @id @default(autoincrement())
   codigo          String                  @unique @db.VarChar(20)
-  faseOsId        Int
+  etapaOsId       Int
   dataNecessidade DateTime
   status          StatusSeparacao         @default(PENDENTE)
   criadoPorId     Int?
@@ -702,11 +702,11 @@ model Separacao {
   confirmadoPor   User?                   @relation("SeparacaoConfirmadoPor", fields: [confirmadoPorId], references: [id])
   criadoPor       User?                   @relation("SeparacaoCriador", fields: [criadoPorId], references: [id])
   equipe          Equipe?                 @relation(fields: [equipeId], references: [id])
-  faseOs          FaseOS                  @relation(fields: [faseOsId], references: [id], onDelete: Cascade)
+  etapaOs         EtapaOS                 @relation(fields: [etapaOsId], references: [id], onDelete: Cascade)
   os              OrdemServico?           @relation("SeparacaoEquipe", fields: [osId], references: [id])
 
   @@index([criadoPorId], map: "separacoes_criadoPorId_fkey")
-  @@index([faseOsId], map: "separacoes_faseOsId_fkey")
+  @@index([etapaOsId], map: "separacoes_etapaOsId_fkey")
   @@index([osId])
   @@index([equipeId])
   @@index([confirmadoPorId], map: "separacoes_confirmadoPorId_fkey")
@@ -1305,7 +1305,7 @@ model MembroEquipe {
 model AtividadeOS {
   id                  String                @id @default(cuid())
   osId                Int
-  faseOSId            Int
+  etapaOSId           Int
   catalogoAtividadeId String
   equipeId            String?
   dataPrevisao        DateTime?
@@ -1314,7 +1314,7 @@ model AtividadeOS {
   atualizadoEm        DateTime              @updatedAt
   catalogoAtividade   CatalogoAtividade     @relation(fields: [catalogoAtividadeId], references: [id])
   equipe              Equipe?               @relation(fields: [equipeId], references: [id])
-  faseOS              FaseOS                @relation(fields: [faseOSId], references: [id])
+  etapaOS             EtapaOS               @relation(fields: [etapaOSId], references: [id])
   os                  OrdemServico          @relation(fields: [osId], references: [id])
   checklist           ChecklistExecucao[]
   retiradas           RetiradaEquipamento[]
@@ -1322,7 +1322,7 @@ model AtividadeOS {
 
   @@index([catalogoAtividadeId], map: "atividades_os_catalogoAtividadeId_fkey")
   @@index([equipeId], map: "atividades_os_equipeId_fkey")
-  @@index([faseOSId], map: "atividades_os_faseOSId_fkey")
+  @@index([etapaOSId], map: "atividades_os_etapaOSId_fkey")
   @@index([osId], map: "atividades_os_osId_fkey")
   @@map("atividades_os")
 }
@@ -1402,7 +1402,7 @@ enum StatusOS {
   CANCELADO
 }
 
-enum StatusFaseOS {
+enum StatusEtapaOS {
   PENDENTE
   EM_ANDAMENTO
   CONCLUIDA

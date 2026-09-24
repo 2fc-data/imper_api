@@ -19,12 +19,12 @@ export class AtividadesOSController {
   @Get()
   async listar(
     @Query('osId') osId?: string,
-    @Query('faseOSId') faseOSId?: string,
+    @Query('etapaOSId') etapaOSId?: string,
     @Query('status') status?: string,
   ) {
     return this.service.listar({
       osId: osId ? Number(osId) : undefined,
-      faseOSId: faseOSId ? Number(faseOSId) : undefined,
+      etapaOSId: etapaOSId ? Number(etapaOSId) : undefined,
       status,
     });
   }

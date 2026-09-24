@@ -16,14 +16,14 @@ async function main() {
     const atv = await p.atividadeOS.deleteMany({ where: { os: { codigo: { startsWith: PREFIX } } } });
     const mem = await p.membroEquipe.deleteMany({ where: { equipe: { os: { codigo: { startsWith: PREFIX } } } } });
     const eq = await p.equipe.deleteMany({ where: { os: { codigo: { startsWith: PREFIX } } } });
-    const fase = await p.faseOS.deleteMany({ where: { ordemServico: { codigo: { startsWith: PREFIX } } } });
+    const etapa = await p.etapaOS.deleteMany({ where: { ordemServico: { codigo: { startsWith: PREFIX } } } });
     const os = await p.ordemServico.deleteMany({ where: { codigo: { startsWith: PREFIX } } });
     const orc = await p.orcamento.deleteMany({ where: { codigo: { startsWith: PREFIX } } });
     const atend = await p.atendimento.deleteMany({ where: { descricao: { startsWith: PREFIX } } });
     const rec = await p.recursoAtividade.deleteMany({ where: { catalogoAtividade: { nome: { startsWith: PREFIX } } } });
     const sub = await p.subStepAtividade.deleteMany({ where: { catalogoAtividade: { nome: { startsWith: PREFIX } } } });
     const cat = await p.catalogoAtividade.deleteMany({ where: { nome: { startsWith: PREFIX } } });
-    console.log(`Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} mem=${mem.count} eq=${eq.count} fase=${fase.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`);
+    console.log(`Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} mem=${mem.count} eq=${eq.count} etapa=${etapa.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`);
     return;
   }
 
@@ -80,28 +80,28 @@ async function main() {
   });
   console.log('OS criada:', os.id);
 
-  // 5. Criar Fase (se não existir nenhuma)
-  let fase = await p.fase.findFirst({ where: { ativo: true } });
-  if (!fase) {
-    fase = await p.fase.create({
+  // 5. Criar Etapa (se não existir nenhuma)
+  let etapa = await p.etapa.findFirst({ where: { ativo: true } });
+  if (!etapa) {
+    etapa = await p.etapa.create({
       data: { nome: 'Acabamento', ordem: 1, ativo: true },
     });
-    console.log('Fase criada:', fase.id);
+    console.log('Etapa criada:', etapa.id);
   } else {
-    console.log('Fase existente:', fase.id);
+    console.log('Etapa existente:', etapa.id);
   }
 
-  // 6. Criar FaseOS
-  const faseOS = await p.faseOS.create({
+  // 6. Criar EtapaOS
+  const etapaOS = await p.etapaOS.create({
     data: {
       ordemServicoId: os.id,
-      faseId: fase.id,
-      nome: `${PREFIX} - Fase de Acabamento`,
+      etapaId: etapa.id,
+      nome: `${PREFIX} - Etapa de Acabamento`,
       ordem: 1,
       status: 'PENDENTE',
     },
   });
-  console.log('FaseOS criada:', faseOS.id);
+  console.log('EtapaOS criada:', etapaOS.id);
 
   // 7. Criar catálogo de atividades
   const catalogo = await p.catalogoAtividade.create({
@@ -157,7 +157,7 @@ async function main() {
   const atv = await p.atividadeOS.create({
     data: {
       osId: os.id,
-      faseOSId: faseOS.id,
+      etapaOSId: etapaOS.id,
       catalogoAtividadeId: catalogo.id,
       equipeId: equipe.id,
       status: 'EM_ANDAMENTO',
@@ -181,7 +181,7 @@ async function main() {
   const sep = await p.separacao.create({
     data: {
       codigo: `${PREFIX}-${TS}-SEP`,
-      faseOsId: faseOS.id,
+      etapaOsId: etapaOS.id,
       osId: os.id,
       equipeId: equipe.id,
       dataNecessidade: new Date(),
