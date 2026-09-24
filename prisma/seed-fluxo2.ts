@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const p = new PrismaClient();
 const PREFIX = 'seed2';
@@ -9,21 +9,51 @@ async function main() {
 
   if (rollback) {
     console.log('Rollback: removendo dados do seed-fluxo2...');
-    const cli = await p.user.deleteMany({ where: { perfil: 'CLIENTE' } });
-    const sepItens = await p.separacaoItem.deleteMany({ where: { separacao: { os: { codigo: { startsWith: PREFIX } } } } });
-    const sep = await p.separacao.deleteMany({ where: { os: { codigo: { startsWith: PREFIX } } } });
-    const check = await p.checklistExecucao.deleteMany({ where: { atividadeOS: { os: { codigo: { startsWith: PREFIX } } } } });
-    const atv = await p.atividadeOS.deleteMany({ where: { os: { codigo: { startsWith: PREFIX } } } });
-    const mem = await p.membroEquipe.deleteMany({ where: { equipe: { os: { codigo: { startsWith: PREFIX } } } } });
-    const eq = await p.equipe.deleteMany({ where: { os: { codigo: { startsWith: PREFIX } } } });
-    const etapa = await p.etapaOS.deleteMany({ where: { ordemServico: { codigo: { startsWith: PREFIX } } } });
-    const os = await p.ordemServico.deleteMany({ where: { codigo: { startsWith: PREFIX } } });
-    const orc = await p.orcamento.deleteMany({ where: { codigo: { startsWith: PREFIX } } });
-    const atend = await p.atendimento.deleteMany({ where: { descricao: { startsWith: PREFIX } } });
-    const rec = await p.recursoAtividade.deleteMany({ where: { catalogoAtividade: { nome: { startsWith: PREFIX } } } });
-    const sub = await p.subStepAtividade.deleteMany({ where: { catalogoAtividade: { nome: { startsWith: PREFIX } } } });
-    const cat = await p.catalogoAtividade.deleteMany({ where: { nome: { startsWith: PREFIX } } });
-    console.log(`Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} mem=${mem.count} eq=${eq.count} etapa=${etapa.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`);
+    const cli = await p.user.deleteMany({
+      where: { email: { startsWith: 'seed-' } },
+    });
+    const sepItens = await p.separacaoItem.deleteMany({
+      where: { separacao: { os: { codigo: { startsWith: PREFIX } } } },
+    });
+    const sep = await p.separacao.deleteMany({
+      where: { os: { codigo: { startsWith: PREFIX } } },
+    });
+    const check = await p.checklistExecucao.deleteMany({
+      where: { atividadeOS: { os: { codigo: { startsWith: PREFIX } } } },
+    });
+    const atv = await p.atividadeOS.deleteMany({
+      where: { os: { codigo: { startsWith: PREFIX } } },
+    });
+    const mem = await p.membroEquipe.deleteMany({
+      where: { equipe: { os: { codigo: { startsWith: PREFIX } } } },
+    });
+    const eq = await p.equipe.deleteMany({
+      where: { os: { codigo: { startsWith: PREFIX } } },
+    });
+    const etapa = await p.etapaOS.deleteMany({
+      where: { ordemServico: { codigo: { startsWith: PREFIX } } },
+    });
+    const os = await p.ordemServico.deleteMany({
+      where: { codigo: { startsWith: PREFIX } },
+    });
+    const orc = await p.orcamento.deleteMany({
+      where: { codigo: { startsWith: PREFIX } },
+    });
+    const atend = await p.atendimento.deleteMany({
+      where: { descricao: { startsWith: PREFIX } },
+    });
+    const rec = await p.recursoAtividade.deleteMany({
+      where: { catalogoAtividade: { nome: { startsWith: PREFIX } } },
+    });
+    const sub = await p.subStepAtividade.deleteMany({
+      where: { catalogoAtividade: { nome: { startsWith: PREFIX } } },
+    });
+    const cat = await p.catalogoAtividade.deleteMany({
+      where: { nome: { startsWith: PREFIX } },
+    });
+    console.log(
+      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} mem=${mem.count} eq=${eq.count} etapa=${etapa.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`,
+    );
     return;
   }
 
@@ -31,10 +61,14 @@ async function main() {
   const clienteUser = await p.user.create({
     data: {
       nome: `${PREFIX} - Obra Teste`,
-      perfil: 'CLIENTE',
-      cpfCnpj: '999.999.999-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+      cpfCnpj:
+        '999.999.999-' +
+        Math.floor(Math.random() * 1000)
+          .toString()
+          .padStart(3, '0'),
       telefone: '(00) 0000-0000',
-      email: 'seed@example.com',
+      email: `seed-${TS}@example.com`,
+      senhaHash: 'seed2-not-a-real-hash',
     },
   });
   console.log('Cliente criado:', clienteUser.id);
@@ -113,23 +147,75 @@ async function main() {
       ativo: true,
       subSteps: {
         create: [
-          { ordem: 1, descricao: 'Limpeza do contrapiso', observacao: 'Remover toda sujeira e poeira' },
-          { ordem: 2, descricao: 'Aplicação de argamassa AC-II', observacao: 'Espalhar uniformemente' },
-          { ordem: 3, descricao: 'Assentamento das peças cerâmicas', observacao: 'Alinhar com esquadro' },
-          { ordem: 4, descricao: 'Rejuntamento', observacao: 'Preencher juntas completamente' },
-          { ordem: 5, descricao: 'Limpeza final', observacao: 'Remover resíduos de rejunte' },
+          {
+            ordem: 1,
+            descricao: 'Limpeza do contrapiso',
+            observacao: 'Remover toda sujeira e poeira',
+          },
+          {
+            ordem: 2,
+            descricao: 'Aplicação de argamassa AC-II',
+            observacao: 'Espalhar uniformemente',
+          },
+          {
+            ordem: 3,
+            descricao: 'Assentamento das peças cerâmicas',
+            observacao: 'Alinhar com esquadro',
+          },
+          {
+            ordem: 4,
+            descricao: 'Rejuntamento',
+            observacao: 'Preencher juntas completamente',
+          },
+          {
+            ordem: 5,
+            descricao: 'Limpeza final',
+            observacao: 'Remover resíduos de rejunte',
+          },
         ],
       },
       recursos: {
         create: [
-          { tipo: 'MATERIAL', itemCatalogoId: 1, quantidade: new Prisma.Decimal('50') },
-          { tipo: 'MATERIAL', itemCatalogoId: 2, quantidade: new Prisma.Decimal('25') },
-          { tipo: 'MATERIAL', itemCatalogoId: 3, quantidade: new Prisma.Decimal('5') },
-          { tipo: 'EQUIPAMENTO', itemCatalogoId: 1, quantidade: new Prisma.Decimal('1') },
-          { tipo: 'EQUIPAMENTO', itemCatalogoId: 2, quantidade: new Prisma.Decimal('1') },
-          { tipo: 'EPI', itemCatalogoId: 1, quantidade: new Prisma.Decimal('4') },
-          { tipo: 'EPI', itemCatalogoId: 2, quantidade: new Prisma.Decimal('4') },
-          { tipo: 'EPI', itemCatalogoId: 3, quantidade: new Prisma.Decimal('4') },
+          {
+            tipo: 'MATERIAL',
+            itemCatalogoId: 1,
+            quantidade: new Prisma.Decimal('50'),
+          },
+          {
+            tipo: 'MATERIAL',
+            itemCatalogoId: 2,
+            quantidade: new Prisma.Decimal('25'),
+          },
+          {
+            tipo: 'MATERIAL',
+            itemCatalogoId: 3,
+            quantidade: new Prisma.Decimal('5'),
+          },
+          {
+            tipo: 'EQUIPAMENTO',
+            itemCatalogoId: 1,
+            quantidade: new Prisma.Decimal('1'),
+          },
+          {
+            tipo: 'EQUIPAMENTO',
+            itemCatalogoId: 2,
+            quantidade: new Prisma.Decimal('1'),
+          },
+          {
+            tipo: 'EPI',
+            itemCatalogoId: 1,
+            quantidade: new Prisma.Decimal('4'),
+          },
+          {
+            tipo: 'EPI',
+            itemCatalogoId: 2,
+            quantidade: new Prisma.Decimal('4'),
+          },
+          {
+            tipo: 'EPI',
+            itemCatalogoId: 3,
+            quantidade: new Prisma.Decimal('4'),
+          },
         ],
       },
     },
@@ -192,7 +278,7 @@ async function main() {
   console.log('Separação criada:', sep.id);
 
   // 12. Criar SeparacaoItem (apenas para materiais)
-  const materiais = catalogo.recursos.filter(r => r.tipo === 'MATERIAL');
+  const materiais = catalogo.recursos.filter((r) => r.tipo === 'MATERIAL');
   for (const r of materiais) {
     await p.separacaoItem.create({
       data: {
@@ -215,5 +301,8 @@ async function main() {
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => p.$disconnect());
