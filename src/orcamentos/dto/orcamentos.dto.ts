@@ -76,7 +76,7 @@ export const criarOrcamentoSchema = z.object({
   areaM2: z.number().positive('Informe a área (m²)').nullable().optional(),
   valorM2: z.number().min(0, 'Informe o valor/m²').nullable().optional(),
   ficha: fichaSchema.optional(),
-  atividades: z.array(atividadeSchema).min(1, 'Selecione ao menos 1 atividade'),
+  atividades: z.array(atividadeSchema).default([]),
 });
 
 export type CriarOrcamentoDto = z.infer<typeof criarOrcamentoSchema>;

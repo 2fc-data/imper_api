@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-export interface SolicitarOrcamentoDto {
+export interface EnviarContatoDto {
   nome: string;
   telefone: string;
   email?: string;
@@ -15,6 +15,8 @@ export interface SolicitarOrcamentoDto {
   numero?: string;
   complemento?: string;
 }
+
+export type SolicitarOrcamentoDto = EnviarContatoDto;
 
 @Injectable()
 export class PublicoService {
@@ -110,7 +112,7 @@ export class PublicoService {
     ];
   }
 
-  async solicitarOrcamento(dto: SolicitarOrcamentoDto) {
+  async enviarContato(dto: EnviarContatoDto) {
     let user = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -162,7 +164,7 @@ export class PublicoService {
         canal: 'FORMULARIO',
         status: 'NOVO',
         descricao:
-          dto.mensagem ?? 'Solicitação de orçamento via formulário web',
+          dto.mensagem ?? 'Solicitação via formulário web de contato',
         userId: user.id,
       },
     });
@@ -174,5 +176,9 @@ export class PublicoService {
       status: atendimento.status,
       createdAt: atendimento.createdAt.toISOString(),
     };
+  }
+
+  async solicitarOrcamento(dto: EnviarContatoDto) {
+    return this.enviarContato(dto);
   }
 }
