@@ -18,7 +18,6 @@ model UnidadeMedida {
   epis           Epi[]
   equipamentos   Equipamento[]
   materiais      Material[]
-  orcamentoItens OrcamentoItem[]
   servicoItens   ServicoItem[]
 
   @@map("unidade_medida")
@@ -173,6 +172,7 @@ model ServicoMarketing {
   ordem     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  orcamentos Orcamento[]
 
   @@map("servicos_marketing")
 }
@@ -301,6 +301,9 @@ model Etapa {
   updatedAt    DateTime      @updatedAt
   osEtapas     EtapaOS[]
   itensServico ServicoItem[]
+  subServicos  SubServico[]
+  orcamentoAtividades OrcamentoAtividade[]
+  catalogoAtividades  CatalogoAtividade[]
 
   @@map("etapas")
 }
@@ -317,8 +320,7 @@ model ServicoItem {
   updatedAt      DateTime        @updatedAt
   unidadeId      Int
   aditivoItens   AditivoItem[]
-  orcamentoItens OrcamentoItem[]
-  etapa          Etapa?          @relation(fields: [etapaId], references: [id])
+  etapa          Etapa?        @relation(fields: [etapaId], references: [id])
   material       Material?       @relation(fields: [materialId], references: [id])
   unidade        UnidadeMedida   @relation(fields: [unidadeId], references: [id])
 
@@ -341,6 +343,10 @@ model Orcamento {
   valorTotal           Decimal         @default(0.00) @db.Decimal(12, 2)
   validade             DateTime
   observacoes          String?         @db.VarChar(2000)
+  areaM2               Decimal?        @db.Decimal(10, 2)
+  valorM2              Decimal?        @db.Decimal(10, 2)
+  servicoMarketingId   Int?
+  motivoRejeicao       String?         @db.VarChar(500)
   criadoPorId          Int
   aprovadoPorId        Int?
   aprovadoEm           DateTime?
@@ -351,7 +357,9 @@ model Orcamento {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   aditivos             AditivoOS[]
-  itens                OrcamentoItem[]
+  atividades           OrcamentoAtividade[]
+  ficha                OrcamentoObraFicha?
+  servicoMarketing     ServicoMarketing? @relation(fields: [servicoMarketingId], references: [id])
   aprovadoPor          User?           @relation("OrcamentoAprovador", fields: [aprovadoPorId], references: [id])
   atendimento          Atendimento     @relation(fields: [atendimentoId], references: [id])
   user                 User?           @relation("OrcamentoUser", fields: [userId], references: [id])
@@ -366,27 +374,8 @@ model Orcamento {
   @@index([criadoPorId], map: "orcamentos_criadoPorId_fkey")
   @@index([enderecoId], map: "orcamentos_enderecoId_fkey")
   @@index([visitaId], map: "orcamentos_visitaId_fkey")
+  @@index([servicoMarketingId])
   @@map("orcamentos")
-}
-
-model OrcamentoItem {
-  id            Int             @id @default(autoincrement())
-  orcamentoId   Int
-  servicoItemId Int?
-  nome          String          @db.VarChar(150)
-  tipo          TipoItemServico
-  quantidade    Decimal         @db.Decimal(12, 3)
-  valorUnitario Decimal         @db.Decimal(12, 2)
-  valorTotal    Decimal         @db.Decimal(12, 2)
-  unidadeId     Int
-  orcamento     Orcamento       @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
-  servicoItem   ServicoItem?    @relation(fields: [servicoItemId], references: [id])
-  unidade       UnidadeMedida   @relation(fields: [unidadeId], references: [id])
-
-  @@index([orcamentoId])
-  @@index([servicoItemId], map: "orcamento_itens_servicoItemId_fkey")
-  @@index([unidadeId], map: "orcamento_itens_unidadeId_fkey")
-  @@map("orcamento_itens")
 }
 
 model OrdemServico {
@@ -595,6 +584,7 @@ model Material {
   saldo            SaldoEstoque?
   itensSeparacao   SeparacaoItem[]
   itensServico     ServicoItem[]
+  orcamentoMateriais OrcamentoAtividadeMaterial[]
 
   @@index([nome])
   @@index([marcaId])
@@ -1239,10 +1229,17 @@ model CatalogoAtividade {
   ativo                   Boolean                @default(true)
   criadoEm                DateTime               @default(now())
   atualizadoEm            DateTime               @updatedAt
+  etapaId                 Int?
+  subServicoId            Int?
   atividadesOS            AtividadeOS[]
   recursos                RecursoAtividade[]
   subSteps                SubStepAtividade[]
+  orcamentoAtividades     OrcamentoAtividade[]
+  etapa                   Etapa?      @relation(fields: [etapaId], references: [id])
+  subServico              SubServico? @relation(fields: [subServicoId], references: [id])
 
+  @@index([etapaId])
+  @@index([subServicoId])
   @@map("catalogo_atividades")
 }
 
@@ -1319,6 +1316,7 @@ model AtividadeOS {
   checklist           ChecklistExecucao[]
   retiradas           RetiradaEquipamento[]
   entregasEpi         EntregaEpi[]
+  linhas              AtividadeOSLinha[]
 
   @@index([catalogoAtividadeId], map: "atividades_os_catalogoAtividadeId_fkey")
   @@index([equipeId], map: "atividades_os_equipeId_fkey")
@@ -1343,6 +1341,203 @@ model ChecklistExecucao {
   @@index([concluidoPorId], map: "checklist_execucao_concluidoPorId_fkey")
   @@index([subStepAtividadeId], map: "checklist_execucao_subStepAtividadeId_fkey")
   @@map("checklist_execucao")
+}
+
+// ---------- Vocabulário controlado ----------
+model Verbo {
+  id                  Int                    @id @default(autoincrement())
+  nome                String                 @unique @db.VarChar(60)
+  ativo               Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  orcamentoAtividades OrcamentoAtividade[]
+  linhasOS            AtividadeOSLinha[]
+  combinacoes         SubServicoAtividade[]
+
+  @@map("verbos")
+}
+
+model Objeto {
+  id                  Int                    @id @default(autoincrement())
+  nome                String                 @unique @db.VarChar(60)
+  ativo               Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  orcamentoAtividades OrcamentoAtividade[]
+  linhasOS            AtividadeOSLinha[]
+  combinacoes         SubServicoAtividade[]
+
+  @@map("objetos")
+}
+
+model LocalObra {
+  id                  Int                    @id @default(autoincrement())
+  nome                String                 @unique @db.VarChar(60)
+  ativo               Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  orcamentoAtividades OrcamentoAtividade[]
+  linhasOS            AtividadeOSLinha[]
+  combinacoes         SubServicoAtividade[]
+
+  @@map("locais_obra")
+}
+
+model Caracteristica {
+  id                  Int                    @id @default(autoincrement())
+  nome                String                 @unique @db.VarChar(60)
+  ativo               Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  orcamentoAtividades OrcamentoAtividade[]
+  linhasOS            AtividadeOSLinha[]
+  combinacoes         SubServicoAtividade[]
+
+  @@map("caracteristicas")
+}
+
+// ---------- Sub-serviço ----------
+model SubServico {
+  id                    Int                    @id @default(autoincrement())
+  etapaId               Int
+  nome                  String                 @db.VarChar(120)
+  ativo                 Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  etapa                 Etapa                  @relation(fields: [etapaId], references: [id])
+  combinacoes           SubServicoAtividade[]
+  orcamentoAtividades   OrcamentoAtividade[]
+  catalogoAtividades    CatalogoAtividade[]
+
+  @@unique([etapaId, nome])
+  @@map("sub_servicos")
+}
+
+// Combos vocabulário PERMITIDOS por sub-serviço (combo único por sub-serviço)
+model SubServicoAtividade {
+  id               Int                    @id @default(autoincrement())
+  subServicoId     Int
+  verboId          Int
+  objetoId         Int
+  localId          Int?
+  caracteristicaId Int?
+  ativo            Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  subServico       SubServico             @relation(fields: [subServicoId], references: [id], onDelete: Cascade)
+  verbo            Verbo                  @relation(fields: [verboId], references: [id])
+  objeto           Objeto                 @relation(fields: [objetoId], references: [id])
+  local            LocalObra?             @relation(fields: [localId], references: [id])
+  caracteristica   Caracteristica?        @relation(fields: [caracteristicaId], references: [id])
+
+  @@unique([subServicoId, verboId, objetoId, localId, caracteristicaId])
+  @@map("sub_servico_atividades")
+}
+
+// ---------- Ficha da obra (1:1) ----------
+model OrcamentoObraFicha {
+  id                 Int                    @id @default(autoincrement())
+  orcamentoId        Int                    @unique
+  // Bloco 2 — medições (proposto; confirmar campos na implementação)
+  areaPisoM2         Decimal?               @db.Decimal(10, 2)
+  areaParedeM2       Decimal?               @db.Decimal(10, 2)
+  areaTetoM2         Decimal?               @db.Decimal(10, 2)
+  perimetroM         Decimal?               @db.Decimal(10, 2)
+  acabamentoPiso     AcabamentoPiso?
+  acabamentoParede   AcabamentoParede?
+  tipoForro          TipoForro?
+  tipoEsquadria      TipoEsquadria?
+  // Bloco 3 — padrão e cuidados
+  padraoAcabamento   PadraoAcabamento?
+  caixasLuz          Int?
+  cuidados           Json                 @default("[]")
+  // Bloco 4 — análise crítica (gate de aprovação: 3 pares completos)
+  risco1             String?                @db.VarChar(500)
+  acao1              String?                @db.VarChar(500)
+  risco2             String?                @db.VarChar(500)
+  acao2              String?                @db.VarChar(500)
+  risco3             String?                @db.VarChar(500)
+  acao3              String?                @db.VarChar(500)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  orcamento          Orcamento              @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+
+  @@map("orcamento_obra_fichas")
+}
+
+// ---------- Linhas de orçamento (substitui OrcamentoItem) ----------
+model OrcamentoAtividade {
+  id                 String                 @id @default(cuid())
+  orcamentoId        Int
+  etapaId            Int
+  subServicoId       Int
+  catalogoAtividadeId String
+  descricao          String                 @db.VarChar(1000)
+  verboId            Int
+  objetoId           Int
+  localId            Int?
+  caracteristicaId   Int?
+  unidadeId          Int?
+  quantidade         Decimal?               @db.Decimal(10, 3)
+  areaM2             Decimal?               @db.Decimal(10, 2)
+  moValorHora        Decimal?               @db.Decimal(10, 2)
+  moPessoas          Int?
+  moHoras            Decimal?               @db.Decimal(10, 2)
+  moValorTotal       Decimal                @default(0) @db.Decimal(12, 2)
+  materiaisValor     Decimal                @default(0) @db.Decimal(12, 2)
+  linhaValorTotal    Decimal                @default(0) @db.Decimal(12, 2)
+  ordem              Int
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  orcamento          Orcamento              @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  etapa              Etapa                  @relation(fields: [etapaId], references: [id])
+  subServico         SubServico             @relation(fields: [subServicoId], references: [id])
+  catalogoAtividade  CatalogoAtividade      @relation(fields: [catalogoAtividadeId], references: [id])
+  verbo              Verbo                  @relation(fields: [verboId], references: [id])
+  objeto             Objeto                 @relation(fields: [objetoId], references: [id])
+  local              LocalObra?             @relation(fields: [localId], references: [id])
+  caracteristica     Caracteristica?        @relation(fields: [caracteristicaId], references: [id])
+  materiais          OrcamentoAtividadeMaterial[]
+
+  @@index([orcamentoId])
+  @@map("orcamento_atividades")
+}
+
+model OrcamentoAtividadeMaterial {
+  id                   Int                    @id @default(autoincrement())
+  orcamentoAtividadeId String
+  materialId           Int
+  quantidade           Decimal                @db.Decimal(10, 3)
+  custoUnitario        Decimal                @db.Decimal(10, 2) // SNAPSHOT no create
+  createdAt            DateTime               @default(now())
+  orcamentoAtividade   OrcamentoAtividade     @relation(fields: [orcamentoAtividadeId], references: [id], onDelete: Cascade)
+  material             Material               @relation(fields: [materialId], references: [id])
+
+  @@index([orcamentoAtividadeId])
+  @@map("orcamento_atividade_materiais")
+}
+
+// ---------- Linha de OS (novo; MO não repete aqui) ----------
+model AtividadeOSLinha {
+  id                 String                 @id @default(cuid())
+  atividadeOSId      String
+  ordem              Int
+  descricao          String                 @db.VarChar(1000)
+  verboId            Int
+  objetoId           Int
+  localId            Int?
+  caracteristicaId   Int?
+  unidadeId          Int?
+  quantidade         Decimal?               @db.Decimal(10, 3)
+  areaM2             Decimal?               @db.Decimal(10, 2)
+  createdAt          DateTime               @default(now())
+  atividadeOS        AtividadeOS            @relation(fields: [atividadeOSId], references: [id], onDelete: Cascade)
+  verbo              Verbo                  @relation(fields: [verboId], references: [id])
+  objeto             Objeto                 @relation(fields: [objetoId], references: [id])
+  local              LocalObra?             @relation(fields: [localId], references: [id])
+  caracteristica     Caracteristica?        @relation(fields: [caracteristicaId], references: [id])
+
+  @@index([atividadeOSId])
+  @@map("atividades_os_linhas")
 }
 
 enum CanalAtendimento {
@@ -1568,4 +1763,42 @@ enum StatusEntregaEpi {
   EM_USO
   DEVOLVIDO
   PERDIDO
+}
+
+// ---------- Enums da ficha da obra ----------
+enum AcabamentoPiso {
+  CERAMICA
+  PORCELANATO
+  CIMENTO
+  REVESTIMENTO
+  OUTRO
+}
+
+enum AcabamentoParede {
+  PINTURA
+  REVESTIMENTO_CERAMICO
+  APLICACAO
+  OUTRO
+}
+
+enum TipoForro {
+  GESSO
+  PVC
+  DRYWALL
+  ALVENARIA
+  NENHUM
+}
+
+enum TipoEsquadria {
+  ALUMINIO
+  MADEIRA
+  FERRO
+  PVC
+  OUTRO
+}
+
+enum PadraoAcabamento {
+  BASICO
+  STANDARD
+  PREMIUM
 }

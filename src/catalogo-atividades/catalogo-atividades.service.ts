@@ -11,6 +11,8 @@ export class CatalogoAtividadesService {
     q?: string;
     especialidade?: string;
     ativo?: boolean;
+    etapaId?: number;
+    subServicoId?: number;
   }) {
     const where: Record<string, unknown> = {};
     if (params?.ativo !== undefined) where.ativo = params.ativo;
@@ -23,6 +25,13 @@ export class CatalogoAtividadesService {
     }
     if (params?.especialidade)
       where.especialidadeNecessaria = params.especialidade;
+    if (params?.etapaId !== undefined && Number.isFinite(params.etapaId))
+      where.etapaId = params.etapaId;
+    if (
+      params?.subServicoId !== undefined &&
+      Number.isFinite(params.subServicoId)
+    )
+      where.subServicoId = params.subServicoId;
 
     return this.prisma.catalogoAtividade.findMany({
       where,
@@ -51,6 +60,8 @@ export class CatalogoAtividadesService {
     descricao?: string;
     especialidadeNecessaria: string;
     tempoEstimadoHoras?: number;
+    etapaId?: number | null;
+    subServicoId?: number | null;
     subSteps?: { ordem: number; descricao: string; observacao?: string }[];
     recursos?: { tipo: string; itemCatalogoId: number; quantidade?: number }[];
   }) {
@@ -65,6 +76,8 @@ export class CatalogoAtividadesService {
         descricao: data.descricao,
         especialidadeNecessaria: data.especialidadeNecessaria as any,
         tempoEstimadoHoras: data.tempoEstimadoHoras,
+        etapaId: data.etapaId ?? null,
+        subServicoId: data.subServicoId ?? null,
         subSteps: data.subSteps
           ? {
               create: data.subSteps.map((s) => ({
@@ -95,6 +108,8 @@ export class CatalogoAtividadesService {
       descricao?: string;
       especialidadeNecessaria?: string;
       tempoEstimadoHoras?: number;
+      etapaId?: number | null;
+      subServicoId?: number | null;
       ativo?: boolean;
     },
   ) {

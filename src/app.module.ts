@@ -3,12 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { AgendamentoModule } from './agendamentos/agendamento.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { CommonModule } from './common/common.module.js';
 import { AtendimentoModule } from './atendimentos/atendimento.module.js';
 import { AtividadesOSModule } from './atividades-os/atividades-os.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CatalogoAtividadesModule } from './catalogo-atividades/catalogo-atividades.module.js';
 import { ChecklistModule } from './checklist/checklist.module.js';
+import { CommonModule } from './common/common.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DisponibilidadeModule } from './disponibilidade/disponibilidade.module.js';
 import { EmailModule } from './email/email.module.js';
@@ -17,7 +17,9 @@ import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 import { EquipesModule } from './equipes/equipes.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
+import { OrcamentoVocabularioModule } from './orcamento-vocabulario/orcamento-vocabulario.module.js';
 import { OrcamentosModule } from './orcamentos/orcamentos.module.js';
+import { OsModule } from './os/os.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { PublicoModule } from './publico/publico.module.js';
 import { RbacModule } from './rbac/rbac.module.js';
@@ -38,7 +40,9 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     EpisModule,
     ManutencoesModule,
     MateriaisModule,
+    OrcamentoVocabularioModule,
     OrcamentosModule,
+    OsModule,
     PublicoModule,
     RbacModule,
     UsuariosModule,

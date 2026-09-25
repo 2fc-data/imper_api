@@ -21,8 +21,16 @@ export class CatalogoAtividadesController {
   async listar(
     @Query('q') q?: string,
     @Query('especialidade') especialidade?: string,
+    @Query('etapaId') etapaId?: string,
+    @Query('subServicoId') subServicoId?: string,
   ) {
-    return this.service.listar({ q, especialidade });
+    return this.service.listar({
+      q,
+      especialidade,
+      etapaId: etapaId !== undefined ? Number(etapaId) : undefined,
+      subServicoId:
+        subServicoId !== undefined ? Number(subServicoId) : undefined,
+    });
   }
 
   @Get(':id')

@@ -9,7 +9,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { AtividadesOSService } from './atividades-os.service.js';
+import {
+  type AssociarEquipeDto,
+  associarEquipeSchema,
+} from './dto/atividades-os.dto.js';
 
 @Controller('atividades-os')
 @UseGuards(JwtAuthGuard)
@@ -34,6 +39,9 @@ export class AtividadesOSController {
     return this.service.detalhar(id);
   }
 
+  /**
+   * @deprecated spec 3.4: superseded pela aprovação do orçamento (T9).
+   */
   @Post('planificar')
   async planificar(@Body() dto: any) {
     return this.service.planificar(dto);
@@ -50,8 +58,8 @@ export class AtividadesOSController {
   @Put(':id/equipe')
   async associarEquipe(
     @Param('id') id: string,
-    @Body('equipeId') equipeId: string,
+    @Body(new ZodValidationPipe(associarEquipeSchema)) dto: AssociarEquipeDto,
   ) {
-    return this.service.associarEquipe(id, equipeId);
+    return this.service.associarEquipe(id, dto);
   }
 }

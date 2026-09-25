@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { AssociarEquipeDto } from './dto/atividades-os.dto.js';
 
 @Injectable()
 export class AtividadesOSService {
@@ -66,6 +67,10 @@ export class AtividadesOSService {
     return item;
   }
 
+  /**
+   * @deprecated spec 3.4: superseded pela aprovação do orçamento (T9) —
+   * mantido por compatibilidade, não é mais usado pelo wizard.
+   */
   async planificar(data: {
     osId: number;
     etapaOSId: number;
@@ -76,6 +81,18 @@ export class AtividadesOSService {
     }[];
   }) {
     return this.prisma.$transaction(async (tx) => {
+      const etapaOS = await tx.etapaOS.findUnique({
+        where: { id: data.etapaOSId },
+        select: { ordem: true },
+      });
+      if (!etapaOS)
+        throw new NotFoundException(`EtapaOS ${data.etapaOSId} não encontrada`);
+
+      let seqSep =
+        (await tx.separacao.count({
+          where: { etapaOsId: data.etapaOSId },
+        })) + 1;
+
       const criadas = [];
 
       for (const ativ of data.atividades) {
@@ -131,7 +148,7 @@ export class AtividadesOSService {
 
             await tx.separacao.create({
               data: {
-                codigo: `SEP-${data.osId}-${Date.now()}`,
+                codigo: `SEP-${data.osId}-${etapaOS.ordem}-${seqSep++}`,
                 etapaOsId: data.etapaOSId,
                 dataNecessidade: ativ.dataPrevisao
                   ? new Date(ativ.dataPrevisao)
@@ -159,11 +176,23 @@ export class AtividadesOSService {
     });
   }
 
-  async associarEquipe(id: string, equipeId: string) {
+  async associarEquipe(id: string, dto: AssociarEquipeDto) {
     await this.detalhar(id);
+    const equipe = await this.prisma.equipe.findFirst({
+      where: { id: dto.equipeId },
+    });
+    if (!equipe) throw new NotFoundException('Equipe não encontrada');
     return this.prisma.atividadeOS.update({
       where: { id },
-      data: { equipeId },
+      data: {
+        equipeId: dto.equipeId,
+        dataPrevisao:
+          dto.dataPrevisao === undefined
+            ? undefined
+            : dto.dataPrevisao === null
+              ? null
+              : new Date(dto.dataPrevisao),
+      },
     });
   }
 }
