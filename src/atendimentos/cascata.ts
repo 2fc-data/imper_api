@@ -69,5 +69,8 @@ export function calcularProximasAcoes(
         'CRIAR_ORCAMENTO',
         'ENCERRAR',
       ];
+    case 'CONCLUIDO':
+    case 'INATIVO':
+      return [];
   }
 }
