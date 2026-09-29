@@ -1,7 +1,8 @@
 import { AtendimentoService } from './atendimento.service.js';
 
 const mockTx = {
-  atendimento: { create: vi.fn() },
+  atendimento: { create: vi.fn(), update: vi.fn() },
+  atendimentoLog: { create: vi.fn() },
   user: { findFirst: vi.fn() },
   papelRbac: { findFirst: vi.fn() },
   usuarioPapel: { create: vi.fn() },
@@ -14,6 +15,8 @@ const mockPrisma = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  atendimentoLog: { create: vi.fn() },
+  visitaTecnica: { findFirst: vi.fn() },
   $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) =>
     fn(mockTx),
   ),
@@ -128,6 +131,89 @@ describe('AtendimentoService', () => {
           data: expect.objectContaining({ visitaSolicitada: false }),
         }),
       );
+    });
+  });
+
+  describe('atualizarStatus', () => {
+    function mockAtual(parcial: Record<string, unknown>) {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'NOVO',
+        visitaSolicitada: false,
+        ...parcial,
+      });
+      mockTx.atendimento.update.mockResolvedValue({ id: 1 });
+      mockTx.atendimentoLog.create.mockResolvedValue({ id: 10 });
+    }
+
+    it('should reject when atendimento is terminal', async () => {
+      mockAtual({ status: 'CONCLUIDO' });
+      await expect(
+        service.atualizarStatus(1, 'EM_ANDAMENTO'),
+      ).rejects.toThrow('Atendimento encerrado');
+    });
+
+    it('should reject invalid transition NOVO → ORCAMENTAMENTO', async () => {
+      mockAtual({ status: 'NOVO' });
+      await expect(
+        service.atualizarStatus(1, 'ORCAMENTAMENTO'),
+      ).rejects.toThrow('Transição inválida: NOVO → ORCAMENTAMENTO');
+    });
+
+    it('gate 3: should block ORCAMENTAMENTO without realized visit', async () => {
+      mockAtual({ status: 'EM_ANDAMENTO', visitaSolicitada: true });
+      mockPrisma.visitaTecnica.findFirst.mockResolvedValue(null);
+      await expect(
+        service.atualizarStatus(1, 'ORCAMENTAMENTO'),
+      ).rejects.toThrow(
+        'Visita técnica deve ser realizada antes de iniciar o orçamento',
+      );
+      expect(mockTx.atendimento.update).not.toHaveBeenCalled();
+    });
+
+    it('gate 3: should allow ORCAMENTAMENTO with realized visit', async () => {
+      mockAtual({ status: 'EM_ANDAMENTO', visitaSolicitada: true });
+      mockPrisma.visitaTecnica.findFirst.mockResolvedValue({ id: 5 });
+      const res = await service.atualizarStatus(1, 'ORCAMENTAMENTO', 7);
+      expect(mockPrisma.visitaTecnica.findFirst).toHaveBeenCalled();
+      expect(mockTx.atendimento.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { status: 'ORCAMENTAMENTO' },
+      });
+      expect(res).toEqual({ id: 1 });
+    });
+
+    it('gate 3: not consulted when visitaSolicitada is false', async () => {
+      mockAtual({ status: 'EM_ANDAMENTO', visitaSolicitada: false });
+      await service.atualizarStatus(1, 'ORCAMENTAMENTO');
+      expect(mockPrisma.visitaTecnica.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('same status: no transition validation and no STATUS log', async () => {
+      mockAtual({ status: 'EM_ANDAMENTO' });
+      await service.atualizarStatus(1, 'EM_ANDAMENTO');
+      expect(mockTx.atendimento.update).toHaveBeenCalled();
+      expect(mockTx.atendimentoLog.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({ tipo: 'STATUS' }),
+      );
+    });
+
+    it('should update and write STATUS log with transition data', async () => {
+      mockAtual({ status: 'NOVO' });
+      await service.atualizarStatus(1, 'EM_ANDAMENTO', 7);
+      expect(mockTx.atendimento.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { status: 'EM_ANDAMENTO' },
+      });
+      expect(mockTx.atendimentoLog.create).toHaveBeenCalledWith({
+        data: {
+          atendimentoId: 1,
+          atendenteId: 7,
+          tipo: 'STATUS',
+          statusDe: 'NOVO',
+          statusPara: 'EM_ANDAMENTO',
+        },
+      });
     });
   });
 });

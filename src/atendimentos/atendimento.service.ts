@@ -10,9 +10,11 @@ import type {
   Urgencia,
 } from '../schemas/enums.js';
 import {
+  assertAtendimentoAberto,
   calcularProximasAcoes,
   type ContextoAcoes,
   type StatusCascata,
+  validarTransicao,
 } from './cascata.js';
 
 const includeCtx = {
@@ -175,6 +177,15 @@ export class AtendimentoService {
       throw new AppError(404, 'Atendimento não encontrado');
     }
 
+    assertAtendimentoAberto(atual.status as StatusCascata);
+
+    if (atual.status !== status) {
+      validarTransicao(atual.status as StatusCascata, status as StatusCascata);
+      if (status === 'ORCAMENTAMENTO' && atual.visitaSolicitada) {
+        await this.assertVisitaRealizada(id);
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.atendimento.update({
         where: { id },
@@ -193,6 +204,23 @@ export class AtendimentoService {
       }
       return updated;
     });
+  }
+
+  private async assertVisitaRealizada(atendimentoId: number): Promise<void> {
+    const visita = await this.prisma.visitaTecnica.findFirst({
+      where: {
+        atendimentoId,
+        status: 'REALIZADA',
+        agendamento: { is: { status: 'REALIZADO' } },
+      },
+      select: { id: true },
+    });
+    if (!visita) {
+      throw new AppError(
+        400,
+        'Visita técnica deve ser realizada antes de iniciar o orçamento',
+      );
+    }
   }
 
   async listarLogs(atendimentoId: number) {
