@@ -55,16 +55,10 @@ const CARACTERISTICAS = [
 
 // 1–2 sub-serviços por etapa existente
 const SUBS: Record<string, string[]> = {
-  'Preparação da superfície': [
-    'Limpeza e preparação',
-    'Reparo de imperfeições',
-  ],
-  'Primeira camada': ['Aplicação de fundo', 'Impermeabilização de base'],
-  'Segunda camada': ['Reforço de juntas', 'Segunda demão'],
-  'Acabamento e inspeção': [
-    'Acabamento e vedações',
-    'Inspeção e tratamento final',
-  ],
+  Início: ['Limpeza e preparação', 'Reparo de imperfeições'],
+  'Em andamento': ['Aplicação de fundo', 'Impermeabilização de base'],
+  Acabamento: ['Reforço de juntas', 'Segunda demão'],
+  Finalizado: ['Acabamento e vedações', 'Inspeção e tratamento final'],
 };
 
 // Itens de demonstração do catálogo (criados se não existirem)
@@ -73,56 +67,56 @@ const CATALOGO = [
     nome: 'Lavagem e desengorduramento',
     esp: 'LIMPEZA',
     h: 2,
-    etapa: 'Preparação da superfície',
+    etapa: 'Início',
     sub: 'Limpeza e preparação',
   },
   {
     nome: 'Reparo de trincas e furos',
     esp: 'CIVIL',
     h: 3,
-    etapa: 'Preparação da superfície',
+    etapa: 'Início',
     sub: 'Reparo de imperfeições',
   },
   {
     nome: 'Aplicação de primer (fundo)',
     esp: 'PINTURA',
     h: 2,
-    etapa: 'Primeira camada',
+    etapa: 'Em andamento',
     sub: 'Aplicação de fundo',
   },
   {
     nome: 'Impermeabilização — 1ª demão',
     esp: 'IMPERMEABILIZACAO',
     h: 4,
-    etapa: 'Primeira camada',
+    etapa: 'Em andamento',
     sub: 'Impermeabilização de base',
   },
   {
     nome: 'Reforço de juntas com fita',
     esp: 'IMPERMEABILIZACAO',
     h: 3,
-    etapa: 'Segunda camada',
+    etapa: 'Acabamento',
     sub: 'Reforço de juntas',
   },
   {
     nome: 'Impermeabilização — 2ª demão',
     esp: 'IMPERMEABILIZACAO',
     h: 4,
-    etapa: 'Segunda camada',
+    etapa: 'Acabamento',
     sub: 'Segunda demão',
   },
   {
     nome: 'Vedação de esquadrias',
     esp: 'CIVIL',
     h: 2,
-    etapa: 'Acabamento e inspeção',
+    etapa: 'Finalizado',
     sub: 'Acabamento e vedações',
   },
   {
     nome: 'Inspeção e relatório final',
     esp: 'OUTROS',
     h: 1.5,
-    etapa: 'Acabamento e inspeção',
+    etapa: 'Finalizado',
     sub: 'Inspeção e tratamento final',
   },
 ] as const;
