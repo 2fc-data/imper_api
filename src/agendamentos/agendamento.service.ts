@@ -122,7 +122,8 @@ export class AgendamentoService {
     }
 
     try {
-      const enderecoId = await this.prisma.$transaction(async (tx) => {
+      const agendamento = await this.prisma.$transaction(async (tx) => {
+        let enderecoId: number | null = dto.enderecoId ? Number(dto.enderecoId) : null;
         if (dto.enderecoNovo) {
           const e = dto.enderecoNovo;
           if (e.logradouro || e.bairro || e.cidade || e.cep) {
@@ -141,28 +142,49 @@ export class AgendamentoService {
               },
             });
             this.logger.log(`[criar] endereco criado id=${endereco.id}`);
-            return endereco.id;
+            enderecoId = endereco.id;
           }
         }
-        return dto.enderecoId ? Number(dto.enderecoId) : null;
-      });
 
-      this.logger.log(
-        `[criar] enderecoId=${enderecoId}, criando agendamento...`,
-      );
-      const agendamento = await this.prisma.agendamento.create({
-        data: {
-          userId: Number(dto.userId),
-          atendimentoId: Number(dto.atendimentoId),
-          enderecoId,
-          tipo,
-          status: dto.status ?? 'PENDENTE',
-          dataPrevista: new Date(dto.dataPrevista),
-          dataRealizada: dto.dataRealizada ? new Date(dto.dataRealizada) : null,
-          observacoes: dto.observacoes ?? null,
-          criadoPorId: criadoPorId ? Number(criadoPorId) : null,
-        },
-        include: includeStandard,
+        this.logger.log(
+          `[criar] enderecoId=${enderecoId}, criando agendamento...`,
+        );
+        const ag = await tx.agendamento.create({
+          data: {
+            userId: Number(dto.userId),
+            atendimentoId: Number(dto.atendimentoId),
+            enderecoId,
+            tipo,
+            status: dto.status ?? 'PENDENTE',
+            dataPrevista: new Date(dto.dataPrevista),
+            dataRealizada: dto.dataRealizada ? new Date(dto.dataRealizada) : null,
+            observacoes: dto.observacoes ?? null,
+            criadoPorId: criadoPorId ? Number(criadoPorId) : null,
+          },
+          include: includeStandard,
+        });
+
+        if (tipo === 'VISITA') {
+          const visitaExistente = await tx.visitaTecnica.findUnique({
+            where: { agendamentoId: ag.id },
+          });
+          if (!visitaExistente) {
+            this.logger.log(
+              `[criar] Criando VisitaTecnica vinculada ao agendamento id=${ag.id}`,
+            );
+            await tx.visitaTecnica.create({
+              data: {
+                atendimentoId: ag.atendimentoId,
+                agendamentoId: ag.id,
+                dataPrevista: ag.dataPrevista,
+                enderecoId: ag.enderecoId,
+                status: 'AGENDADA',
+              },
+            });
+          }
+        }
+
+        return ag;
       });
 
       this.logger.log(`[criar] agendamento criado id=${agendamento.id}`);
