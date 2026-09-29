@@ -21,10 +21,7 @@ export function ehTerminal(status: StatusCascata): boolean {
   return TERMINAIS.includes(status);
 }
 
-export function validarTransicao(
-  de: StatusCascata,
-  para: StatusCascata,
-): void {
+export function validarTransicao(de: StatusCascata, para: StatusCascata): void {
   if (!TRANSICOES[de]?.includes(para)) {
     throw new AppError(400, `Transição inválida: ${de} → ${para}`);
   }
@@ -49,9 +46,7 @@ export type AcaoAtendimento =
   | 'CRIAR_ORCAMENTO'
   | 'ENCERRAR';
 
-export function calcularProximasAcoes(
-  ctx: ContextoAcoes,
-): AcaoAtendimento[] {
+export function calcularProximasAcoes(ctx: ContextoAcoes): AcaoAtendimento[] {
   if (ehTerminal(ctx.status)) return [];
   const vinculos: AcaoAtendimento[] = [];
   if (ctx.visitaSolicitada) {
@@ -64,11 +59,7 @@ export function calcularProximasAcoes(
     case 'EM_ANDAMENTO':
       return ['MUDAR_STATUS:ORCAMENTAMENTO', ...vinculos, 'ENCERRAR'];
     case 'ORCAMENTAMENTO':
-      return [
-        'MUDAR_STATUS:EM_ANDAMENTO',
-        'CRIAR_ORCAMENTO',
-        'ENCERRAR',
-      ];
+      return ['MUDAR_STATUS:EM_ANDAMENTO', 'CRIAR_ORCAMENTO', 'ENCERRAR'];
     case 'CONCLUIDO':
     case 'INATIVO':
       return [];

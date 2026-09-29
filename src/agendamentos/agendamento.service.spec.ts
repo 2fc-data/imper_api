@@ -13,9 +13,7 @@ const mockPrisma = {
   },
   atendimento: { findUnique: vi.fn() },
   endereco: { create: vi.fn() },
-  $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) =>
-    fn(mockTx),
-  ),
+  $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) => fn(mockTx)),
 };
 
 function dto(parcial: Record<string, unknown>) {

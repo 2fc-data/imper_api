@@ -11,8 +11,8 @@ import type {
 } from '../schemas/enums.js';
 import {
   assertAtendimentoAberto,
-  calcularProximasAcoes,
   type ContextoAcoes,
+  calcularProximasAcoes,
   type StatusCascata,
   validarTransicao,
 } from './cascata.js';
@@ -29,11 +29,13 @@ const includeCtx = {
   },
 } satisfies Prisma.AtendimentoInclude;
 
-function comProximas<T extends {
-  status: StatusAtendimento;
-  visitaSolicitada: boolean;
-  _count: { visitas: number; agendamentos: number };
-}>(item: T) {
+function comProximas<
+  T extends {
+    status: StatusAtendimento;
+    visitaSolicitada: boolean;
+    _count: { visitas: number; agendamentos: number };
+  },
+>(item: T) {
   return {
     ...item,
     proximasAcoes: calcularProximasAcoes({

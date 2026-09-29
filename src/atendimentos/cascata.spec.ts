@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { AppError } from '../lib/errors.js';
 import {
   assertAtendimentoAberto,
+  type ContextoAcoes,
   calcularProximasAcoes,
   ehTerminal,
   TRANSICOES,
   validarTransicao,
-  type ContextoAcoes,
 } from './cascata.js';
 
 function ctx(parcial: Partial<ContextoAcoes>): ContextoAcoes {
@@ -81,7 +81,9 @@ describe('cascata — validarTransicao', () => {
 
   it('aceita transições válidas', () => {
     expect(() => validarTransicao('NOVO', 'EM_ANDAMENTO')).not.toThrow();
-    expect(() => validarTransicao('EM_ANDAMENTO', 'ORCAMENTAMENTO')).not.toThrow();
+    expect(() =>
+      validarTransicao('EM_ANDAMENTO', 'ORCAMENTAMENTO'),
+    ).not.toThrow();
     expect(() => validarTransicao('ORCAMENTAMENTO', 'CONCLUIDO')).not.toThrow();
   });
 });
@@ -110,9 +112,7 @@ describe('cascata — calcularProximasAcoes', () => {
   it('terminal → [] com qualquer flag', () => {
     expect(calcularProximasAcoes(ctx({ status: 'CONCLUIDO' }))).toEqual([]);
     expect(
-      calcularProximasAcoes(
-        ctx({ status: 'INATIVO', visitaSolicitada: true }),
-      ),
+      calcularProximasAcoes(ctx({ status: 'INATIVO', visitaSolicitada: true })),
     ).toEqual([]);
   });
 
@@ -125,14 +125,8 @@ describe('cascata — calcularProximasAcoes', () => {
 
   it('NOVO com flag e sem agendamento → CRIAR_AGENDAMENTO', () => {
     expect(
-      calcularProximasAcoes(
-        ctx({ status: 'NOVO', visitaSolicitada: true }),
-      ),
-    ).toEqual([
-      'MUDAR_STATUS:EM_ANDAMENTO',
-      'CRIAR_AGENDAMENTO',
-      'ENCERRAR',
-    ]);
+      calcularProximasAcoes(ctx({ status: 'NOVO', visitaSolicitada: true })),
+    ).toEqual(['MUDAR_STATUS:EM_ANDAMENTO', 'CRIAR_AGENDAMENTO', 'ENCERRAR']);
   });
 
   it('EM_ANDAMENTO com flag, agendamento sem visita → CRIAR_VISITA', () => {
@@ -144,11 +138,7 @@ describe('cascata — calcularProximasAcoes', () => {
           temAgendamentoVisita: true,
         }),
       ),
-    ).toEqual([
-      'MUDAR_STATUS:ORCAMENTAMENTO',
-      'CRIAR_VISITA',
-      'ENCERRAR',
-    ]);
+    ).toEqual(['MUDAR_STATUS:ORCAMENTAMENTO', 'CRIAR_VISITA', 'ENCERRAR']);
   });
 
   it('EM_ANDAMENTO com flag, agendamento e visita → sem vínculos', () => {
@@ -169,11 +159,7 @@ describe('cascata — calcularProximasAcoes', () => {
       calcularProximasAcoes(
         ctx({ status: 'EM_ANDAMENTO', visitaSolicitada: true }),
       ),
-    ).toEqual([
-      'MUDAR_STATUS:ORCAMENTAMENTO',
-      'CRIAR_AGENDAMENTO',
-      'ENCERRAR',
-    ]);
+    ).toEqual(['MUDAR_STATUS:ORCAMENTAMENTO', 'CRIAR_AGENDAMENTO', 'ENCERRAR']);
   });
 
   it('ORCAMENTAMENTO → EM_ANDAMENTO, CRIAR_ORCAMENTO e ENCERRAR (independente da flag)', () => {
@@ -186,10 +172,6 @@ describe('cascata — calcularProximasAcoes', () => {
       calcularProximasAcoes(
         ctx({ status: 'ORCAMENTAMENTO', visitaSolicitada: true }),
       ),
-    ).toEqual([
-      'MUDAR_STATUS:EM_ANDAMENTO',
-      'CRIAR_ORCAMENTO',
-      'ENCERRAR',
-    ]);
+    ).toEqual(['MUDAR_STATUS:EM_ANDAMENTO', 'CRIAR_ORCAMENTO', 'ENCERRAR']);
   });
 });

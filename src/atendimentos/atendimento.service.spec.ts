@@ -17,9 +17,7 @@ const mockPrisma = {
   },
   atendimentoLog: { create: vi.fn() },
   visitaTecnica: { findFirst: vi.fn() },
-  $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) =>
-    fn(mockTx),
-  ),
+  $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) => fn(mockTx)),
 };
 
 function item(parcial: Record<string, unknown>) {
@@ -148,9 +146,9 @@ describe('AtendimentoService', () => {
 
     it('should reject when atendimento is terminal', async () => {
       mockAtual({ status: 'CONCLUIDO' });
-      await expect(
-        service.atualizarStatus(1, 'EM_ANDAMENTO'),
-      ).rejects.toThrow('Atendimento encerrado');
+      await expect(service.atualizarStatus(1, 'EM_ANDAMENTO')).rejects.toThrow(
+        'Atendimento encerrado',
+      );
     });
 
     it('should reject invalid transition NOVO → ORCAMENTAMENTO', async () => {
@@ -220,9 +218,9 @@ describe('AtendimentoService', () => {
   describe('atualizar (visitaSolicitada)', () => {
     it('should throw 404 when not found', async () => {
       mockPrisma.atendimento.findUnique.mockResolvedValue(null);
-      await expect(service.atualizar(999, { visitaSolicitada: true })).rejects.toThrow(
-        'Atendimento não encontrado',
-      );
+      await expect(
+        service.atualizar(999, { visitaSolicitada: true }),
+      ).rejects.toThrow('Atendimento não encontrado');
       expect(mockPrisma.atendimento.update).not.toHaveBeenCalled();
     });
 
