@@ -1,6 +1,7 @@
 export type StatusAtendimento =
   | 'NOVO'
   | 'EM_ANDAMENTO'
+  | 'ORCAMENTAMENTO'
   | 'CONCLUIDO'
   | 'INATIVO';
 

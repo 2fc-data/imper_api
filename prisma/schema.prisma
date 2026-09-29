@@ -104,6 +104,7 @@ model Atendimento {
   canal        CanalAtendimento
   urgencia     Urgencia?         @default(NORMAL)
   status       StatusAtendimento @default(NOVO)
+  visitaSolicitada Boolean        @default(false)
   descricao    String?           @db.VarChar(1000)
   userId       Int?
   atendenteId  Int?
@@ -194,6 +195,7 @@ model CidadeAtendida {
 model VisitaTecnica {
   id                 Int              @id @default(autoincrement())
   atendimentoId      Int
+  agendamentoId      Int?             @unique
   tecnicoId          Int?
   dataPrevista       DateTime
   dataRealizada      DateTime?
@@ -210,6 +212,7 @@ model VisitaTecnica {
   fotos              FotosVisita[]
   orcamentos         Orcamento[]
   atendimento        Atendimento      @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+  agendamento        Agendamento?     @relation(fields: [agendamentoId], references: [id], onDelete: Restrict)
   endereco           Endereco?        @relation(fields: [enderecoId], references: [id])
   tecnico            User?            @relation("TecnicoVisita", fields: [tecnicoId], references: [id])
 
@@ -234,7 +237,7 @@ model FotosVisita {
 model Agendamento {
   id            Int               @id @default(autoincrement())
   userId        Int?
-  atendimentoId Int?
+  atendimentoId Int
   enderecoId    Int?
   tipo          TipoAgendamento   @default(VISITA)
   status        StatusAgendamento @default(PENDENTE)
@@ -244,10 +247,12 @@ model Agendamento {
   criadoPorId   Int?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
-  atendimento   Atendimento?      @relation(fields: [atendimentoId], references: [id])
+  atendimento   Atendimento       @relation(fields: [atendimentoId], references: [id])
   user          User?             @relation("AgendamentoUser", fields: [userId], references: [id], onDelete: Cascade)
   criadoPor     User?             @relation("AgendamentoCriadoPor", fields: [criadoPorId], references: [id])
   endereco      Endereco?         @relation(fields: [enderecoId], references: [id])
+  visita        VisitaTecnica?
+  orcamentos    Orcamento[]
 
   @@index([userId])
   @@index([dataPrevista])
@@ -335,6 +340,7 @@ model Orcamento {
   codigo               String          @unique @db.VarChar(20)
   atendimentoId        Int
   visitaId             Int?
+  agendamentoId        Int?
   userId               Int?
   enderecoId           Int?
   urgencia             Urgencia
@@ -366,9 +372,11 @@ model Orcamento {
   criadoPor            User            @relation("OrcamentoCriador", fields: [criadoPorId], references: [id])
   endereco             Endereco?       @relation(fields: [enderecoId], references: [id])
   visita               VisitaTecnica?  @relation(fields: [visitaId], references: [id], onDelete: Restrict)
+  agendamento          Agendamento?    @relation(fields: [agendamentoId], references: [id], onDelete: Restrict)
   ordemServico         OrdemServico?
 
   @@index([atendimentoId])
+  @@index([agendamentoId])
   @@index([aprovadoPorId], map: "orcamentos_aprovadoPorId_fkey")
   @@index([userId], map: "orcamentos_clienteId_fkey")
   @@index([criadoPorId], map: "orcamentos_criadoPorId_fkey")
@@ -1550,6 +1558,7 @@ enum CanalAtendimento {
 enum StatusAtendimento {
   NOVO
   EM_ANDAMENTO
+  ORCAMENTAMENTO
   CONCLUIDO
   INATIVO
 }

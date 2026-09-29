@@ -5,7 +5,7 @@ import type { StatusAgendamento, TipoAgendamento } from '../schemas/enums.js';
 
 export interface CriarAgendamentoDto {
   userId: number;
-  atendimentoId?: number | null;
+  atendimentoId: number;
   enderecoId?: number | null;
   tipo?: TipoAgendamento;
   status?: StatusAgendamento;
@@ -127,7 +127,7 @@ export class AgendamentoService {
       const agendamento = await this.prisma.agendamento.create({
         data: {
           userId: Number(dto.userId),
-          atendimentoId: dto.atendimentoId ? Number(dto.atendimentoId) : null,
+          atendimentoId: Number(dto.atendimentoId),
           enderecoId,
           tipo: dto.tipo ?? 'VISITA',
           status: dto.status ?? 'PENDENTE',
