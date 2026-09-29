@@ -80,6 +80,13 @@ describe('AtendimentoController', () => {
       expect(result).toEqual(created);
       expect(mockService.criar).toHaveBeenCalledWith(dto);
     });
+
+    it('should pass visitaSolicitada to service', async () => {
+      const dto = { canal: 'LOJA' as const, visitaSolicitada: true };
+      mockService.criar.mockResolvedValue({ id: 1, ...dto });
+      await controller.criar(dto);
+      expect(mockService.criar).toHaveBeenCalledWith(dto);
+    });
   });
 
   describe('atualizarStatus', () => {

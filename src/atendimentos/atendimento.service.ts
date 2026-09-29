@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -8,6 +9,39 @@ import type {
   TipoAtendimento,
   Urgencia,
 } from '../schemas/enums.js';
+import {
+  calcularProximasAcoes,
+  type ContextoAcoes,
+  type StatusCascata,
+} from './cascata.js';
+
+const includeCtx = {
+  user: { select: { id: true, nome: true, telefone: true } },
+  _count: {
+    select: {
+      visitas: { where: { status: { not: 'CANCELADO' } } },
+      agendamentos: {
+        where: { tipo: 'VISITA', status: { not: 'CANCELADO' } },
+      },
+    },
+  },
+} satisfies Prisma.AtendimentoInclude;
+
+function comProximas<T extends {
+  status: StatusAtendimento;
+  visitaSolicitada: boolean;
+  _count: { visitas: number; agendamentos: number };
+}>(item: T) {
+  return {
+    ...item,
+    proximasAcoes: calcularProximasAcoes({
+      status: item.status as StatusCascata,
+      visitaSolicitada: item.visitaSolicitada,
+      temAgendamentoVisita: item._count.agendamentos > 0,
+      temVisita: item._count.visitas > 0,
+    } satisfies ContextoAcoes),
+  };
+}
 
 @Injectable()
 export class AtendimentoService {
@@ -31,31 +65,34 @@ export class AtendimentoService {
       where.status = params.status;
     }
 
-    return this.prisma.atendimento.findMany({
+    const itens = await this.prisma.atendimento.findMany({
       where,
-      include: { user: { select: { id: true, nome: true, telefone: true } } },
+      include: includeCtx,
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+
+    return itens.map(comProximas);
   }
 
   async detalhar(id: number) {
     const item = await this.prisma.atendimento.findUnique({
       where: { id },
-      include: { user: { select: { id: true, nome: true, telefone: true } } },
+      include: includeCtx,
     });
 
     if (!item) {
       throw new AppError(404, 'Atendimento não encontrado');
     }
 
-    return item;
+    return comProximas(item);
   }
 
   async criar(data: {
     canal: CanalAtendimento;
     urgencia?: Urgencia;
     descricao?: string;
+    visitaSolicitada?: boolean;
     userId?: number;
     atendenteId?: number;
     userName?: string;
@@ -119,6 +156,7 @@ export class AtendimentoService {
           urgencia: data.urgencia ?? 'NORMAL',
           status: 'NOVO',
           descricao: data.descricao ?? null,
+          visitaSolicitada: data.visitaSolicitada ?? false,
           userId,
           atendenteId: data.atendenteId ?? null,
         },

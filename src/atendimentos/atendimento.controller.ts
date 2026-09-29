@@ -77,6 +77,7 @@ export class AtendimentoController {
       canal: CanalAtendimento;
       urgencia?: Urgencia;
       descricao?: string;
+      visitaSolicitada?: boolean;
       userId?: number;
       atendenteId?: number;
       userName?: string;
