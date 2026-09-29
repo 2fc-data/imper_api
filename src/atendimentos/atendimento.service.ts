@@ -21,7 +21,7 @@ const includeCtx = {
   user: { select: { id: true, nome: true, telefone: true } },
   _count: {
     select: {
-      visitas: { where: { status: { not: 'CANCELADO' } } },
+      visitas: { where: { status: { not: 'CANCELADA' } } },
       agendamentos: {
         where: { tipo: 'VISITA', status: { not: 'CANCELADO' } },
       },
@@ -218,7 +218,7 @@ export class AtendimentoService {
       await this.assertVisitaRealizada(id);
     }
 
-    let statusAtual = atual.status;
+    let statusAtual: StatusAtendimento = atual.status;
     for (const para of passos) {
       await this.prisma.$transaction(async (tx) => {
         await tx.atendimento.update({
