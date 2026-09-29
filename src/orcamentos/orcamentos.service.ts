@@ -75,9 +75,44 @@ export class OrcamentosService {
   async criar(dto: CriarOrcamentoDto, userId: number) {
     const atendimento = await this.prisma.atendimento.findUnique({
       where: { id: dto.atendimentoId },
-      select: { userId: true },
+      select: { userId: true, status: true, visitaSolicitada: true },
     });
     if (!atendimento) throw new AppError(404, 'Atendimento não encontrado');
+
+    if (atendimento.status !== 'ORCAMENTAMENTO') {
+      throw new AppError(
+        400,
+        'Atendimento deve estar em ORCAMENTAMENTO para gerar orçamento',
+      );
+    }
+
+    if (atendimento.visitaSolicitada) {
+      if (!dto.agendamentoId || !dto.visitaId) {
+        throw new AppError(
+          400,
+          'Informe agendamentoId e visitaId da visita realizada',
+        );
+      }
+      const visita = await this.prisma.visitaTecnica.findUnique({
+        where: { id: dto.visitaId },
+        select: { atendimentoId: true, agendamentoId: true },
+      });
+      if (
+        !visita ||
+        visita.atendimentoId !== dto.atendimentoId ||
+        visita.agendamentoId !== dto.agendamentoId
+      ) {
+        throw new AppError(
+          400,
+          'Visita não pertence ao atendimento/agendamento informado',
+        );
+      }
+    } else if (dto.agendamentoId != null || dto.visitaId != null) {
+      throw new AppError(
+        400,
+        'Atendimento não tem visita solicitada para vincular agendamento/visita',
+      );
+    }
 
     const codigo = await this.gerarCodigo();
     const { linhas, total } = await this.montarAtividades(dto);
@@ -91,6 +126,7 @@ export class OrcamentosService {
         codigo,
         atendimentoId: dto.atendimentoId,
         visitaId: dto.visitaId ?? null,
+        agendamentoId: dto.agendamentoId ?? null,
         userId: atendimento.userId,
         enderecoId: dto.enderecoId ?? null,
         servicoMarketingId: dto.servicoMarketingId ?? null,

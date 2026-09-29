@@ -68,6 +68,7 @@ const fichaSchema = z.object({
 export const criarOrcamentoSchema = z.object({
   atendimentoId: z.number().int(),
   visitaId: z.number().int().nullable().optional(),
+  agendamentoId: z.number().int().nullable().optional(),
   enderecoId: z.number().int().nullable().optional(),
   servicoMarketingId: z.number().int().nullable().optional(),
   urgencia: z.enum(['NORMAL', 'URGENTE', 'URGENTISSIMO']).default('NORMAL'),

@@ -20,6 +20,7 @@ const mockTx = {
 
 const mockPrisma = {
   atendimento: { findUnique: vi.fn() },
+  visitaTecnica: { findFirst: vi.fn(), findUnique: vi.fn() },
   material: { findMany: vi.fn() },
   orcamento: {
     findFirst: vi.fn(),
@@ -86,7 +87,11 @@ describe('OrcamentosService', () => {
 
   describe('criar', () => {
     beforeEach(() => {
-      mockPrisma.atendimento.findUnique.mockResolvedValue({ userId: 7 });
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'ORCAMENTAMENTO',
+        visitaSolicitada: false,
+      });
       mockPrisma.orcamento.findFirst.mockResolvedValue({ codigo: 'ORM-005' });
       mockPrisma.material.findMany.mockResolvedValue([
         { id: 1, custoUnitario: 10.5 },
@@ -159,6 +164,116 @@ describe('OrcamentosService', () => {
     it('lança 404 quando o atendimento não existe', async () => {
       mockPrisma.atendimento.findUnique.mockResolvedValue(null);
       await expect(service.criar(dtoBase(), 1)).rejects.toThrow(AppError);
+    });
+
+    it('gate 4: status EM_ANDAMENTO → 400 deve estar em ORCAMENTAMENTO', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'EM_ANDAMENTO',
+        visitaSolicitada: false,
+      });
+      await expect(service.criar(dtoBase(), 1)).rejects.toThrow(
+        'Atendimento deve estar em ORCAMENTAMENTO para gerar orçamento',
+      );
+      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+    });
+
+    it('gate 4: status CONCLUIDO → 400 idem', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'CONCLUIDO',
+        visitaSolicitada: true,
+      });
+      await expect(service.criar(dtoBase(), 1)).rejects.toThrow(
+        'Atendimento deve estar em ORCAMENTAMENTO para gerar orçamento',
+      );
+      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+    });
+
+    it('gate 4: flag=true sem agendamentoId/visitaId → 400', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'ORCAMENTAMENTO',
+        visitaSolicitada: true,
+      });
+      await expect(service.criar(dtoBase(), 1)).rejects.toThrow(
+        'Informe agendamentoId e visitaId da visita realizada',
+      );
+      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+    });
+
+    it('gate 4: flag=true com visita inexistente → 400 visita não pertence', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'ORCAMENTAMENTO',
+        visitaSolicitada: true,
+      });
+      mockPrisma.visitaTecnica.findUnique.mockResolvedValue(null);
+      await expect(
+        service.criar({ ...dtoBase(), agendamentoId: 3, visitaId: 5 }, 1),
+      ).rejects.toThrow(
+        'Visita não pertence ao atendimento/agendamento informado',
+      );
+      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+    });
+
+    it('gate 4: flag=true com visita divergente → 400', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'ORCAMENTAMENTO',
+        visitaSolicitada: true,
+      });
+      mockPrisma.visitaTecnica.findUnique.mockResolvedValue({
+        id: 5,
+        atendimentoId: 99,
+        agendamentoId: 88,
+      });
+      await expect(
+        service.criar({ ...dtoBase(), agendamentoId: 3, visitaId: 5 }, 1),
+      ).rejects.toThrow(
+        'Visita não pertence ao atendimento/agendamento informado',
+      );
+    });
+
+    it('gate 4: flag=true com visita coerente → create com agendamentoId', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        userId: 7,
+        status: 'ORCAMENTAMENTO',
+        visitaSolicitada: true,
+      });
+      mockPrisma.visitaTecnica.findUnique.mockResolvedValue({
+        id: 5,
+        atendimentoId: 10,
+        agendamentoId: 3,
+      });
+      const result = await service.criar(
+        { ...dtoBase(), agendamentoId: 3, visitaId: 5 },
+        1,
+      );
+      expect(mockPrisma.orcamento.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ agendamentoId: 3 }),
+        }),
+      );
+      expect(result.status).toBe('RASCUNHO');
+    });
+
+    it('gate 4: flag=false com agendamentoId → 400 não tem visita solicitada', async () => {
+      await expect(
+        service.criar({ ...dtoBase(), agendamentoId: 3 }, 1),
+      ).rejects.toThrow(
+        'Atendimento não tem visita solicitada para vincular agendamento/visita',
+      );
+      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+    });
+
+    it('gate 4: flag=false dto limpo → create com agendamentoId null', async () => {
+      await service.criar(dtoBase(), 1);
+      expect(mockPrisma.orcamento.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ agendamentoId: null }),
+        }),
+      );
     });
   });
 
