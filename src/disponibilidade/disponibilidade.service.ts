@@ -161,6 +161,29 @@ export class DisponibilidadeService {
 
   // ---------- SLOTS ----------
 
+  /**
+   * Returns the minimum allowed date for scheduling, enforcing a
+   * minimum of 2 business days in advance (skips Sat/Sun).
+   */
+  private calcularDataMinimaAgendamento(): Date {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const DIAS_UTEIS_MINIMOS = 2;
+    let diasContados = 0;
+    const cursor = new Date(hoje);
+
+    while (diasContados < DIAS_UTEIS_MINIMOS) {
+      cursor.setDate(cursor.getDate() + 1);
+      const dow = cursor.getDay(); // 0=Dom, 6=Sáb
+      if (dow !== 0 && dow !== 6) {
+        diasContados++;
+      }
+    }
+
+    return cursor;
+  }
+
   async gerarSlots(mes: number, ano: number, userId?: number) {
     if (mes < 1 || mes > 12) {
       throw new AppError(400, 'Mês deve ser entre 1 e 12');
@@ -198,12 +221,12 @@ export class DisponibilidadeService {
 
     // 4. Generate slots
     const slots: any[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Enforce minimum 2 business days in advance
+    const dataMinima = this.calcularDataMinimaAgendamento();
 
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
       const dataAtual = new Date(ano, mes - 1, dia);
-      if (dataAtual < today) continue;
+      if (dataAtual < dataMinima) continue;
 
       const diaSemana = dataAtual.getDay();
       if (diaSemana === 0) continue; // No Sunday slots

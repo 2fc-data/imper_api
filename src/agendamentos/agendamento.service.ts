@@ -40,6 +40,29 @@ export class AgendamentoService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Returns the minimum allowed date for scheduling, enforcing a
+   * minimum of 2 business days in advance (skips Sat/Sun).
+   */
+  private calcularDataMinimaAgendamento(): Date {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const DIAS_UTEIS_MINIMOS = 2;
+    let diasContados = 0;
+    const cursor = new Date(hoje);
+
+    while (diasContados < DIAS_UTEIS_MINIMOS) {
+      cursor.setDate(cursor.getDate() + 1);
+      const dow = cursor.getDay(); // 0=Dom, 6=Sáb
+      if (dow !== 0 && dow !== 6) {
+        diasContados++;
+      }
+    }
+
+    return cursor;
+  }
+
   async listar(params?: {
     status?: StatusAgendamento;
     tipo?: TipoAgendamento;
@@ -92,6 +115,22 @@ export class AgendamentoService {
       this.logger.warn('[criar] dataPrevista é obrigatória');
       throw new AppError(400, 'dataPrevista é obrigatória');
     }
+
+    // Enforce minimum 2 business days in advance
+    const dataMinima = this.calcularDataMinimaAgendamento();
+    const dataPrevistaDate = new Date(dto.dataPrevista);
+    dataPrevistaDate.setHours(0, 0, 0, 0);
+    if (dataPrevistaDate < dataMinima) {
+      const fmt = dataMinima.toLocaleDateString('pt-BR');
+      this.logger.warn(
+        `[criar] dataPrevista=${dto.dataPrevista} anterior à data mínima=${fmt}`,
+      );
+      throw new AppError(
+        400,
+        `O agendamento deve ser feito com no mínimo 2 dias úteis de antecedência. Data mínima permitida: ${fmt}`,
+      );
+    }
+
     if (dto.enderecoNovo && !dto.enderecoNovo.cep?.trim()) {
       this.logger.warn('[criar] enderecoNovo sem cep');
       throw new AppError(400, 'CEP é obrigatório quando enviado enderecoNovo');
