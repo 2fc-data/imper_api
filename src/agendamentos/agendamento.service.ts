@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { assertAtendimentoAberto } from '../atendimentos/cascata.js';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { StatusAgendamento, TipoAgendamento } from '../schemas/enums.js';
@@ -30,6 +31,7 @@ const includeStandard = {
   criadoPor: { select: { id: true, nome: true } },
   endereco: true,
   atendimento: { select: { id: true, descricao: true, urgencia: true } },
+  visita: true,
 };
 
 @Injectable()
@@ -95,6 +97,30 @@ export class AgendamentoService {
       throw new AppError(400, 'CEP é obrigatório quando enviado enderecoNovo');
     }
 
+    if (!dto.atendimentoId) {
+      this.logger.warn('[criar] atendimentoId é obrigatório');
+      throw new AppError(400, 'atendimentoId é obrigatório');
+    }
+
+    const atendimento = await this.prisma.atendimento.findUnique({
+      where: { id: Number(dto.atendimentoId) },
+      select: { status: true, visitaSolicitada: true },
+    });
+    if (!atendimento) {
+      this.logger.warn(
+        `[criar] atendimento inexistente id=${dto.atendimentoId}`,
+      );
+      throw new AppError(404, 'Atendimento não encontrado');
+    }
+    assertAtendimentoAberto(atendimento.status);
+    const tipo = dto.tipo ?? 'VISITA';
+    if (tipo === 'VISITA' && !atendimento.visitaSolicitada) {
+      this.logger.warn(
+        `[criar] atendimento ${dto.atendimentoId} sem visita solicitada`,
+      );
+      throw new AppError(400, 'Atendimento não tem visita solicitada');
+    }
+
     try {
       const enderecoId = await this.prisma.$transaction(async (tx) => {
         if (dto.enderecoNovo) {
@@ -129,7 +155,7 @@ export class AgendamentoService {
           userId: Number(dto.userId),
           atendimentoId: Number(dto.atendimentoId),
           enderecoId,
-          tipo: dto.tipo ?? 'VISITA',
+          tipo,
           status: dto.status ?? 'PENDENTE',
           dataPrevista: new Date(dto.dataPrevista),
           dataRealizada: dto.dataRealizada ? new Date(dto.dataRealizada) : null,
