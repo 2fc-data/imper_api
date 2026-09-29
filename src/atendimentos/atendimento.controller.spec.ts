@@ -6,7 +6,9 @@ const mockService = {
   listar: vi.fn(),
   detalhar: vi.fn(),
   criar: vi.fn(),
+  atualizar: vi.fn(),
   atualizarStatus: vi.fn(),
+  encaminharParaOrcamento: vi.fn(),
   listarLogs: vi.fn(),
   criarLog: vi.fn(),
 };
@@ -125,6 +127,28 @@ describe('AtendimentoController', () => {
       const result = await controller.criarLog('1', dto, req);
       expect(result).toEqual(created);
       expect(mockService.criarLog).toHaveBeenCalledWith(1, dto, 9);
+    });
+  });
+
+  describe('atualizar', () => {
+    it('should pass Number(id) and dto to service', async () => {
+      const dto = { visitaSolicitada: true };
+      const item = { id: 1, ...dto, proximasAcoes: [] };
+      mockService.atualizar.mockResolvedValue(item);
+      const result = await controller.atualizar('1', dto);
+      expect(result).toEqual(item);
+      expect(mockService.atualizar).toHaveBeenCalledWith(1, dto);
+    });
+  });
+
+  describe('encaminhar-orcamento', () => {
+    it('should pass Number(id) and req.user.id to service', async () => {
+      const item = { id: 1, status: 'ORCAMENTAMENTO', proximasAcoes: [] };
+      mockService.encaminharParaOrcamento.mockResolvedValue(item);
+      const req = { user: { id: 7 } } as any;
+      const result = await controller.encaminharParaOrcamento('1', req);
+      expect(result).toEqual(item);
+      expect(mockService.encaminharParaOrcamento).toHaveBeenCalledWith(1, 7);
     });
   });
 });

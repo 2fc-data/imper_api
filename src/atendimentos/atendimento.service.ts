@@ -167,6 +167,78 @@ export class AtendimentoService {
     });
   }
 
+  async atualizar(id: number, dto: { visitaSolicitada?: boolean }) {
+    const item = await this.prisma.atendimento.findUnique({ where: { id } });
+    if (!item) {
+      throw new AppError(404, 'Atendimento não encontrado');
+    }
+    if (dto.visitaSolicitada !== undefined) {
+      await this.prisma.atendimento.update({
+        where: { id },
+        data: { visitaSolicitada: dto.visitaSolicitada },
+      });
+    }
+    return this.detalhar(id);
+  }
+
+  async encaminharParaOrcamento(id: number, atendenteId?: number) {
+    const atual = await this.prisma.atendimento.findUnique({ where: { id } });
+    if (!atual) {
+      throw new AppError(404, 'Atendimento não encontrado');
+    }
+
+    assertAtendimentoAberto(atual.status as StatusCascata);
+    if (atual.status === 'ORCAMENTAMENTO') {
+      return this.detalhar(id);
+    }
+
+    const passos: StatusAtendimento[] =
+      atual.status === 'NOVO'
+        ? ['EM_ANDAMENTO', 'ORCAMENTAMENTO']
+        : atual.status === 'EM_ANDAMENTO'
+          ? ['ORCAMENTAMENTO']
+          : [];
+
+    let de: StatusCascata = atual.status as StatusCascata;
+    for (const para of passos) {
+      validarTransicao(de, para as StatusCascata);
+      de = para as StatusCascata;
+    }
+
+    if (passos.length === 0) {
+      throw new AppError(
+        400,
+        `Transição inválida: ${atual.status} → ORCAMENTAMENTO`,
+      );
+    }
+
+    if (atual.visitaSolicitada) {
+      await this.assertVisitaRealizada(id);
+    }
+
+    let statusAtual = atual.status;
+    for (const para of passos) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.atendimento.update({
+          where: { id },
+          data: { status: para },
+        });
+        await tx.atendimentoLog.create({
+          data: {
+            atendimentoId: id,
+            atendenteId: atendenteId ?? null,
+            tipo: 'STATUS',
+            statusDe: statusAtual,
+            statusPara: para,
+          },
+        });
+      });
+      statusAtual = para;
+    }
+
+    return this.detalhar(id);
+  }
+
   async atualizarStatus(
     id: number,
     status: StatusAtendimento,

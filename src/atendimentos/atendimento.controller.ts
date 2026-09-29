@@ -101,4 +101,23 @@ export class AtendimentoController {
       req.user?.id,
     );
   }
+
+  @Patch(':id')
+  async atualizar(
+    @Param('id') id: string,
+    @Body() dto: { visitaSolicitada?: boolean },
+  ) {
+    return this.atendimentoService.atualizar(Number(id), dto);
+  }
+
+  @Post(':id/encaminhar-orcamento')
+  async encaminharParaOrcamento(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.atendimentoService.encaminharParaOrcamento(
+      Number(id),
+      req.user?.id,
+    );
+  }
 }

@@ -216,4 +216,131 @@ describe('AtendimentoService', () => {
       });
     });
   });
+
+  describe('atualizar (visitaSolicitada)', () => {
+    it('should throw 404 when not found', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue(null);
+      await expect(service.atualizar(999, { visitaSolicitada: true })).rejects.toThrow(
+        'Atendimento não encontrado',
+      );
+      expect(mockPrisma.atendimento.update).not.toHaveBeenCalled();
+    });
+
+    it('should toggle visitaSolicitada to true and return detalhar response', async () => {
+      mockPrisma.atendimento.findUnique
+        .mockResolvedValueOnce(item({}))
+        .mockResolvedValueOnce(item({ visitaSolicitada: true }));
+      mockPrisma.atendimento.update.mockResolvedValue({});
+      const res = await service.atualizar(1, { visitaSolicitada: true });
+      expect(mockPrisma.atendimento.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { visitaSolicitada: true },
+      });
+      expect(res).toHaveProperty('proximasAcoes');
+      expect(res.visitaSolicitada).toBe(true);
+    });
+
+    it('should toggle visitaSolicitada to false', async () => {
+      mockPrisma.atendimento.findUnique
+        .mockResolvedValueOnce(item({ visitaSolicitada: true }))
+        .mockResolvedValueOnce(item({ visitaSolicitada: false }));
+      mockPrisma.atendimento.update.mockResolvedValue({});
+      await service.atualizar(1, { visitaSolicitada: false });
+      expect(mockPrisma.atendimento.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { visitaSolicitada: false },
+      });
+    });
+  });
+
+  describe('encaminharParaOrcamento', () => {
+    function mockAtual(parcial: Record<string, unknown>) {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'NOVO',
+        visitaSolicitada: false,
+        _count: { visitas: 0, agendamentos: 0 },
+        ...parcial,
+      });
+      mockTx.atendimento.update.mockResolvedValue({ id: 1 });
+      mockTx.atendimentoLog.create.mockResolvedValue({ id: 10 });
+    }
+
+    it('should throw 404 when not found', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue(null);
+      await expect(service.encaminharParaOrcamento(999)).rejects.toThrow(
+        'Atendimento não encontrado',
+      );
+    });
+
+    it('should reject terminal status', async () => {
+      mockAtual({ status: 'CONCLUIDO' });
+      await expect(service.encaminharParaOrcamento(1)).rejects.toThrow(
+        'Atendimento encerrado',
+      );
+    });
+
+    it('should no-op when already ORCAMENTAMENTO', async () => {
+      mockAtual({ status: 'ORCAMENTAMENTO' });
+      await service.encaminharParaOrcamento(1);
+      expect(mockTx.atendimento.update).not.toHaveBeenCalled();
+      expect(mockTx.atendimentoLog.create).not.toHaveBeenCalled();
+    });
+
+    it('NOVO + flag=false → two steps with logs in order', async () => {
+      mockAtual({ status: 'NOVO' });
+      const res = await service.encaminharParaOrcamento(1, 7);
+      expect(mockTx.atendimento.update).toHaveBeenCalledTimes(2);
+      expect(mockTx.atendimento.update).toHaveBeenNthCalledWith(1, {
+        where: { id: 1 },
+        data: { status: 'EM_ANDAMENTO' },
+      });
+      expect(mockTx.atendimento.update).toHaveBeenNthCalledWith(2, {
+        where: { id: 1 },
+        data: { status: 'ORCAMENTAMENTO' },
+      });
+      expect(mockTx.atendimentoLog.create).toHaveBeenCalledTimes(2);
+      expect(mockTx.atendimentoLog.create).toHaveBeenNthCalledWith(1, {
+        data: {
+          atendimentoId: 1,
+          atendenteId: 7,
+          tipo: 'STATUS',
+          statusDe: 'NOVO',
+          statusPara: 'EM_ANDAMENTO',
+        },
+      });
+      expect(mockTx.atendimentoLog.create).toHaveBeenNthCalledWith(2, {
+        data: {
+          atendimentoId: 1,
+          atendenteId: 7,
+          tipo: 'STATUS',
+          statusDe: 'EM_ANDAMENTO',
+          statusPara: 'ORCAMENTAMENTO',
+        },
+      });
+      expect(res).toHaveProperty('proximasAcoes');
+    });
+
+    it('EM_ANDAMENTO + flag=false → one step', async () => {
+      mockAtual({ status: 'EM_ANDAMENTO' });
+      await service.encaminharParaOrcamento(1);
+      expect(mockTx.atendimento.update).toHaveBeenCalledTimes(1);
+      expect(mockTx.atendimentoLog.create).toHaveBeenCalledTimes(1);
+      expect(mockTx.atendimentoLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          statusDe: 'EM_ANDAMENTO',
+          statusPara: 'ORCAMENTAMENTO',
+        }),
+      });
+    });
+
+    it('NOVO + flag=true without realized visit → gate 3 and zero transactions', async () => {
+      mockAtual({ status: 'NOVO', visitaSolicitada: true });
+      mockPrisma.visitaTecnica.findFirst.mockResolvedValue(null);
+      await expect(service.encaminharParaOrcamento(1)).rejects.toThrow(
+        'Visita técnica deve ser realizada antes de iniciar o orçamento',
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
 });
