@@ -206,7 +206,18 @@ export class UsuariosService {
     });
     if (!user) throw new AppError(404, 'Usuário não encontrado');
 
-    const { cpfCnpj, cep, endereco, bairro, cidade, estado, numero, complemento, papelId: _papelId, ...userData } = data;
+    const {
+      cpfCnpj,
+      cep,
+      endereco,
+      bairro,
+      cidade,
+      estado,
+      numero,
+      complemento,
+      papelId: _papelId,
+      ...userData
+    } = data;
 
     if (data.nome !== undefined && data.nome) {
       const nomeTrimmed = data.nome.trim();
@@ -216,7 +227,8 @@ export class UsuariosService {
           id: { not: id },
         },
       });
-      if (existenteNome) throw new AppError(409, 'Nome já cadastrado por outro usuário');
+      if (existenteNome)
+        throw new AppError(409, 'Nome já cadastrado por outro usuário');
     }
 
     if (data.email !== undefined && data.email) {
@@ -227,7 +239,8 @@ export class UsuariosService {
           id: { not: id },
         },
       });
-      if (existenteEmail) throw new AppError(409, 'E-mail já cadastrado por outro usuário');
+      if (existenteEmail)
+        throw new AppError(409, 'E-mail já cadastrado por outro usuário');
     }
 
     if (data.telefone !== undefined && data.telefone) {
@@ -243,7 +256,8 @@ export class UsuariosService {
             ],
           },
         });
-        if (existenteTel) throw new AppError(409, 'Telefone já cadastrado por outro usuário');
+        if (existenteTel)
+          throw new AppError(409, 'Telefone já cadastrado por outro usuário');
       }
     }
 
@@ -255,12 +269,14 @@ export class UsuariosService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      let cpfCnpjFinal: string | null | undefined = undefined;
+      let cpfCnpjFinal: string | null | undefined;
 
       if (cpfCnpj !== undefined) {
         const cpfLimpo = cpfCnpj.replace(/\D/g, '');
         if (cpfLimpo) {
-          const existente = await tx.user.findUnique({ where: { cpfCnpj: cpfLimpo } });
+          const existente = await tx.user.findUnique({
+            where: { cpfCnpj: cpfLimpo },
+          });
           if (existente && existente.id !== id) {
             throw new AppError(409, 'CPF/CNPJ já cadastrado');
           }
@@ -286,7 +302,7 @@ export class UsuariosService {
         } else {
           await tx.endereco.create({
             data: {
-            userId: id,
+              userId: id,
               logradouro: endereco,
               numero: numero ?? null,
               complemento: complemento ?? null,
@@ -309,19 +325,26 @@ export class UsuariosService {
 
       const result = await tx.user.update({
         where: { id },
-        data: { ...userData, ...(cpfCnpjFinal !== undefined && { cpfCnpj: cpfCnpjFinal }) },
+        data: {
+          ...userData,
+          ...(cpfCnpjFinal !== undefined && { cpfCnpj: cpfCnpjFinal }),
+        },
         select: selectPublico,
       });
 
       const papeis = await tx.usuarioPapel.findMany({
         where: { userId: id },
-        select: { papel: { select: { id: true, nome: true, descricao: true } } },
+        select: {
+          papel: { select: { id: true, nome: true, descricao: true } },
+        },
       });
 
       return {
         ...result,
         papeis: papeis.map(
-          (up: { papel: { id: number; nome: string; descricao: string | null } }) => up.papel,
+          (up: {
+            papel: { id: number; nome: string; descricao: string | null };
+          }) => up.papel,
         ),
       };
     });

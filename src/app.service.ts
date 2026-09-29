@@ -28,7 +28,6 @@ export class AppService {
 
   async healthDetailed() {
     const memBefore = process.memoryUsage();
-    const start = Date.now();
 
     const dbCheck = await this.checkDatabase();
     const uptime = process.uptime();

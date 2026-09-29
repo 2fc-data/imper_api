@@ -8,25 +8,36 @@ export const loginSchema = z.object({
 
 export const cadastrarSchema = z.object({
   nome: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  telefone: z.string().trim().regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, 'Telefone inválido. Formato: (00) 00000-0000'),
+  telefone: z
+    .string()
+    .trim()
+    .regex(
+      /^\(\d{2}\)\s?\d{4,5}-\d{4}$/,
+      'Telefone inválido. Formato: (00) 00000-0000',
+    ),
   email: z.string().trim().email('E-mail inválido').optional(),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   turnstileToken: z.string().optional(),
 });
 
-export const recuperarSenhaSchema = z.object({
-  canal: z.enum(['email', 'whatsapp']),
-  email: z.string().email('E-mail inválido').optional(),
-  telefone: z.string().optional(),
-  turnstileToken: z.string().optional(),
-}).refine(
-  (data) => {
-    if (data.canal === 'email') return !!data.email;
-    if (data.canal === 'whatsapp') return !!data.telefone;
-    return false;
-  },
-  { message: 'E-mail obrigatório para recuperação por e-mail, telefone obrigatório para recuperação por WhatsApp' },
-);
+export const recuperarSenhaSchema = z
+  .object({
+    canal: z.enum(['email', 'whatsapp']),
+    email: z.string().email('E-mail inválido').optional(),
+    telefone: z.string().optional(),
+    turnstileToken: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.canal === 'email') return !!data.email;
+      if (data.canal === 'whatsapp') return !!data.telefone;
+      return false;
+    },
+    {
+      message:
+        'E-mail obrigatório para recuperação por e-mail, telefone obrigatório para recuperação por WhatsApp',
+    },
+  );
 
 export const redefinirSenhaSchema = z.object({
   token: z.string().min(1, 'Token obrigatório'),

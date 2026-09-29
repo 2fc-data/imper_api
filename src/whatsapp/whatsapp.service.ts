@@ -5,7 +5,10 @@ import { config } from '../config.js';
 export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
 
-  async enviarCodigoRecuperacao(telefone: string, codigo: string): Promise<boolean> {
+  async enviarCodigoRecuperacao(
+    telefone: string,
+    codigo: string,
+  ): Promise<boolean> {
     const mensagem = `Seu código de recuperação é: *${codigo}*. Válido por ${config.resetTokenExpiresMin} minutos.`;
 
     if (!config.whatsappApiUrl) {
@@ -42,5 +45,4 @@ export class WhatsAppService {
       return false;
     }
   }
-
 }

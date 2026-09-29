@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { AppError } from '../../lib/errors.js';
 import { normalize } from '../../lib/utils.js';
 
@@ -19,8 +18,6 @@ export interface LookupCrud {
 
 @Injectable()
 export class LookupService {
-  constructor(private readonly prisma: PrismaService) {}
-
   criarCrud(
     model: PrismaModel,
     opts: {

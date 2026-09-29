@@ -5,15 +5,15 @@ function validarCpf(cpf: string): boolean {
   if (d.length !== 11) return false;
   if (/^(\d)\1{10}$/.test(d)) return false;
   let soma = 0;
-  for (let i = 0; i < 9; i++) soma += parseInt(d[i]) * (10 - i);
+  for (let i = 0; i < 9; i++) soma += parseInt(d[i], 10) * (10 - i);
   let r = (soma * 10) % 11;
   if (r === 10) r = 0;
-  if (r !== parseInt(d[9])) return false;
+  if (r !== parseInt(d[9], 10)) return false;
   soma = 0;
-  for (let i = 0; i < 10; i++) soma += parseInt(d[i]) * (11 - i);
+  for (let i = 0; i < 10; i++) soma += parseInt(d[i], 10) * (11 - i);
   r = (soma * 10) % 11;
   if (r === 10) r = 0;
-  return r === parseInt(d[10]);
+  return r === parseInt(d[10], 10);
 }
 
 function validarCnpj(cnpj: string): boolean {
@@ -23,15 +23,15 @@ function validarCnpj(cnpj: string): boolean {
   const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   let soma = 0;
-  for (let i = 0; i < 12; i++) soma += parseInt(d[i]) * pesos1[i];
+  for (let i = 0; i < 12; i++) soma += parseInt(d[i], 10) * pesos1[i];
   let r = soma % 11;
   const dv1 = r < 2 ? 0 : 11 - r;
-  if (parseInt(d[12]) !== dv1) return false;
+  if (parseInt(d[12], 10) !== dv1) return false;
   soma = 0;
-  for (let i = 0; i < 13; i++) soma += parseInt(d[i]) * pesos2[i];
+  for (let i = 0; i < 13; i++) soma += parseInt(d[i], 10) * pesos2[i];
   r = soma % 11;
   const dv2 = r < 2 ? 0 : 11 - r;
-  return parseInt(d[13]) === dv2;
+  return parseInt(d[13], 10) === dv2;
 }
 
 const cpfCnpjValidator = z
@@ -62,7 +62,9 @@ export const criarUsuarioSchema = z.object({
         const digits = val.replace(/\D/g, '');
         return digits.length >= 10 && digits.length <= 11;
       },
-      { message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos' },
+      {
+        message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos',
+      },
     ),
   papelId: z.number(),
   cargoId: z.number().nullable().optional(),
@@ -89,7 +91,9 @@ export const atualizarUsuarioSchema = z.object({
         const digits = val.replace(/\D/g, '');
         return digits.length >= 10 && digits.length <= 11;
       },
-      { message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos' },
+      {
+        message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos',
+      },
     ),
   papelId: z.number().optional(),
   cargoId: z.number().nullable().optional(),

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { AppError } from '../lib/errors.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class SeparacaoService {
@@ -112,12 +112,20 @@ export class SeparacaoService {
   async registrarRetiradaItem(
     separacaoId: number,
     itemId: number,
-    dados: { colaboradorId: number; registradoPorId: number; observacao?: string },
+    dados: {
+      colaboradorId: number;
+      registradoPorId: number;
+      observacao?: string;
+    },
   ) {
     const separacao = await this.detalhar(separacaoId);
     const item = separacao.itens.find((i) => i.id === itemId);
-    if (!item) throw new NotFoundException(`Item ${itemId} não encontrado na separação ${separacaoId}`);
-    if (item.status !== 'PENDENTE') throw new AppError(409, 'Item já foi processado');
+    if (!item)
+      throw new NotFoundException(
+        `Item ${itemId} não encontrado na separação ${separacaoId}`,
+      );
+    if (item.status !== 'PENDENTE')
+      throw new AppError(409, 'Item já foi processado');
 
     return this.prisma.$transaction(async (tx) => {
       // MATERIAL: criar movimento de estoque (saída)
@@ -128,7 +136,10 @@ export class SeparacaoService {
         const saldoAtual = Number(saldo?.saldo ?? 0);
         const qtd = Number(item.quantidadeNecessaria);
         if (saldoAtual < qtd) {
-          throw new AppError(409, `Saldo insuficiente para material ${item.materialId}. Disponível: ${saldoAtual}`);
+          throw new AppError(
+            409,
+            `Saldo insuficiente para material ${item.materialId}. Disponível: ${saldoAtual}`,
+          );
         }
         const novoSaldo = saldoAtual - qtd;
         await tx.saldoEstoque.update({
@@ -144,7 +155,8 @@ export class SeparacaoService {
             separacaoItemId: itemId,
             ordemServicoId: separacao.osId ?? undefined,
             registradoPorId: dados.registradoPorId,
-            observacao: dados.observacao ?? `Retirada - Separação ${separacaoId}`,
+            observacao:
+              dados.observacao ?? `Retirada - Separação ${separacaoId}`,
           },
         });
       }
@@ -195,12 +207,20 @@ export class SeparacaoService {
   async registrarDevolucaoItem(
     separacaoId: number,
     itemId: number,
-    dados: { registradoPorId: number; observacao?: string; status?: 'DEVOLVIDO' | 'PERDIDO' },
+    dados: {
+      registradoPorId: number;
+      observacao?: string;
+      status?: 'DEVOLVIDO' | 'PERDIDO';
+    },
   ) {
     const separacao = await this.detalhar(separacaoId);
     const item = separacao.itens.find((i) => i.id === itemId);
-    if (!item) throw new NotFoundException(`Item ${itemId} não encontrado na separação ${separacaoId}`);
-    if (item.status !== 'CONFERIDO') throw new AppError(409, 'Item ainda não foi retirado');
+    if (!item)
+      throw new NotFoundException(
+        `Item ${itemId} não encontrado na separação ${separacaoId}`,
+      );
+    if (item.status !== 'CONFERIDO')
+      throw new AppError(409, 'Item ainda não foi retirado');
 
     const statusFinal = dados.status ?? 'DEVOLVIDO';
 
@@ -211,7 +231,9 @@ export class SeparacaoService {
           where: { materialId: item.materialId },
         });
         const saldoAtual = Number(saldo?.saldo ?? 0);
-        const qtd = Number(item.quantidadeSeparada || item.quantidadeNecessaria);
+        const qtd = Number(
+          item.quantidadeSeparada || item.quantidadeNecessaria,
+        );
         const novoSaldo = saldoAtual + qtd;
         await tx.saldoEstoque.update({
           where: { materialId: item.materialId },
@@ -226,7 +248,8 @@ export class SeparacaoService {
             separacaoItemId: itemId,
             ordemServicoId: separacao.osId ?? undefined,
             registradoPorId: dados.registradoPorId,
-            observacao: dados.observacao ?? `Devolução - Separação ${separacaoId}`,
+            observacao:
+              dados.observacao ?? `Devolução - Separação ${separacaoId}`,
           },
         });
       }
@@ -250,7 +273,11 @@ export class SeparacaoService {
       // EQUIPAMENTO: atualizar retirada existente
       if (item.equipamentoId) {
         const retirada = await tx.retiradaEquipamento.findFirst({
-          where: { equipamentoId: item.equipamentoId, osId: separacao.osId, status: 'EM_USO' },
+          where: {
+            equipamentoId: item.equipamentoId,
+            osId: separacao.osId,
+            status: 'EM_USO',
+          },
         });
         if (retirada) {
           await tx.retiradaEquipamento.update({

@@ -1,9 +1,9 @@
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
   HttpException,
   HttpStatus,
+  Injectable,
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -26,10 +26,10 @@ export class ThrottlerGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const config = this.reflector.getAllAndOverride<ThrottleConfig>('throttle', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const config = this.reflector.getAllAndOverride<ThrottleConfig>(
+      'throttle',
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!config) return true;
 
@@ -52,8 +52,13 @@ export class ThrottlerGuard implements CanActivate {
     entry.count++;
 
     if (entry.count > config.limit) {
-      this.logger.warn(`Rate limit excedido para ${ip} em ${context.getHandler().name}: ${entry.count}/${config.limit}`);
-      throw new HttpException('Too Many Requests', HttpStatus.TOO_MANY_REQUESTS);
+      this.logger.warn(
+        `Rate limit excedido para ${ip} em ${context.getHandler().name}: ${entry.count}/${config.limit}`,
+      );
+      throw new HttpException(
+        'Too Many Requests',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     return true;

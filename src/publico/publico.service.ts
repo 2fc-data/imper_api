@@ -123,7 +123,10 @@ export class PublicoService {
     });
 
     if (!user) {
-      const senhaHash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+      const senhaHash = await bcrypt.hash(
+        Math.random().toString(36).slice(2),
+        10,
+      );
       user = await this.prisma.user.create({
         data: {
           nome: dto.nome,
@@ -163,8 +166,7 @@ export class PublicoService {
       data: {
         canal: 'FORMULARIO',
         status: 'NOVO',
-        descricao:
-          dto.mensagem ?? 'Solicitação via formulário web de contato',
+        descricao: dto.mensagem ?? 'Solicitação via formulário web de contato',
         userId: user.id,
       },
     });

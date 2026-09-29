@@ -38,7 +38,10 @@ export class DisponibilidadeController {
   }
 
   @Patch('padroes/:id')
-  async atualizarPadrao(@Param('id') id: string, @Body() body: Record<string, any>) {
+  async atualizarPadrao(
+    @Param('id') id: string,
+    @Body() body: Record<string, any>,
+  ) {
     return this.service.atualizarPadrao(Number(id), body);
   }
 
@@ -78,7 +81,10 @@ export class DisponibilidadeController {
   }
 
   @Patch('datas/:id')
-  async atualizarData(@Param('id') id: string, @Body() body: Record<string, any>) {
+  async atualizarData(
+    @Param('id') id: string,
+    @Body() body: Record<string, any>,
+  ) {
     return this.service.atualizarData(Number(id), body);
   }
 
@@ -96,6 +102,10 @@ export class DisponibilidadeController {
     @Query('ano') ano: string,
     @Query('userId') userId?: string,
   ) {
-    return this.service.gerarSlots(Number(mes), Number(ano), userId ? Number(userId) : undefined);
+    return this.service.gerarSlots(
+      Number(mes),
+      Number(ano),
+      userId ? Number(userId) : undefined,
+    );
   }
 }

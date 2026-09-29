@@ -8,6 +8,8 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ThrottlerGuard } from '../throttler/throttler.guard.js';
 import { AuthService } from './auth.service.js';
 import { Public } from './decorators/public.decorator.js';
 import type {
@@ -18,8 +20,6 @@ import type {
   RedefinirSenhaDto,
 } from './dto/auth.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import { ThrottlerGuard } from '../throttler/throttler.guard.js';
-import { PrismaService } from '../prisma/prisma.service.js';
 
 @Controller('auth')
 export class AuthController {
@@ -99,7 +99,9 @@ export class AuthController {
             papel: {
               select: {
                 nome: true,
-                permissoes: { select: { permissao: { select: { chave: true } } } },
+                permissoes: {
+                  select: { permissao: { select: { chave: true } } },
+                },
               },
             },
           },

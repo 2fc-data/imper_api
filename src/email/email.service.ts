@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 
 @Injectable()
@@ -19,9 +19,13 @@ export class EmailService {
           pass: config.smtpPass,
         },
       });
-      this.logger.log(`Email transporter configurado: ${config.smtpHost}:${config.smtpPort}`);
+      this.logger.log(
+        `Email transporter configurado: ${config.smtpHost}:${config.smtpPort}`,
+      );
     } else {
-      this.logger.warn('SMTP não configurado — emails serão logados no console (DEV)');
+      this.logger.warn(
+        'SMTP não configurado — emails serão logados no console (DEV)',
+      );
     }
   }
 

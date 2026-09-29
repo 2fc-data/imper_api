@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
-import { TrimMiddleware } from './common/middleware/trim.middleware.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import { TrimMiddleware } from './common/middleware/trim.middleware.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

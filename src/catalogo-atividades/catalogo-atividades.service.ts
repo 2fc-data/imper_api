@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class CatalogoAtividadesService {

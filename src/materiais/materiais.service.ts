@@ -4,10 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { StatusMaterial, TipoMaterial } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  type LookupCrud,
+  LookupService,
+} from '../common/services/lookup.service.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
-import { LookupService, type LookupCrud } from '../common/services/lookup.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface MaterialInputDto {
   nome: string;
@@ -49,10 +52,13 @@ export class MateriaisService {
       labelSingular: 'Categoria',
       duplicateMessage: () => 'Categoria já cadastrada',
     });
-    this.subcategorias = this.lookup.criarCrud(this.prisma.subcategoriaMaterial, {
-      labelSingular: 'Subcategoria',
-      duplicateMessage: () => 'Subcategoria já cadastrada',
-    });
+    this.subcategorias = this.lookup.criarCrud(
+      this.prisma.subcategoriaMaterial,
+      {
+        labelSingular: 'Subcategoria',
+        duplicateMessage: () => 'Subcategoria já cadastrada',
+      },
+    );
     this.marcas = this.lookup.criarCrud(this.prisma.marca, {
       labelSingular: 'Marca',
       duplicateMessage: () => 'Marca já cadastrada',
@@ -98,7 +104,10 @@ export class MateriaisService {
   async lookups() {
     const [categorias, subcategorias, marcas, cores, unidadesMedida] =
       await Promise.all([
-        this.prisma.categoriaMaterial.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
+        this.prisma.categoriaMaterial.findMany({
+          where: { ativo: true },
+          orderBy: { nome: 'asc' },
+        }),
         this.prisma.subcategoriaMaterial.findMany({
           where: { ativo: true },
           include: { categoria: true },
@@ -252,10 +261,18 @@ export class MateriaisService {
 
   // --- CRUD para Lookups de Materiais ---
 
-  async listarCategorias() { return this.categorias.listar(); }
-  async criarCategoria(data: any) { return this.categorias.criar(data); }
-  async atualizarCategoria(id: number, data: any) { return this.categorias.atualizar(id, data); }
-  async desativarCategoria(id: number) { return this.categorias.desativar(id); }
+  async listarCategorias() {
+    return this.categorias.listar();
+  }
+  async criarCategoria(data: any) {
+    return this.categorias.criar(data);
+  }
+  async atualizarCategoria(id: number, data: any) {
+    return this.categorias.atualizar(id, data);
+  }
+  async desativarCategoria(id: number) {
+    return this.categorias.desativar(id);
+  }
 
   async listarSubcategorias() {
     return this.prisma.subcategoriaMaterial.findMany({
@@ -264,28 +281,64 @@ export class MateriaisService {
       orderBy: { nome: 'asc' },
     });
   }
-  async criarSubcategoria(data: any) { return this.subcategorias.criar(data); }
-  async atualizarSubcategoria(id: number, data: any) { return this.subcategorias.atualizar(id, data); }
-  async desativarSubcategoria(id: number) { return this.subcategorias.desativar(id); }
+  async criarSubcategoria(data: any) {
+    return this.subcategorias.criar(data);
+  }
+  async atualizarSubcategoria(id: number, data: any) {
+    return this.subcategorias.atualizar(id, data);
+  }
+  async desativarSubcategoria(id: number) {
+    return this.subcategorias.desativar(id);
+  }
 
-  async listarMarcas() { return this.marcas.listar(); }
-  async criarMarca(data: any) { return this.marcas.criar(data); }
-  async atualizarMarca(id: number, data: any) { return this.marcas.atualizar(id, data); }
-  async desativarMarca(id: number) { return this.marcas.desativar(id); }
+  async listarMarcas() {
+    return this.marcas.listar();
+  }
+  async criarMarca(data: any) {
+    return this.marcas.criar(data);
+  }
+  async atualizarMarca(id: number, data: any) {
+    return this.marcas.atualizar(id, data);
+  }
+  async desativarMarca(id: number) {
+    return this.marcas.desativar(id);
+  }
 
-  async listarCores() { return this.cores.listar(); }
-  async criarCor(data: any) { return this.cores.criar(data); }
-  async atualizarCor(id: number, data: any) { return this.cores.atualizar(id, data); }
-  async desativarCor(id: number) { return this.cores.desativar(id); }
+  async listarCores() {
+    return this.cores.listar();
+  }
+  async criarCor(data: any) {
+    return this.cores.criar(data);
+  }
+  async atualizarCor(id: number, data: any) {
+    return this.cores.atualizar(id, data);
+  }
+  async desativarCor(id: number) {
+    return this.cores.desativar(id);
+  }
 
-  async listarUnidadesMedida() { return this.unidadesMedida.listar(); }
-  async criarUnidadeMedida(data: { nome: string }) { return this.unidadesMedida.criar(data); }
-  async atualizarUnidadeMedida(id: number, data: { nome?: string; ativo?: boolean }) { return this.unidadesMedida.atualizar(id, data); }
-  async desativarUnidadeMedida(id: number) { return this.unidadesMedida.desativar(id); }
+  async listarUnidadesMedida() {
+    return this.unidadesMedida.listar();
+  }
+  async criarUnidadeMedida(data: { nome: string }) {
+    return this.unidadesMedida.criar(data);
+  }
+  async atualizarUnidadeMedida(
+    id: number,
+    data: { nome?: string; ativo?: boolean },
+  ) {
+    return this.unidadesMedida.atualizar(id, data);
+  }
+  async desativarUnidadeMedida(id: number) {
+    return this.unidadesMedida.desativar(id);
+  }
 
   async excluir(id: number) {
     await this.detalhar(id);
-    return this.prisma.material.update({ where: { id }, data: { status: 'INATIVO' } });
+    return this.prisma.material.update({
+      where: { id },
+      data: { status: 'INATIVO' },
+    });
   }
 
   async registrarSaida(id: number, dto: MaterialMovimentoDto, userId?: number) {

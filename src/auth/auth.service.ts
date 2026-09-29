@@ -1,7 +1,8 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import type { User } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { EmailService } from '../email/email.service.js';
 import { AppError } from '../lib/errors.js';
@@ -19,8 +20,6 @@ import type {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -29,7 +28,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    let user;
+    let user: User | null = null;
     if (dto.email.includes('@')) {
       user = await this.prisma.user.findUnique({
         where: { email: dto.email },
@@ -40,7 +39,8 @@ export class AuthService {
         where: { telefone: { contains: telefoneLimpo } },
       });
     }
-    if (!user) throw new UnauthorizedException('E-mail/telefone ou senha inválidos');
+    if (!user)
+      throw new UnauthorizedException('E-mail/telefone ou senha inválidos');
 
     const senhaValida = await bcrypt.compare(dto.senha, user.senhaHash);
     if (!senhaValida)
@@ -170,7 +170,7 @@ export class AuthService {
   }
 
   async recuperarSenha(dto: RecuperarSenhaDto) {
-    let user;
+    let user: User | null = null;
     if (dto.canal === 'email' && dto.email) {
       user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     } else if (dto.canal === 'whatsapp' && dto.telefone) {
@@ -193,7 +193,9 @@ export class AuthService {
     });
 
     const token = crypto.randomBytes(32).toString('hex');
-    const expiraEm = new Date(Date.now() + config.resetTokenExpiresMin * 60 * 1000);
+    const expiraEm = new Date(
+      Date.now() + config.resetTokenExpiresMin * 60 * 1000,
+    );
 
     await this.prisma.passwordResetToken.create({
       data: {
@@ -204,7 +206,11 @@ export class AuthService {
     });
 
     if (dto.canal === 'email' && dto.email) {
-      await this.emailService.enviarLinkRecuperacao(dto.email, token, user.nome);
+      await this.emailService.enviarLinkRecuperacao(
+        dto.email,
+        token,
+        user.nome,
+      );
     } else if (dto.canal === 'whatsapp' && dto.telefone) {
       const codigo = Math.floor(100000 + Math.random() * 900000).toString();
       await this.whatsappService.enviarCodigoRecuperacao(dto.telefone, codigo);
@@ -225,7 +231,8 @@ export class AuthService {
 
     if (!resetToken) throw new AppError(400, 'Token inválido');
     if (resetToken.usadoEm) throw new AppError(400, 'Token já utilizado');
-    if (new Date() > resetToken.expiraEm) throw new AppError(400, 'Token expirado');
+    if (new Date() > resetToken.expiraEm)
+      throw new AppError(400, 'Token expirado');
 
     const novaSenhaHash = await bcrypt.hash(dto.senha, 10);
 

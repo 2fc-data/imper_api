@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  type LookupCrud,
+  LookupService,
+} from '../common/services/lookup.service.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
-import { LookupService, type LookupCrud } from '../common/services/lookup.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class EpisService {
@@ -84,13 +87,34 @@ export class EpisService {
       fornecedores,
       colaboradores,
     ] = await Promise.all([
-      this.prisma.marca.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
-      this.prisma.categoriaEpi.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
-      this.prisma.subcategoriaEpi.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
-      this.prisma.cor.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
-      this.prisma.tamanhoEquipamento.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
-      this.prisma.localizacao.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
-      this.prisma.fornecedor.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } }),
+      this.prisma.marca.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.categoriaEpi.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.subcategoriaEpi.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.cor.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.tamanhoEquipamento.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.localizacao.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.fornecedor.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
       this.prisma.user.findMany({
         where: { ativo: true },
         select: { id: true, nome: true },
@@ -110,7 +134,9 @@ export class EpisService {
     };
   }
 
-  async listarCategorias() { return this.categorias.listar(); }
+  async listarCategorias() {
+    return this.categorias.listar();
+  }
 
   async listarSubcategorias() {
     return this.prisma.subcategoriaEpi.findMany({
@@ -120,15 +146,25 @@ export class EpisService {
     });
   }
 
-  async listarMarcas() { return this.marcas.listar(); }
+  async listarMarcas() {
+    return this.marcas.listar();
+  }
 
-  async listarFornecedores() { return this.fornecedores.listar(); }
+  async listarFornecedores() {
+    return this.fornecedores.listar();
+  }
 
-  async listarLocalizacoes() { return this.localizacoes.listar(); }
+  async listarLocalizacoes() {
+    return this.localizacoes.listar();
+  }
 
-  async listarCores() { return this.cores.listar(); }
+  async listarCores() {
+    return this.cores.listar();
+  }
 
-  async listarTamanhos() { return this.tamanhos.listar(); }
+  async listarTamanhos() {
+    return this.tamanhos.listar();
+  }
 
   async listarColaboradores() {
     return this.prisma.user.findMany({
@@ -165,7 +201,8 @@ export class EpisService {
   }
 
   async criar(data: any) {
-    const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    const nomeUpper =
+      typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
     if (data.nome) {
       const exists = await this.prisma.epi.findFirst({
         where: { nome: normalize(nomeUpper) },
@@ -178,14 +215,19 @@ export class EpisService {
   async atualizar(id: number, data: any) {
     await this.detalhar(id);
     if (data.nome) {
-      const nomeUpper = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+      const nomeUpper =
+        typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
       const exists = await this.prisma.epi.findFirst({
         where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'EPI já cadastrado');
     }
-    const nomeValue = typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    return this.prisma.epi.update({ where: { id }, data: { ...data, nome: nomeValue } });
+    const nomeValue =
+      typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+    return this.prisma.epi.update({
+      where: { id },
+      data: { ...data, nome: nomeValue },
+    });
   }
 
   async excluir(id: number) {
@@ -193,31 +235,89 @@ export class EpisService {
     return this.prisma.epi.update({ where: { id }, data: { ativo: false } });
   }
 
-  async criarCategoria(data: { nome: string; descricao?: string }) { return this.categorias.criar(data); }
-  async atualizarCategoria(id: number, data: { nome?: string; ativo?: boolean }) { return this.categorias.atualizar(id, data); }
-  async desativarCategoria(id: number) { return this.categorias.desativar(id); }
+  async criarCategoria(data: { nome: string; descricao?: string }) {
+    return this.categorias.criar(data);
+  }
+  async atualizarCategoria(
+    id: number,
+    data: { nome?: string; ativo?: boolean },
+  ) {
+    return this.categorias.atualizar(id, data);
+  }
+  async desativarCategoria(id: number) {
+    return this.categorias.desativar(id);
+  }
 
-  async criarSubcategoria(data: { nome: string; descricao?: string; categoriaId: number }) { return this.subcategorias.criar(data); }
-  async atualizarSubcategoria(id: number, data: { nome?: string; ativo?: boolean }) { return this.subcategorias.atualizar(id, data); }
-  async desativarSubcategoria(id: number) { return this.subcategorias.desativar(id); }
+  async criarSubcategoria(data: {
+    nome: string;
+    descricao?: string;
+    categoriaId: number;
+  }) {
+    return this.subcategorias.criar(data);
+  }
+  async atualizarSubcategoria(
+    id: number,
+    data: { nome?: string; ativo?: boolean },
+  ) {
+    return this.subcategorias.atualizar(id, data);
+  }
+  async desativarSubcategoria(id: number) {
+    return this.subcategorias.desativar(id);
+  }
 
-  async criarMarca(data: { nome: string }) { return this.marcas.criar(data); }
-  async atualizarMarca(id: number, data: { nome?: string; ativo?: boolean }) { return this.marcas.atualizar(id, data); }
-  async desativarMarca(id: number) { return this.marcas.desativar(id); }
+  async criarMarca(data: { nome: string }) {
+    return this.marcas.criar(data);
+  }
+  async atualizarMarca(id: number, data: { nome?: string; ativo?: boolean }) {
+    return this.marcas.atualizar(id, data);
+  }
+  async desativarMarca(id: number) {
+    return this.marcas.desativar(id);
+  }
 
-  async criarCor(data: { nome: string }) { return this.cores.criar(data); }
-  async atualizarCor(id: number, data: { nome?: string; ativo?: boolean }) { return this.cores.atualizar(id, data); }
-  async desativarCor(id: number) { return this.cores.desativar(id); }
+  async criarCor(data: { nome: string }) {
+    return this.cores.criar(data);
+  }
+  async atualizarCor(id: number, data: { nome?: string; ativo?: boolean }) {
+    return this.cores.atualizar(id, data);
+  }
+  async desativarCor(id: number) {
+    return this.cores.desativar(id);
+  }
 
-  async criarTamanho(data: { nome: string }) { return this.tamanhos.criar(data); }
-  async atualizarTamanho(id: number, data: { nome?: string; ativo?: boolean }) { return this.tamanhos.atualizar(id, data); }
-  async desativarTamanho(id: number) { return this.tamanhos.desativar(id); }
+  async criarTamanho(data: { nome: string }) {
+    return this.tamanhos.criar(data);
+  }
+  async atualizarTamanho(id: number, data: { nome?: string; ativo?: boolean }) {
+    return this.tamanhos.atualizar(id, data);
+  }
+  async desativarTamanho(id: number) {
+    return this.tamanhos.desativar(id);
+  }
 
-  async criarLocalizacao(data: { nome: string; descricao?: string }) { return this.localizacoes.criar(data); }
-  async atualizarLocalizacao(id: number, data: { nome?: string; ativo?: boolean }) { return this.localizacoes.atualizar(id, data); }
-  async desativarLocalizacao(id: number) { return this.localizacoes.desativar(id); }
+  async criarLocalizacao(data: { nome: string; descricao?: string }) {
+    return this.localizacoes.criar(data);
+  }
+  async atualizarLocalizacao(
+    id: number,
+    data: { nome?: string; ativo?: boolean },
+  ) {
+    return this.localizacoes.atualizar(id, data);
+  }
+  async desativarLocalizacao(id: number) {
+    return this.localizacoes.desativar(id);
+  }
 
-  async criarFornecedor(data: { nome: string; cnpj?: string }) { return this.fornecedores.criar(data); }
-  async atualizarFornecedor(id: number, data: { nome?: string; ativo?: boolean }) { return this.fornecedores.atualizar(id, data); }
-  async desativarFornecedor(id: number) { return this.fornecedores.desativar(id); }
+  async criarFornecedor(data: { nome: string; cnpj?: string }) {
+    return this.fornecedores.criar(data);
+  }
+  async atualizarFornecedor(
+    id: number,
+    data: { nome?: string; ativo?: boolean },
+  ) {
+    return this.fornecedores.atualizar(id, data);
+  }
+  async desativarFornecedor(id: number) {
+    return this.fornecedores.desativar(id);
+  }
 }
