@@ -8,16 +8,22 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ThrottlerGuard } from '../throttler/throttler.guard.js';
 import { AuthService } from './auth.service.js';
 import { Public } from './decorators/public.decorator.js';
-import type {
-  AlterarSenhaDto,
-  CadastrarDto,
-  LoginDto,
-  RecuperarSenhaDto,
-  RedefinirSenhaDto,
+import {
+  type AlterarSenhaDto,
+  alterarSenhaSchema,
+  type CadastrarDto,
+  cadastrarSchema,
+  type LoginDto,
+  loginSchema,
+  type RecuperarSenhaDto,
+  type RedefinirSenhaDto,
+  recuperarSenhaSchema,
+  redefinirSenhaSchema,
 } from './dto/auth.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
@@ -32,7 +38,7 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @SetMetadata('throttle', { ttl: 60_000, limit: 5 })
   @Post('login')
-  login(@Body() dto: LoginDto) {
+  login(@Body(new ZodValidationPipe(loginSchema)) dto: LoginDto) {
     return this.authService.login(dto);
   }
 
@@ -41,7 +47,7 @@ export class AuthController {
   @SetMetadata('throttle', { ttl: 60_000, limit: 3 })
   @Post('cadastro')
   @HttpCode(201)
-  cadastrar(@Body() dto: CadastrarDto) {
+  cadastrar(@Body(new ZodValidationPipe(cadastrarSchema)) dto: CadastrarDto) {
     return this.authService.cadastrar(dto);
   }
 
@@ -49,7 +55,9 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @SetMetadata('throttle', { ttl: 60_000, limit: 3 })
   @Post('recuperar-senha')
-  recuperarSenha(@Body() dto: RecuperarSenhaDto) {
+  recuperarSenha(
+    @Body(new ZodValidationPipe(recuperarSenhaSchema)) dto: RecuperarSenhaDto,
+  ) {
     return this.authService.recuperarSenha(dto);
   }
 
@@ -57,14 +65,16 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @SetMetadata('throttle', { ttl: 60_000, limit: 5 })
   @Post('redefinir-senha')
-  redefinirSenha(@Body() dto: RedefinirSenhaDto) {
+  redefinirSenha(
+    @Body(new ZodValidationPipe(redefinirSenhaSchema)) dto: RedefinirSenhaDto,
+  ) {
     return this.authService.redefinirSenha(dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('alterar-senha')
   alterarSenha(
-    @Body() dto: AlterarSenhaDto,
+    @Body(new ZodValidationPipe(alterarSenhaSchema)) dto: AlterarSenhaDto,
     @Request() req: { user: { id: number } },
   ) {
     return this.authService.alterarSenha(dto, req.user.id);

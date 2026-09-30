@@ -1,5 +1,9 @@
 import crypto from 'node:crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { User } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -7,6 +11,7 @@ import { config } from '../config.js';
 import { EmailService } from '../email/email.service.js';
 import { AppError } from '../lib/errors.js';
 import { notificarPapeis } from '../lib/notificacao.js';
+import { findUserByTelefone, temDddValido } from '../lib/telefone.js';
 import { verificarTurnstile } from '../lib/turnstile.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
@@ -34,10 +39,12 @@ export class AuthService {
         where: { email: dto.email },
       });
     } else {
-      const telefoneLimpo = dto.email.replace(/\D/g, '');
-      user = await this.prisma.user.findFirst({
-        where: { telefone: { contains: telefoneLimpo } },
-      });
+      if (!temDddValido(dto.email)) {
+        throw new BadRequestException(
+          'Informe um e-mail válido ou telefone com DDD, ex.: (00) 00000-0000',
+        );
+      }
+      user = await findUserByTelefone(this.prisma, dto.email);
     }
     if (!user)
       throw new UnauthorizedException('E-mail/telefone ou senha inválidos');
@@ -92,14 +99,14 @@ export class AuthService {
   async cadastrar(dto: CadastrarDto) {
     const nomeTrimmed = dto.nome.trim();
     const existenteNome = await this.prisma.user.findFirst({
-      where: { nome: { equals: nomeTrimmed, mode: 'insensitive' } },
+      where: { nome: nomeTrimmed },
     });
     if (existenteNome) throw new AppError(409, 'Nome já cadastrado');
 
-    const telefoneLimpo = dto.telefone.replace(/\D/g, '');
-    const existenteTelefone = await this.prisma.user.findFirst({
-      where: { telefone: { contains: telefoneLimpo } },
-    });
+    const existenteTelefone = await findUserByTelefone(
+      this.prisma,
+      dto.telefone,
+    );
     if (existenteTelefone) throw new AppError(409, 'Telefone já cadastrado');
 
     if (dto.email) {
@@ -174,10 +181,7 @@ export class AuthService {
     if (dto.canal === 'email' && dto.email) {
       user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     } else if (dto.canal === 'whatsapp' && dto.telefone) {
-      const telefoneLimpo = dto.telefone.replace(/\D/g, '');
-      user = await this.prisma.user.findFirst({
-        where: { telefone: { contains: telefoneLimpo } },
-      });
+      user = await findUserByTelefone(this.prisma, dto.telefone);
     }
 
     if (!user) {

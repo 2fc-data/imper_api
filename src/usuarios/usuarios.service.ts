@@ -99,7 +99,7 @@ export class UsuariosService {
     if (data.nome) {
       const nomeTrimmed = data.nome.trim();
       const existenteNome = await this.prisma.user.findFirst({
-        where: { nome: { equals: nomeTrimmed, mode: 'insensitive' } },
+        where: { nome: nomeTrimmed },
       });
       if (existenteNome) throw new AppError(409, 'Nome já cadastrado');
     }
@@ -107,7 +107,7 @@ export class UsuariosService {
     if (data.email) {
       const emailTrimmed = data.email.trim();
       const existenteEmail = await this.prisma.user.findFirst({
-        where: { email: { equals: emailTrimmed, mode: 'insensitive' } },
+        where: { email: emailTrimmed },
       });
       if (existenteEmail) throw new AppError(409, 'E-mail já cadastrado');
     }
@@ -223,7 +223,7 @@ export class UsuariosService {
       const nomeTrimmed = data.nome.trim();
       const existenteNome = await this.prisma.user.findFirst({
         where: {
-          nome: { equals: nomeTrimmed, mode: 'insensitive' },
+          nome: nomeTrimmed,
           id: { not: id },
         },
       });
@@ -235,7 +235,7 @@ export class UsuariosService {
       const emailTrimmed = data.email.trim();
       const existenteEmail = await this.prisma.user.findFirst({
         where: {
-          email: { equals: emailTrimmed, mode: 'insensitive' },
+          email: emailTrimmed,
           id: { not: id },
         },
       });

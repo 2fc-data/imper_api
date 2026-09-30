@@ -36,8 +36,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof Prisma.PrismaClientValidationError) {
+      this.logger.warn(`PrismaClientValidationError: ${exception.message}`);
       response.status(HttpStatus.BAD_REQUEST).json({
-        message: 'Invalid data for database operation',
+        message:
+          'Os dados enviados são inválidos. Verifique os campos e tente novamente.',
       });
       return;
     }
