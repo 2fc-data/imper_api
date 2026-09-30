@@ -13,6 +13,7 @@
     "dev": "nest start --watch",
     "db:clear-operational": "npx tsx scripts/clear-operational-data.ts",
     "db:clear-users": "npx tsx scripts/clear-users-and-addresses.ts",
+    "db:grant-admin": "npx tsx scripts/grant-admin-all-roles.ts",
     "format": "biome format --write src test",
     "lint": "biome check src test",
     "lint:fix": "biome check --write src test",
