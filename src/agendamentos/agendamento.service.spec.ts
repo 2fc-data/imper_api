@@ -111,3 +111,33 @@ describe('AgendamentoService (gate 1)', () => {
     expect(mockPrisma.agendamento.create).toHaveBeenCalled();
   });
 });
+
+describe('AgendamentoService (portal)', () => {
+  let service: AgendamentoService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new AgendamentoService(mockPrisma as any);
+    mockPrisma.agendamento.findMany.mockResolvedValue([]);
+  });
+
+  it('listarDoUsuario filtra por userId', async () => {
+    await service.listarDoUsuario(7);
+    expect(mockPrisma.agendamento.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 7 },
+        include: expect.objectContaining({
+          user: expect.anything(),
+        }),
+        orderBy: { dataPrevista: 'asc' },
+      }),
+    );
+  });
+
+  it('listarDoUsuario devolve o retorno de listar', async () => {
+    const itens = [{ id: 1, userId: 7 }];
+    mockPrisma.agendamento.findMany.mockResolvedValue(itens);
+    const res = await service.listarDoUsuario(7);
+    expect(res).toEqual(itens);
+  });
+});
