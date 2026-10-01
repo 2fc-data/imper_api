@@ -6,7 +6,7 @@ import { ClientIsolationGuard } from './client-isolation.guard.js';
 
 type Meta = { public?: boolean; portal?: boolean };
 
-function ctx(meta: Meta, user?: { papel: string }) {
+function ctx(meta: Meta, user?: { papel: string; papeis?: string[] }) {
   const handler = function handler() {};
   const classe = class Alvo {};
   if (meta.public) {
@@ -24,7 +24,7 @@ function ctx(meta: Meta, user?: { papel: string }) {
   };
 }
 
-function run(meta: Meta, user?: { papel: string }) {
+function run(meta: Meta, user?: { papel: string; papeis?: string[] }) {
   const guard = new ClientIsolationGuard(new Reflector());
   return guard.canActivate(ctx(meta, user) as never);
 }
@@ -52,6 +52,29 @@ describe('ClientIsolationGuard', () => {
 
   it('bloqueia CLIENTE em backoffice com 403', () => {
     expect(() => run({}, { papel: 'CLIENTE' })).toThrow(ForbiddenException);
+    expect(() => run({}, { papel: 'CLIENTE' })).toThrow('Acesso restrito');
+  });
+
+  it('libera usuário com papéis mistos (CLIENTE primeiro)', () => {
+    expect(run({}, { papel: 'CLIENTE', papeis: ['CLIENTE', 'TECNICO'] })).toBe(
+      true,
+    );
+  });
+
+  it('bloqueia usuário cujos papéis são todos CLIENTE', () => {
+    expect(() =>
+      run({}, { papel: 'CLIENTE', papeis: ['CLIENTE', 'CLIENTE'] }),
+    ).toThrow('Acesso restrito');
+  });
+
+  it('papeis tem precedência sobre o papel legado', () => {
+    expect(() => run({}, { papel: 'ADMIN', papeis: ['CLIENTE'] })).toThrow(
+      'Acesso restrito',
+    );
+  });
+
+  it('token antigo sem papeis continua comportado pelo papel legado', () => {
+    expect(run({}, { papel: 'ADMIN' })).toBe(true);
     expect(() => run({}, { papel: 'CLIENTE' })).toThrow('Acesso restrito');
   });
 });

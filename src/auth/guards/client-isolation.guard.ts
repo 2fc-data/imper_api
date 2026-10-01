@@ -28,7 +28,10 @@ export class ClientIsolationGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     if (!user) return true;
-    if (user.papel !== 'CLIENTE') return true;
-    throw new ForbiddenException('Acesso restrito');
+    const papeis: string[] = user.papeis ?? [user.papel];
+    if (papeis.length > 0 && papeis.every((nome) => nome === 'CLIENTE')) {
+      throw new ForbiddenException('Acesso restrito');
+    }
+    return true;
   }
 }
