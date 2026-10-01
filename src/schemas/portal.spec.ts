@@ -23,9 +23,9 @@ describe('atualizarPerfilSchema', () => {
   });
 
   it('aceita telefone com 10 ou 11 dígitos e formatado', () => {
-    expect(
-      atualizarPerfilSchema.parse({ telefone: '11999998888' }),
-    ).toEqual({ telefone: '11999998888' });
+    expect(atualizarPerfilSchema.parse({ telefone: '11999998888' })).toEqual({
+      telefone: '11999998888',
+    });
     expect(
       atualizarPerfilSchema.parse({ telefone: '(11) 99999-8888' }),
     ).toEqual({ telefone: '(11) 99999-8888' });
@@ -43,9 +43,9 @@ describe('atualizarPerfilSchema', () => {
   });
 
   it('valida CPF/CNPJ', () => {
-    expect(
-      atualizarPerfilSchema.parse({ cpfCnpj: '529.982.247-25' }),
-    ).toEqual({ cpfCnpj: '529.982.247-25' });
+    expect(atualizarPerfilSchema.parse({ cpfCnpj: '529.982.247-25' })).toEqual({
+      cpfCnpj: '529.982.247-25',
+    });
     expect(() =>
       atualizarPerfilSchema.parse({ cpfCnpj: '111.111.111-11' }),
     ).toThrowError(/CPF ou CNPJ inválido/);
