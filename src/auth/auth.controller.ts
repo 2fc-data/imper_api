@@ -12,6 +12,7 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ThrottlerGuard } from '../throttler/throttler.guard.js';
 import { AuthService } from './auth.service.js';
+import { Portal } from './decorators/portal.decorator.js';
 import { Public } from './decorators/public.decorator.js';
 import {
   type AlterarSenhaDto,
@@ -71,6 +72,7 @@ export class AuthController {
     return this.authService.redefinirSenha(dto);
   }
 
+  @Portal()
   @UseGuards(JwtAuthGuard)
   @Post('alterar-senha')
   alterarSenha(
@@ -80,6 +82,7 @@ export class AuthController {
     return this.authService.alterarSenha(dto, req.user.id);
   }
 
+  @Portal()
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMe(@Request() req: { user: { id: number } }) {

@@ -8,6 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { ClientIsolationGuard } from './guards/client-isolation.guard.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { PermissionsGuard } from './guards/permissions.guard.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
@@ -27,8 +28,10 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
     JwtStrategy,
     JwtAuthGuard,
     PermissionsGuard,
+    ClientIsolationGuard,
     WhatsAppService,
     { provide: APP_GUARD, useExisting: JwtAuthGuard },
+    { provide: APP_GUARD, useExisting: ClientIsolationGuard },
     { provide: APP_GUARD, useExisting: PermissionsGuard },
   ],
   controllers: [AuthController],
