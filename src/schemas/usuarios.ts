@@ -34,7 +34,7 @@ function validarCnpj(cnpj: string): boolean {
   return parseInt(d[13], 10) === dv2;
 }
 
-const cpfCnpjValidator = z
+export const cpfCnpjValidator = z
   .string()
   .optional()
   .refine(
