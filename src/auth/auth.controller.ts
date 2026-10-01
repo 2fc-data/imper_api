@@ -27,6 +27,7 @@ import {
   redefinirSenhaSchema,
 } from './dto/auth.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { papelPrincipal } from './papel-principal.js';
 
 @Controller('auth')
 export class AuthController {
@@ -123,7 +124,7 @@ export class AuthController {
     });
     if (!user) return req.user;
     const { enderecos, papeis, ...rest } = user;
-    const papelNome = papeis[0]?.papel.nome ?? null;
+    const papelNome = papelPrincipal(papeis) ?? null;
     const permissoes = new Set<string>();
     for (const up of papeis) {
       for (const pp of up.papel.permissoes) {
@@ -133,6 +134,7 @@ export class AuthController {
     return {
       ...rest,
       papel: papelNome,
+      papeis: papeis.map((up) => up.papel.nome),
       permissoes: Array.from(permissoes),
       endereco: enderecos[0] ?? null,
     };
