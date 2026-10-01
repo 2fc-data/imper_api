@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, StatusOS } from '@prisma/client';
+import { Prisma, StatusEtapaOS, StatusOS } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CancelarOsDto } from './dto/os.dto.js';
@@ -53,6 +53,51 @@ function mapear(os: OsSelecionada) {
   return { ...resto, endereco: formatarEndereco(endereco) };
 }
 
+const selectPortalOs = {
+  ...selectOs,
+  etapas: { orderBy: { ordem: 'asc' as const }, select: { status: true } },
+} satisfies Prisma.OrdemServicoSelect;
+
+const selectOsDetalhe = {
+  ...selectOs,
+  etapas: {
+    orderBy: { ordem: 'asc' as const },
+    select: {
+      id: true,
+      nome: true,
+      ordem: true,
+      status: true,
+      dataInicioReal: true,
+      dataFimReal: true,
+      atividadesOS: {
+        select: {
+          id: true,
+          status: true,
+          dataPrevisao: true,
+          criadoEm: true,
+          atualizadoEm: true,
+          catalogoAtividade: { select: { nome: true } },
+        },
+      },
+    },
+  },
+} satisfies Prisma.OrdemServicoSelect;
+
+function montarProgresso(etapas: { status: StatusEtapaOS }[]) {
+  const totalEtapas = etapas.length;
+  const etapasConcluidas = etapas.filter(
+    (e) => e.status === StatusEtapaOS.CONCLUIDA,
+  ).length;
+  return {
+    etapasConcluidas,
+    totalEtapas,
+    progresso:
+      totalEtapas === 0
+        ? 0
+        : Math.round((etapasConcluidas / totalEtapas) * 100),
+  };
+}
+
 @Injectable()
 export class OsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -79,6 +124,34 @@ export class OsService {
     });
 
     return lista.map(mapear);
+  }
+
+  async listarDoUsuario(userId: number) {
+    const itens = await this.prisma.ordemServico.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: selectPortalOs,
+    });
+    return itens.map(({ endereco, etapas, ...resto }) => ({
+      ...resto,
+      endereco: formatarEndereco(endereco),
+      ...montarProgresso(etapas),
+    }));
+  }
+
+  async detalharParaUsuario(userId: number, id: number) {
+    const os = await this.prisma.ordemServico.findFirst({
+      where: { id, userId },
+      select: selectOsDetalhe,
+    });
+    if (!os) throw new AppError(404, 'Ordem de serviço não encontrada');
+    const { endereco, etapas, ...resto } = os;
+    return {
+      ...resto,
+      endereco: formatarEndereco(endereco),
+      etapas,
+      ...montarProgresso(etapas),
+    };
   }
 
   async aprovar(id: number, userId: number) {
