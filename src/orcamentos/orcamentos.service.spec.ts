@@ -814,4 +814,52 @@ describe('OrcamentosService', () => {
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
+
+  describe('listarDoUsuario', () => {
+    it('filtra por userId com includeResumo e orderBy createdAt desc', async () => {
+      mockPrisma.orcamento.findMany.mockResolvedValue([]);
+      await service.listarDoUsuario(7);
+      expect(mockPrisma.orcamento.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 7 },
+          orderBy: { createdAt: 'desc' },
+          include: expect.objectContaining({
+            atendimento: expect.anything(),
+            _count: expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it('devolve os itens do findMany', async () => {
+      const itens = [{ id: 5, userId: 7 }];
+      mockPrisma.orcamento.findMany.mockResolvedValue(itens);
+      const res = await service.listarDoUsuario(7);
+      expect(res).toEqual(itens);
+    });
+  });
+
+  describe('detalharParaUsuario', () => {
+    it('lança 404 Orçamento não encontrado sem chamar detalhar quando não é dono', async () => {
+      mockPrisma.orcamento.findFirst.mockResolvedValue(null);
+      const spy = vi.spyOn(service, 'detalhar');
+      await expect(service.detalharParaUsuario(7, 999)).rejects.toThrow(
+        'Orçamento não encontrado',
+      );
+      expect(mockPrisma.orcamento.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 999, userId: 7 } }),
+      );
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('delega para detalhar quando o usuário é dono', async () => {
+      mockPrisma.orcamento.findFirst.mockResolvedValue({ id: 10 });
+      const spy = vi
+        .spyOn(service, 'detalhar')
+        .mockResolvedValue({ id: 10, atividades: [] } as never);
+      const res = await service.detalharParaUsuario(7, 10);
+      expect(spy).toHaveBeenCalledWith(10);
+      expect(res).toEqual({ id: 10, atividades: [] });
+    });
+  });
 });
