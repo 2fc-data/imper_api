@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { AgendamentoService } from '../agendamentos/agendamento.service.js';
-import type { AtendimentoService } from '../atendimentos/atendimento.service.js';
+import { AgendamentoService } from '../agendamentos/agendamento.service.js';
+import { AtendimentoService } from '../atendimentos/atendimento.service.js';
 import { AppError } from '../lib/errors.js';
-import type { OrcamentosService } from '../orcamentos/orcamentos.service.js';
-import type { OsService } from '../os/os.service.js';
+import { OrcamentosService } from '../orcamentos/orcamentos.service.js';
+import { OsService } from '../os/os.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AtualizarPerfilInput } from '../schemas/portal.js';
 
