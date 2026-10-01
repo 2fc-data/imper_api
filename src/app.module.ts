@@ -20,6 +20,7 @@ import { MateriaisModule } from './materiais/materiais.module.js';
 import { OrcamentoVocabularioModule } from './orcamento-vocabulario/orcamento-vocabulario.module.js';
 import { OrcamentosModule } from './orcamentos/orcamentos.module.js';
 import { OsModule } from './os/os.module.js';
+import { PortalModule } from './portal/portal.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { PublicoModule } from './publico/publico.module.js';
 import { RbacModule } from './rbac/rbac.module.js';
@@ -44,6 +45,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     OrcamentoVocabularioModule,
     OrcamentosModule,
     OsModule,
+    PortalModule,
     PublicoModule,
     RbacModule,
     UsuariosModule,
