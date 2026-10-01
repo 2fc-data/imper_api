@@ -66,7 +66,7 @@ export const criarUsuarioSchema = z.object({
         message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos',
       },
     ),
-  papelId: z.number(),
+  papelIds: z.array(z.number().int()).min(1, 'Informe ao menos um perfil'),
   cargoId: z.number().nullable().optional(),
   cpfCnpj: cpfCnpjValidator,
   cep: z.string().optional(),
@@ -95,7 +95,10 @@ export const atualizarUsuarioSchema = z.object({
         message: 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos',
       },
     ),
-  papelId: z.number().optional(),
+  papelIds: z
+    .array(z.number().int())
+    .min(1, 'Informe ao menos um perfil')
+    .optional(),
   cargoId: z.number().nullable().optional(),
   ativo: z.boolean().optional(),
   cpfCnpj: cpfCnpjValidator,
@@ -112,6 +115,11 @@ export const resetarSenhaSchema = z.object({
   novaSenha: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
 });
 
+export const definirPerfisSchema = z.object({
+  papelIds: z.array(z.number().int()).min(1, 'Informe ao menos um perfil'),
+});
+
 export type CriarUsuarioInput = z.infer<typeof criarUsuarioSchema>;
 export type AtualizarUsuarioInput = z.infer<typeof atualizarUsuarioSchema>;
 export type ResetarSenhaInput = z.infer<typeof resetarSenhaSchema>;
+export type DefinirPerfisInput = z.infer<typeof definirPerfisSchema>;

@@ -16,11 +16,13 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import type {
   AtualizarUsuarioDto,
   CriarUsuarioDto,
+  DefinirPerfisDto,
   ResetarSenhaDto,
 } from './dto/usuarios.dto.js';
 import {
   atualizarUsuarioSchema,
   criarUsuarioSchema,
+  definirPerfisSchema,
   resetarSenhaSchema,
 } from './dto/usuarios.dto.js';
 import { UsuariosService } from './usuarios.service.js';
@@ -87,10 +89,11 @@ export class UsuariosController {
   @Permissions('editar_usuario')
   async definirPerfil(
     @Param('id') id: string,
-    @Body() body: { papelId: number },
+    @Body(new ZodValidationPipe(definirPerfisSchema))
+    body: DefinirPerfisDto,
   ) {
     return this.usuariosService.atualizar(Number(id), {
-      papelId: body.papelId,
+      papelIds: body.papelIds,
     });
   }
 
