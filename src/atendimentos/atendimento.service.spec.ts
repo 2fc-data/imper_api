@@ -12,6 +12,7 @@ const mockPrisma = {
   atendimento: {
     findMany: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
   },
@@ -339,6 +340,56 @@ describe('AtendimentoService', () => {
         'Visita técnica deve ser realizada antes de iniciar o orçamento',
       );
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listarDoUsuario', () => {
+    it('filtra por userId, ordena por createdAt desc e take 50', async () => {
+      mockPrisma.atendimento.findMany.mockResolvedValue([item({})]);
+      await service.listarDoUsuario(7);
+      expect(mockPrisma.atendimento.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 7 },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          include: expect.objectContaining({
+            _count: expect.objectContaining({ select: expect.any(Object) }),
+          }),
+        }),
+      );
+    });
+
+    it('retorna itens mapeados com proximasAcoes', async () => {
+      mockPrisma.atendimento.findMany.mockResolvedValue([item({})]);
+      const res = await service.listarDoUsuario(7);
+      expect(res[0].proximasAcoes).toEqual([
+        'MUDAR_STATUS:EM_ANDAMENTO',
+        'ENCERRAR',
+      ]);
+    });
+  });
+
+  describe('detalharParaUsuario', () => {
+    it('lança 404 sem chamar detalhar quando o atendimento não pertence ao usuário', async () => {
+      mockPrisma.atendimento.findFirst.mockResolvedValue(null);
+      const spy = vi.spyOn(service, 'detalhar');
+      await expect(service.detalharParaUsuario(7, 999)).rejects.toThrow(
+        'Atendimento não encontrado',
+      );
+      expect(mockPrisma.atendimento.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 999, userId: 7 } }),
+      );
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('delega para detalhar quando o usuário é dono', async () => {
+      mockPrisma.atendimento.findFirst.mockResolvedValue({ id: 10 });
+      const spy = vi
+        .spyOn(service, 'detalhar')
+        .mockResolvedValue({ id: 10 } as never);
+      const res = await service.detalharParaUsuario(7, 10);
+      expect(spy).toHaveBeenCalledWith(10);
+      expect(res).toEqual({ id: 10 });
     });
   });
 });
