@@ -22,6 +22,7 @@ import type {
   RecuperarSenhaDto,
   RedefinirSenhaDto,
 } from './dto/auth.dto.js';
+import { papelPrincipal } from './papel-principal.js';
 
 @Injectable()
 export class AuthService {
@@ -71,7 +72,7 @@ export class AuthService {
       }
     }
 
-    const papelNome = userPapeis[0]?.papel.nome ?? 'ATENDENTE';
+    const papelNome = papelPrincipal(userPapeis) ?? 'ATENDENTE';
     const permissoesArr = Array.from(permissoes);
 
     const payload = {
@@ -79,6 +80,7 @@ export class AuthService {
       nome: user.nome,
       email: user.email,
       papel: papelNome,
+      papeis: userPapeis.map((up) => up.papel.nome),
       permissoes: permissoesArr,
     };
 
@@ -91,6 +93,7 @@ export class AuthService {
         nome: user.nome,
         email: user.email,
         papel: papelNome,
+        papeis: userPapeis.map((up) => up.papel.nome),
         permissoes: permissoesArr,
       },
     };
@@ -159,6 +162,7 @@ export class AuthService {
       nome: user.nome,
       email: user.email,
       papel: 'ATENDENTE',
+      papeis: ['CLIENTE'],
       permissoes: [],
     };
 
@@ -171,6 +175,7 @@ export class AuthService {
         nome: user.nome,
         email: user.email,
         papel: 'ATENDENTE',
+        papeis: ['CLIENTE'],
         permissoes: [],
       },
     };

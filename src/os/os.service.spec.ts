@@ -32,6 +32,7 @@ const mockPrisma = {
   ordemServico: {
     findMany: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     update: vi.fn(),
   },
 };
@@ -239,6 +240,110 @@ describe('OsService', () => {
       await expect(service.cancelar(404)).rejects.toMatchObject({
         status: 404,
       });
+    });
+  });
+
+  describe('listarDoUsuario (portal)', () => {
+    it('filtra por userId com select de etapas e orderBy createdAt desc', async () => {
+      mockPrisma.ordemServico.findMany.mockResolvedValue([]);
+      await service.listarDoUsuario(7);
+      expect(mockPrisma.ordemServico.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 7 },
+          orderBy: { createdAt: 'desc' },
+          select: expect.objectContaining({
+            etapas: { orderBy: { ordem: 'asc' }, select: { status: true } },
+          }),
+        }),
+      );
+    });
+
+    it('progresso 0 para lista sem etapas, endereco formatado e sem chave etapas', async () => {
+      mockPrisma.ordemServico.findMany.mockResolvedValue([
+        { ...osBase, etapas: [] },
+      ]);
+      const res = await service.listarDoUsuario(7);
+      expect(res[0]).not.toHaveProperty('etapas');
+      expect(res[0].endereco).toBe('Rua das Flores, 123, Ap 1 - Centro');
+      expect(res[0].etapasConcluidas).toBe(0);
+      expect(res[0].totalEtapas).toBe(0);
+      expect(res[0].progresso).toBe(0);
+    });
+
+    it('progresso parcial: 1 de 3 concluídas → 33', async () => {
+      mockPrisma.ordemServico.findMany.mockResolvedValue([
+        {
+          ...osBase,
+          etapas: [
+            { status: 'CONCLUIDA' },
+            { status: 'EM_ANDAMENTO' },
+            { status: 'PENDENTE' },
+          ],
+        },
+      ]);
+      const res = await service.listarDoUsuario(7);
+      expect(res[0].etapasConcluidas).toBe(1);
+      expect(res[0].totalEtapas).toBe(3);
+      expect(res[0].progresso).toBe(33);
+    });
+
+    it('progresso 100 quando todas as etapas concluídas', async () => {
+      mockPrisma.ordemServico.findMany.mockResolvedValue([
+        {
+          ...osBase,
+          etapas: [{ status: 'CONCLUIDA' }, { status: 'CONCLUIDA' }],
+        },
+      ]);
+      const res = await service.listarDoUsuario(7);
+      expect(res[0].progresso).toBe(100);
+      expect(res[0].etapasConcluidas).toBe(2);
+      expect(res[0].totalEtapas).toBe(2);
+    });
+  });
+
+  describe('detalharParaUsuario (portal)', () => {
+    it('lança 404 Ordem de serviço não encontrada quando não é dono', async () => {
+      mockPrisma.ordemServico.findFirst.mockResolvedValue(null);
+      await expect(service.detalharParaUsuario(7, 999)).rejects.toThrow(
+        'Ordem de serviço não encontrada',
+      );
+      expect(mockPrisma.ordemServico.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 999, userId: 7 } }),
+      );
+    });
+
+    it('retorna detalhe com etapas, atividadesOS, catalogo e progresso', async () => {
+      mockPrisma.ordemServico.findFirst.mockResolvedValue({
+        ...osBase,
+        endereco: { ...osBase.endereco },
+        etapas: [
+          {
+            id: 1,
+            nome: 'Preparação',
+            ordem: 1,
+            status: 'CONCLUIDA',
+            dataInicioReal: null,
+            dataFimReal: null,
+            atividadesOS: [
+              {
+                id: 10,
+                status: 'CONCLUIDA',
+                dataPrevisao: null,
+                criadoEm: new Date('2026-01-02T10:00:00Z'),
+                atualizadoEm: new Date('2026-01-03T10:00:00Z'),
+                catalogoAtividade: { nome: 'Pintura de parede' },
+              },
+            ],
+          },
+        ],
+      });
+      const res = await service.detalharParaUsuario(7, 10);
+      expect(res.etapas).toHaveLength(1);
+      expect(res.etapas[0].atividadesOS[0].catalogoAtividade.nome).toBe(
+        'Pintura de parede',
+      );
+      expect(res.progresso).toBe(100);
+      expect(res.endereco).toBe('Rua das Flores, 123, Ap 1 - Centro');
     });
   });
 });

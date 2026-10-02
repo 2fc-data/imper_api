@@ -92,6 +92,25 @@ export class AtendimentoService {
     return comProximas(item);
   }
 
+  async listarDoUsuario(userId: number) {
+    const itens = await this.prisma.atendimento.findMany({
+      where: { userId },
+      include: includeCtx,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return itens.map(comProximas);
+  }
+
+  async detalharParaUsuario(userId: number, id: number) {
+    const dono = await this.prisma.atendimento.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+    if (!dono) throw new AppError(404, 'Atendimento não encontrado');
+    return this.detalhar(id);
+  }
+
   async criar(data: {
     canal: CanalAtendimento;
     urgencia?: Urgencia;

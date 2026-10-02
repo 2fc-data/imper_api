@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { config } from '../../config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { papelPrincipal } from '../papel-principal.js';
 
 export interface JwtPayload {
   id: number;
@@ -49,7 +50,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       nome: user.nome,
       email: user.email,
-      papel: userPapeis[0]?.papel.nome ?? 'ATENDENTE',
+      papel: papelPrincipal(userPapeis) ?? 'ATENDENTE',
+      papeis: userPapeis.map((up) => up.papel.nome),
       permissoes: Array.from(permissoes),
     };
   }

@@ -85,7 +85,7 @@ export class UsuariosService {
     email?: string;
     senha: string;
     telefone?: string;
-    papelId: number;
+    papelIds: number[];
     cargoId?: number | null;
     cpfCnpj?: string;
     cep?: string;
@@ -138,10 +138,14 @@ export class UsuariosService {
       }
     }
 
-    const papel = await this.prisma.papelRbac.findUnique({
-      where: { id: data.papelId },
+    const papeis = await this.prisma.papelRbac.findMany({
+      where: { id: { in: data.papelIds } },
+      select: { id: true, nome: true, descricao: true },
+      orderBy: { id: 'asc' },
     });
-    if (!papel) throw new AppError(400, 'Papel inválido');
+    if (papeis.length !== data.papelIds.length) {
+      throw new AppError(400, 'Papel inválido');
+    }
 
     const senhaHash = await bcrypt.hash(data.senha, 10);
     const user = await this.prisma.$transaction(async (tx) => {
@@ -156,8 +160,11 @@ export class UsuariosService {
         },
         select: selectPublico,
       });
-      await tx.usuarioPapel.create({
-        data: { userId: novoUser.id, papelId: data.papelId },
+      await tx.usuarioPapel.createMany({
+        data: data.papelIds.map((papelId) => ({
+          userId: novoUser.id,
+          papelId,
+        })),
       });
 
       if (data.endereco) {
@@ -178,7 +185,7 @@ export class UsuariosService {
 
       return novoUser;
     });
-    return { ...user, papeis: [papel] };
+    return { ...user, papeis };
   }
 
   async atualizar(
@@ -187,7 +194,7 @@ export class UsuariosService {
       nome?: string;
       email?: string;
       telefone?: string;
-      papelId?: number;
+      papelIds?: number[];
       cargoId?: number | null;
       ativo?: boolean;
       cpfCnpj?: string;
@@ -215,7 +222,7 @@ export class UsuariosService {
       estado,
       numero,
       complemento,
-      papelId: _papelId,
+      papelIds: _papelIds,
       ...userData
     } = data;
 
@@ -261,11 +268,14 @@ export class UsuariosService {
       }
     }
 
-    if (data.papelId !== undefined) {
-      const papel = await this.prisma.papelRbac.findUnique({
-        where: { id: data.papelId },
+    if (data.papelIds !== undefined) {
+      const papeisValidados = await this.prisma.papelRbac.findMany({
+        where: { id: { in: data.papelIds } },
+        select: { id: true },
       });
-      if (!papel) throw new AppError(400, 'Papel inválido');
+      if (papeisValidados.length !== data.papelIds.length) {
+        throw new AppError(400, 'Papel inválido');
+      }
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -316,10 +326,10 @@ export class UsuariosService {
         }
       }
 
-      if (data.papelId !== undefined) {
+      if (data.papelIds !== undefined) {
         await tx.usuarioPapel.deleteMany({ where: { userId: id } });
-        await tx.usuarioPapel.create({
-          data: { userId: id, papelId: data.papelId },
+        await tx.usuarioPapel.createMany({
+          data: data.papelIds.map((papelId) => ({ userId: id, papelId })),
         });
       }
 

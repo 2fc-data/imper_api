@@ -89,6 +89,10 @@ export class AgendamentoService {
     });
   }
 
+  listarDoUsuario(userId: number) {
+    return this.listar({ userId });
+  }
+
   async detalhar(id: number) {
     const item = await this.prisma.agendamento.findUnique({
       where: { id },
@@ -162,7 +166,9 @@ export class AgendamentoService {
 
     try {
       const agendamento = await this.prisma.$transaction(async (tx) => {
-        let enderecoId: number | null = dto.enderecoId ? Number(dto.enderecoId) : null;
+        let enderecoId: number | null = dto.enderecoId
+          ? Number(dto.enderecoId)
+          : null;
         if (dto.enderecoNovo) {
           const e = dto.enderecoNovo;
           if (e.logradouro || e.bairro || e.cidade || e.cep) {
@@ -196,7 +202,9 @@ export class AgendamentoService {
             tipo,
             status: dto.status ?? 'PENDENTE',
             dataPrevista: new Date(dto.dataPrevista),
-            dataRealizada: dto.dataRealizada ? new Date(dto.dataRealizada) : null,
+            dataRealizada: dto.dataRealizada
+              ? new Date(dto.dataRealizada)
+              : null,
             observacoes: dto.observacoes ?? null,
             criadoPorId: criadoPorId ? Number(criadoPorId) : null,
           },
