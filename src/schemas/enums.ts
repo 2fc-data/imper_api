@@ -94,3 +94,6 @@ export type EnumStatusSeparacaoNovo =
   | 'DEVOLUCAO_CONCLUIDA';
 
 export type EnumStatusEquipamento = 'EM_USO' | 'DEVOLVIDO' | 'EM_MANUTENCAO';
+
+export type StatusObra = 'EM_PREPARACAO' | 'EM_EXECUCAO' | 'CONCLUIDA' | 'CANCELADA';
+
