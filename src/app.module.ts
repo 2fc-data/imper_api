@@ -17,6 +17,7 @@ import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 import { EquipesModule } from './equipes/equipes.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
+import { ObrasModule } from './obras/obras.module.js';
 import { OrcamentoVocabularioModule } from './orcamento-vocabulario/orcamento-vocabulario.module.js';
 import { OrcamentosModule } from './orcamentos/orcamentos.module.js';
 import { OsModule } from './os/os.module.js';

@@ -106,7 +106,7 @@ describe('AgendamentoController', () => {
 
   describe('criar', () => {
     it('should create agendamento', async () => {
-      const dto = { userId: 10, dataPrevista: '2026-10-01T10:00:00Z' };
+      const dto = { userId: 10, atendimentoId: 1, dataPrevista: '2026-10-01T10:00:00Z' };
       const created = { id: 1, ...dto, status: 'PENDENTE' };
       mockService.criar.mockResolvedValue(created);
       const req = { user: { id: 5 } } as any;

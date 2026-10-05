@@ -25,8 +25,8 @@ async function main() {
     'etapas_os',
 
     // Aditivos & Items
-    'aditivo_itens',
-    'aditivos_os',
+    'aditivo_obra_itens',
+    'aditivos_obra',
 
     // OS Tracking, Signatures, Financial & Access
     'historicos_posicao',
@@ -46,6 +46,12 @@ async function main() {
 
     // Ordem de Serviço
     'ordens_servico',
+
+    // Obra (child → parent)
+    'obras_atividades_materiais',
+    'obras_atividades',
+    'obras_etapas',
+    'obras',
 
     // Orçamentos & Fichas & Activities
     'orcamento_atividade_materiais',

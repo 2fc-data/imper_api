@@ -14,7 +14,6 @@ type EnderecoResumo = {
 const selectOs = {
   id: true,
   codigo: true,
-  orcamentoId: true,
   userId: true,
   atendimentoId: true,
   urgencia: true,

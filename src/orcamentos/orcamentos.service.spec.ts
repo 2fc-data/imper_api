@@ -1,4 +1,5 @@
 import { HttpException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import type { CriarOrcamentoDto } from './dto/orcamentos.dto.js';
 import { OrcamentosService } from './orcamentos.service.js';
@@ -16,6 +17,10 @@ const mockTx = {
   checklistExecucao: { create: vi.fn() },
   separacao: { create: vi.fn() },
   etapaOSMaterial: { upsert: vi.fn() },
+  obra: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn() },
+  obraEtapa: { create: vi.fn() },
+  obraAtividade: { create: vi.fn() },
+  obraAtividadeMaterial: { create: vi.fn() },
 };
 
 const mockPrisma = {
@@ -103,7 +108,7 @@ describe('OrcamentosService', () => {
     });
 
     it('persiste atividades com custoUnitario snapshotado e totais calculados', async () => {
-      const result = await service.criar(dtoBase(), 1);
+      const result: any = await service.criar(dtoBase(), 1);
 
       expect(result.codigo).toBe('ORM-006');
       expect(result.status).toBe('RASCUNHO');
@@ -286,7 +291,7 @@ describe('OrcamentosService', () => {
       expect(arg.include._count.select).toEqual({ atividades: true });
       expect(arg.include._count.select.itens).toBeUndefined();
       expect(arg.include).toHaveProperty('servicoMarketing');
-      expect(arg.include).toHaveProperty('ordemServico');
+      expect(arg.include).toHaveProperty('obra');
     });
   });
 
@@ -565,7 +570,7 @@ describe('OrcamentosService', () => {
         observacoes: 'Obs do orçamento',
         areaM2: 100,
         valorM2: 25,
-        ordemServico: null,
+        obra: null,
         ficha: {
           risco1: 'Queda de objetos',
           acao1: 'Isolar a área',
@@ -681,48 +686,24 @@ describe('OrcamentosService', () => {
       }
     });
 
-    it('aprova: cria OS-NNN, etapas, atividades agrupadas e separações', async () => {
+    it('aprova: cria Obra OBR-NNN, etapas e atividades do orçamento', async () => {
       mockPrisma.orcamento.findUnique.mockResolvedValue(orcamentoAprovavel());
 
-      mockTx.ordemServico.findMany.mockResolvedValue([]);
-      mockTx.ordemServico.create.mockResolvedValue({
-        id: 50,
-        codigo: 'OS-001',
-      });
+      mockTx.obra.findMany.mockResolvedValue([]);
+      mockTx.obra.create.mockResolvedValue({ id: 50, codigo: 'OBR-001' });
       mockTx.etapa.findMany.mockResolvedValue([
         { id: 1, nome: 'Preparação', ordem: 1 },
         { id: 2, nome: 'Execução', ordem: 2 },
       ]);
-      mockTx.etapaOS.create
+      mockTx.obraEtapa.create
         .mockResolvedValueOnce({ id: 11 })
         .mockResolvedValueOnce({ id: 12 });
-      mockTx.atividadeOS.create
-        .mockResolvedValueOnce({ id: 'act-1' })
-        .mockResolvedValueOnce({ id: 'act-2' });
-      mockTx.catalogoAtividade.findMany.mockResolvedValue([
-        {
-          id: 'cat-1',
-          subSteps: [{ id: 'sub1' }, { id: 'sub2' }],
-          recursos: [{ tipo: 'MATERIAL', itemCatalogoId: 1, quantidade: 2 }],
-        },
-        {
-          id: 'cat-2',
-          subSteps: [],
-          recursos: [{ tipo: 'EPI', itemCatalogoId: 9, quantidade: 1 }],
-        },
-      ]);
-      mockTx.atividadeOSLinha.create.mockResolvedValue({});
-      mockTx.checklistExecucao.create.mockResolvedValue({});
-      mockTx.separacao.create.mockResolvedValue({});
-      mockTx.etapaOSMaterial.upsert.mockResolvedValue({});
+      mockTx.obraAtividade.create.mockResolvedValue({ id: 'obat-1' });
       mockTx.orcamento.findUnique.mockResolvedValue({
         id: 1,
         status: 'APROVADO',
       });
-      mockTx.ordemServico.findUnique.mockResolvedValue({
-        id: 50,
-        codigo: 'OS-001',
-      });
+      mockTx.obra.findUnique.mockResolvedValue({ id: 50, codigo: 'OBR-001' });
 
       const result = await service.aprovar(1, 99);
 
@@ -735,64 +716,87 @@ describe('OrcamentosService', () => {
           motivoRejeicao: null,
         },
       });
-      expect(mockTx.ordemServico.create).toHaveBeenCalledWith({
+      expect(mockTx.etapa.findMany).toHaveBeenCalledTimes(1);
+      expect(mockTx.obra.create).toHaveBeenCalledTimes(1);
+      expect(mockTx.obra.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          codigo: 'OS-001',
+          codigo: 'OBR-001',
           orcamentoId: 1,
           userId: 7,
           atendimentoId: 10,
           enderecoId: 3,
           urgencia: 'NORMAL',
-          valorTotal: 1234.56,
+          valorContratado: 1234.56,
           observacoes: 'Obs do orçamento',
+          aprovadoPorId: 99,
         }),
       });
-      expect(mockTx.etapaOS.create).toHaveBeenCalledTimes(2);
-      expect(mockTx.etapaOS.create).toHaveBeenNthCalledWith(1, {
-        data: {
-          ordemServicoId: 50,
-          etapaId: 1,
-          nome: 'Preparação',
-          ordem: 1,
-          status: 'PENDENTE',
-        },
+      expect(mockTx.obraEtapa.create).toHaveBeenCalledTimes(2);
+      expect(mockTx.obraEtapa.create).toHaveBeenNthCalledWith(1, {
+        data: { obraId: 50, etapaId: 1, nome: 'Preparação', ordem: 1 },
       });
-      expect(mockTx.atividadeOS.create).toHaveBeenCalledTimes(2);
-      expect(mockTx.atividadeOS.create).toHaveBeenNthCalledWith(1, {
-        data: {
-          osId: 50,
-          etapaOSId: 11,
+      expect(mockTx.obraEtapa.create).toHaveBeenNthCalledWith(2, {
+        data: { obraId: 50, etapaId: 2, nome: 'Execução', ordem: 2 },
+      });
+      expect(mockTx.obraAtividade.create).toHaveBeenCalledTimes(3);
+      expect(mockTx.obraAtividade.create).toHaveBeenNthCalledWith(1, {
+        data: expect.objectContaining({
+          obraEtapaId: 11,
+          subServicoId: 1,
           catalogoAtividadeId: 'cat-1',
-          status: 'PENDENTE',
-        },
-      });
-      expect(mockTx.atividadeOSLinha.create).toHaveBeenCalledTimes(3);
-      expect(mockTx.checklistExecucao.create).toHaveBeenCalledTimes(2);
-      expect(mockTx.separacao.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          codigo: 'SEP-50-1-1',
-          etapaOsId: 11,
-          osId: 50,
-          equipeId: null,
+          descricao: 'Linha A',
+          ordem: 0,
+          aditivoId: null,
+          cancelada: false,
         }),
       });
-      expect(mockTx.separacao.create).toHaveBeenCalledWith({
+      expect(mockTx.obraAtividade.create).toHaveBeenNthCalledWith(2, {
         data: expect.objectContaining({
-          codigo: 'SEP-50-2-1',
-          etapaOsId: 12,
-          osId: 50,
+          obraEtapaId: 11,
+          subServicoId: 1,
+          catalogoAtividadeId: 'cat-1',
+          descricao: 'Linha B',
+          ordem: 1,
         }),
       });
-      expect(mockTx.etapaOSMaterial.upsert).toHaveBeenCalledWith({
-        where: {
-          etapaOsId_materialId: { etapaOsId: 11, materialId: 1 },
-        },
-        update: { quantidadePlanejada: { increment: 5 } },
-        create: { etapaOsId: 11, materialId: 1, quantidadePlanejada: 5 },
+      expect(mockTx.obraAtividade.create).toHaveBeenNthCalledWith(3, {
+        data: expect.objectContaining({
+          obraEtapaId: 12,
+          subServicoId: 2,
+          catalogoAtividadeId: 'cat-2',
+          descricao: 'Linha C',
+          ordem: 2,
+        }),
       });
+      expect(mockTx.obraAtividadeMaterial.create).toHaveBeenCalledTimes(3);
+      expect(mockTx.obraAtividadeMaterial.create).toHaveBeenNthCalledWith(1, {
+        data: {
+          obraAtividadeId: 'obat-1',
+          materialId: 1,
+          quantidade: 2,
+          custoUnitario: 0,
+        },
+      });
+      expect(mockTx.obraAtividadeMaterial.create).toHaveBeenNthCalledWith(2, {
+        data: {
+          obraAtividadeId: 'obat-1',
+          materialId: 1,
+          quantidade: 3,
+          custoUnitario: 0,
+        },
+      });
+      expect(mockTx.obraAtividadeMaterial.create).toHaveBeenNthCalledWith(3, {
+        data: {
+          obraAtividadeId: 'obat-1',
+          materialId: 5,
+          quantidade: 1,
+          custoUnitario: 0,
+        },
+      });
+      expect(mockTx.ordemServico.create).not.toHaveBeenCalled();
       expect(result).toEqual({
         orcamento: { id: 1, status: 'APROVADO' },
-        ordemServico: { id: 50, codigo: 'OS-001' },
+        obra: { id: 50, codigo: 'OBR-001' },
       });
     });
 
@@ -800,7 +804,7 @@ describe('OrcamentosService', () => {
       mockPrisma.orcamento.findUnique.mockResolvedValue({
         ...orcamentoAprovavel(),
         status: 'APROVADO',
-        ordemServico: { id: 50 },
+        obra: { id: 50 },
       });
 
       try {
@@ -812,6 +816,28 @@ describe('OrcamentosService', () => {
         expect((e as AppError).message).toBe('Orçamento já aprovado');
       }
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('lança 409 e não retorna obra quando a criação da Obra falha', async () => {
+      mockPrisma.orcamento.findUnique.mockResolvedValue(orcamentoAprovavel());
+      mockTx.obra.findMany.mockResolvedValue([]);
+      mockTx.obra.create.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['orcamentoId'] },
+        }),
+      );
+
+      try {
+        await service.aprovar(1, 99);
+        expect.unreachable('deveria lançar AppError');
+      } catch (e) {
+        expect(e).toBeInstanceOf(AppError);
+        expect((e as AppError).getStatus()).toBe(409);
+        expect((e as AppError).message).toBe('Orçamento já aprovado');
+      }
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
   });
 

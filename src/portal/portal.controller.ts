@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { Portal } from '../auth/decorators/portal.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -47,6 +47,14 @@ export class PortalController {
   @Get('orcamentos/:id')
   detalharOrcamento(@CurrentUser() user: UsuarioReq, @Param('id') id: string) {
     return this.portal.detalharOrcamento(
+      user.id,
+      this.parseId(id, 'Orçamento não encontrado'),
+    );
+  }
+
+  @Post('orcamentos/:id/aprovar')
+  aprovarOrcamento(@CurrentUser() user: UsuarioReq, @Param('id') id: string) {
+    return this.portal.aprovarOrcamento(
       user.id,
       this.parseId(id, 'Orçamento não encontrado'),
     );

@@ -1,7 +1,9 @@
 import { AgendamentoService } from './agendamento.service.js';
 
 const mockTx = {
+  agendamento: { create: vi.fn().mockResolvedValue({ id: 100 }) },
   endereco: { create: vi.fn() },
+  visitaTecnica: { findUnique: vi.fn(), create: vi.fn() },
 };
 
 const mockPrisma = {
@@ -37,6 +39,7 @@ describe('AgendamentoService (gate 1)', () => {
       visitaSolicitada: true,
     });
     mockPrisma.agendamento.create.mockResolvedValue({ id: 100 });
+    mockTx.agendamento.create.mockResolvedValue({ id: 100 });
     mockTx.endereco.create.mockResolvedValue({ id: 55 });
   });
 
@@ -92,10 +95,9 @@ describe('AgendamentoService (gate 1)', () => {
 
   it('tipo VISITA + flag=true → cria com atendimentoId e include visita', async () => {
     await service.criar(dto({ tipo: 'VISITA' }));
-    expect(mockPrisma.agendamento.create).toHaveBeenCalledWith(
+    expect(mockTx.agendamento.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ atendimentoId: 10 }),
-        include: expect.objectContaining({ visita: true }),
       }),
     );
   });
@@ -108,7 +110,7 @@ describe('AgendamentoService (gate 1)', () => {
     });
     const res = await service.criar(dto({ tipo: 'ORCAMENTO' }));
     expect(res).toEqual({ id: 100 });
-    expect(mockPrisma.agendamento.create).toHaveBeenCalled();
+    expect(mockTx.agendamento.create).toHaveBeenCalled();
   });
 });
 

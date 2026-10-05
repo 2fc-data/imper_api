@@ -39,6 +39,11 @@ export class PortalService {
     return this.orcamentos.detalharParaUsuario(userId, id);
   }
 
+  async aprovarOrcamento(userId: number, id: number) {
+    await this.orcamentos.detalharParaUsuario(userId, id);
+    return this.orcamentos.aprovar(id, userId);
+  }
+
   listarOs(userId: number) {
     return this.os.listarDoUsuario(userId);
   }

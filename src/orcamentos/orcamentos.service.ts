@@ -18,7 +18,7 @@ const includeResumo = {
     },
   },
   user: { select: { id: true, nome: true } },
-  ordemServico: { select: { id: true, codigo: true, status: true } },
+  obra: { select: { id: true, codigo: true, status: true } },
   servicoMarketing: { select: { id: true, titulo: true } },
   _count: { select: { atividades: true } },
 } satisfies Prisma.OrcamentoInclude;
@@ -28,7 +28,7 @@ const includeDetalhe = {
   endereco: true,
   ficha: true,
   servicoMarketing: true,
-  ordemServico: true,
+  obra: true,
   user: true,
   atividades: {
     orderBy: { ordem: 'asc' as const },
@@ -366,12 +366,12 @@ export class OrcamentosService {
       where: { id },
       include: {
         ficha: true,
-        ordemServico: { select: { id: true } },
+        obra: { select: { id: true } },
         atividades: { orderBy: { ordem: 'asc' }, include: { materiais: true } },
       },
     });
     if (!orcamento) throw new AppError(404, 'Orçamento não encontrado');
-    if (orcamento.status === 'APROVADO' || orcamento.ordemServico)
+    if (orcamento.status === 'APROVADO' || orcamento.obra)
       throw new AppError(409, 'Orçamento já aprovado');
     if (orcamento.status !== 'RASCUNHO' && orcamento.status !== 'ENVIADO')
       throw new AppError(409, 'Orçamento não está pendente de aprovação');
@@ -408,194 +408,126 @@ export class OrcamentosService {
         },
       });
 
-      const os = await this.criarOsComRetry(tx, {
+      const obra = await this.criarObraComRetry(tx, {
         orcamentoId: orcamento.id,
         userId: orcamento.userId,
         atendimentoId: orcamento.atendimentoId,
         enderecoId: orcamento.enderecoId,
         urgencia: orcamento.urgencia,
-        valorTotal: orcamento.valorTotal,
+        valorContratado: orcamento.valorTotal,
         observacoes: orcamento.observacoes,
+        aprovadoPorId: userId,
+        aprovadoEm: new Date(),
       });
 
-      const etapaIds = [...new Set(orcamento.atividades.map((a) => a.etapaId))];
-      const etapas = await tx.etapa.findMany({
-        where: { id: { in: etapaIds } },
+      const etapasCanonicas = await tx.etapa.findMany({
         orderBy: { ordem: 'asc' },
       });
-      const etapaOSPorEtapaId = new Map<
-        number,
-        { id: number; ordem: number }
-      >();
-      for (const etapa of etapas) {
-        const etapaOS = await tx.etapaOS.create({
+      const obraEtapaIdPorEtapaId = new Map<number, number>();
+      for (const etapa of etapasCanonicas) {
+        const obraEtapa = await tx.obraEtapa.create({
           data: {
-            ordemServicoId: os.id,
+            obraId: obra.id,
             etapaId: etapa.id,
             nome: etapa.nome,
             ordem: etapa.ordem,
-            status: 'PENDENTE',
           },
         });
-        etapaOSPorEtapaId.set(etapa.id, { id: etapaOS.id, ordem: etapa.ordem });
+        obraEtapaIdPorEtapaId.set(etapa.id, obraEtapa.id);
       }
 
-      const grupos = new Map<string, typeof orcamento.atividades>();
       for (const atividade of orcamento.atividades) {
-        const key = `${atividade.etapaId}|${atividade.subServicoId}|${atividade.catalogoAtividadeId}`;
-        const grupo = grupos.get(key);
-        if (grupo) grupo.push(atividade);
-        else grupos.set(key, [atividade]);
-      }
-
-      const catalogoIds = [
-        ...new Set(orcamento.atividades.map((a) => a.catalogoAtividadeId)),
-      ];
-      const catalogos =
-        catalogoIds.length > 0
-          ? await tx.catalogoAtividade.findMany({
-              where: { id: { in: catalogoIds } },
-              include: { subSteps: true, recursos: true },
-            })
-          : [];
-      const catalogoPorId = new Map(catalogos.map((c) => [c.id, c]));
-
-      const seqSepPorEtapa = new Map<number, number>();
-      for (const grupo of grupos.values()) {
-        const primeira = grupo[0];
-        const etapaRef = etapaOSPorEtapaId.get(primeira.etapaId);
-        if (!etapaRef)
-          throw new AppError(409, 'Etapa da atividade não encontrada');
-
-        const atividadeOS = await tx.atividadeOS.create({
+        const obraEtapaId = obraEtapaIdPorEtapaId.get(atividade.etapaId);
+        if (obraEtapaId === undefined) continue;
+        const criada = await tx.obraAtividade.create({
           data: {
-            osId: os.id,
-            etapaOSId: etapaRef.id,
-            catalogoAtividadeId: primeira.catalogoAtividadeId,
-            status: 'PENDENTE',
+            obraEtapaId,
+            subServicoId: atividade.subServicoId,
+            catalogoAtividadeId: atividade.catalogoAtividadeId,
+            descricao: atividade.descricao,
+            verboId: atividade.verboId,
+            objetoId: atividade.objetoId,
+            localId: atividade.localId ?? null,
+            caracteristicaId: atividade.caracteristicaId ?? null,
+            unidadeId: atividade.unidadeId ?? null,
+            quantidade: atividade.quantidade ?? null,
+            areaM2: atividade.areaM2 ?? null,
+            moValorHora: atividade.moValorHora ?? null,
+            moPessoas: atividade.moPessoas ?? null,
+            moHoras: atividade.moHoras ?? null,
+            moValorTotal: atividade.moValorTotal ?? 0,
+            materiaisValor: atividade.materiaisValor ?? 0,
+            linhaValorTotal: atividade.linhaValorTotal ?? 0,
+            ordem: atividade.ordem,
+            aditivoId: null,
+            cancelada: false,
           },
         });
-
-        for (const linha of grupo) {
-          await tx.atividadeOSLinha.create({
+        for (const material of atividade.materiais ?? []) {
+          await tx.obraAtividadeMaterial.create({
             data: {
-              atividadeOSId: atividadeOS.id,
-              ordem: linha.ordem,
-              descricao: linha.descricao,
-              verboId: linha.verboId,
-              objetoId: linha.objetoId,
-              localId: linha.localId ?? null,
-              caracteristicaId: linha.caracteristicaId ?? null,
-              unidadeId: linha.unidadeId ?? null,
-              quantidade: linha.quantidade ?? null,
-              areaM2: linha.areaM2 ?? null,
-            },
-          });
-        }
-
-        const catalogo = catalogoPorId.get(primeira.catalogoAtividadeId);
-        if (!catalogo) continue;
-
-        for (const sub of catalogo.subSteps) {
-          await tx.checklistExecucao.create({
-            data: {
-              atividadeOSId: atividadeOS.id,
-              subStepAtividadeId: sub.id,
-            },
-          });
-        }
-
-        for (const recurso of catalogo.recursos) {
-          if (
-            recurso.tipo !== 'MATERIAL' &&
-            recurso.tipo !== 'EPI' &&
-            recurso.tipo !== 'EQUIPAMENTO'
-          )
-            continue;
-          const seq = (seqSepPorEtapa.get(primeira.etapaId) ?? 0) + 1;
-          seqSepPorEtapa.set(primeira.etapaId, seq);
-          const item: {
-            quantidadeNecessaria: number;
-            materialId?: number;
-            epiId?: number;
-            equipamentoId?: number;
-          } = { quantidadeNecessaria: Number(recurso.quantidade) };
-          if (recurso.tipo === 'MATERIAL')
-            item.materialId = recurso.itemCatalogoId;
-          else if (recurso.tipo === 'EPI') item.epiId = recurso.itemCatalogoId;
-          else item.equipamentoId = recurso.itemCatalogoId;
-
-          await tx.separacao.create({
-            data: {
-              codigo: `SEP-${os.id}-${etapaRef.ordem}-${seq}`,
-              etapaOsId: etapaRef.id,
-              osId: os.id,
-              dataNecessidade: new Date(),
-              equipeId: null,
-              itens: { create: item },
-            },
-          });
-        }
-      }
-
-      const materiaisPorEtapa = new Map<
-        string,
-        { etapaId: number; materialId: number; total: number }
-      >();
-      for (const atividade of orcamento.atividades) {
-        for (const material of atividade.materiais) {
-          const key = `${atividade.etapaId}|${material.materialId}`;
-          const atual = materiaisPorEtapa.get(key);
-          if (atual) atual.total += Number(material.quantidade);
-          else
-            materiaisPorEtapa.set(key, {
-              etapaId: atividade.etapaId,
+              obraAtividadeId: criada.id,
               materialId: material.materialId,
-              total: Number(material.quantidade),
-            });
+              quantidade: material.quantidade,
+              custoUnitario: material.custoUnitario ?? 0,
+            },
+          });
         }
       }
-      for (const material of materiaisPorEtapa.values()) {
-        const etapaRef = etapaOSPorEtapaId.get(material.etapaId);
-        if (!etapaRef) continue;
-        await tx.etapaOSMaterial.upsert({
-          where: {
-            etapaOsId_materialId: {
-              etapaOsId: etapaRef.id,
-              materialId: material.materialId,
-            },
-          },
-          update: { quantidadePlanejada: { increment: material.total } },
-          create: {
-            etapaOsId: etapaRef.id,
-            materialId: material.materialId,
-            quantidadePlanejada: material.total,
-          },
-        });
-      }
 
-      return {
-        orcamento: await tx.orcamento.findUnique({
-          where: { id },
-          include: includeDetalhe,
-        }),
-        ordemServico: await tx.ordemServico.findUnique({
-          where: { id: os.id },
-          include: {
-            etapas: {
-              orderBy: { ordem: 'asc' },
-              include: {
-                atividadesOS: {
-                  include: {
-                    linhas: { orderBy: { ordem: 'asc' } },
-                  },
-                },
-              },
-            },
-          },
-        }),
-      };
+      const orcamentoAtualizado = await tx.orcamento.findUnique({
+        where: { id },
+        select: { id: true, status: true },
+      });
+      const obraFinal = await tx.obra.findUnique({
+        where: { id: obra.id },
+      });
+      return { orcamento: orcamentoAtualizado, obra: obraFinal };
     });
+  }
+
+  private async criarObraComRetry(
+    tx: Prisma.TransactionClient,
+    dados: Omit<Prisma.ObraUncheckedCreateInput, 'codigo'>,
+  ) {
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const codigo = await this.gerarCodigoObra(tx);
+      try {
+        return await tx.obra.create({
+          data: { ...dados, codigo },
+        });
+      } catch (e) {
+        if (
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === 'P2002'
+        ) {
+          const rawTarget = (e.meta as { target?: unknown } | undefined)
+            ?.target;
+          const target = Array.isArray(rawTarget)
+            ? rawTarget.join(',')
+            : String(rawTarget ?? '');
+          if (target.includes('orcamentoId'))
+            throw new AppError(409, 'Orçamento já aprovado');
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new AppError(409, 'Não foi possível gerar o código da obra');
+  }
+
+  private async gerarCodigoObra(tx: Prisma.TransactionClient) {
+    const existentes = await tx.obra.findMany({
+      where: { codigo: { startsWith: 'OBR-' } },
+      orderBy: { codigo: 'desc' },
+      select: { codigo: true },
+    });
+    let max = 0;
+    for (const { codigo } of existentes) {
+      const m = codigo.match(/^OBR-(\d+)$/);
+      if (m) max = Math.max(max, Number(m[1]));
+    }
+    return `OBR-${String(max + 1).padStart(3, '0')}`;
   }
 
   private async criarOsComRetry(
