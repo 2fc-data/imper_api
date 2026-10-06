@@ -2,6 +2,7 @@ import { AgendamentoService } from './agendamento.service.js';
 
 const mockTx = {
   agendamento: { create: vi.fn().mockResolvedValue({ id: 100 }) },
+  atendimento: { update: vi.fn() },
   endereco: { create: vi.fn() },
   visitaTecnica: { findUnique: vi.fn(), create: vi.fn() },
 };
@@ -70,27 +71,18 @@ describe('AgendamentoService (gate 1)', () => {
     expect(mockPrisma.agendamento.create).not.toHaveBeenCalled();
   });
 
-  it('tipo VISITA sem visitaSolicitada → 400 Atendimento não tem visita solicitada', async () => {
+  it('tipo VISITA sem visitaSolicitada → atualiza atendimento para visitaSolicitada = true e cria agendamento', async () => {
     mockPrisma.atendimento.findUnique.mockResolvedValue({
       id: 10,
       status: 'EM_ANDAMENTO',
       visitaSolicitada: false,
     });
-    await expect(service.criar(dto({ tipo: 'VISITA' }))).rejects.toThrow(
-      'Atendimento não tem visita solicitada',
-    );
-    expect(mockPrisma.agendamento.create).not.toHaveBeenCalled();
-  });
-
-  it('tipo omitido (default VISITA) sem visitaSolicitada → 400', async () => {
-    mockPrisma.atendimento.findUnique.mockResolvedValue({
-      id: 10,
-      status: 'EM_ANDAMENTO',
-      visitaSolicitada: false,
+    await service.criar(dto({ tipo: 'VISITA' }));
+    expect(mockTx.atendimento.update).toHaveBeenCalledWith({
+      where: { id: 10 },
+      data: { visitaSolicitada: true },
     });
-    await expect(service.criar(dto({}))).rejects.toThrow(
-      'Atendimento não tem visita solicitada',
-    );
+    expect(mockTx.agendamento.create).toHaveBeenCalled();
   });
 
   it('tipo VISITA + flag=true → cria com atendimentoId e include visita', async () => {

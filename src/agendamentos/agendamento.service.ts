@@ -157,15 +157,15 @@ export class AgendamentoService {
     }
     assertAtendimentoAberto(atendimento.status);
     const tipo = dto.tipo ?? 'VISITA';
-    if (tipo === 'VISITA' && !atendimento.visitaSolicitada) {
-      this.logger.warn(
-        `[criar] atendimento ${dto.atendimentoId} sem visita solicitada`,
-      );
-      throw new AppError(400, 'Atendimento não tem visita solicitada');
-    }
 
     try {
       const agendamento = await this.prisma.$transaction(async (tx) => {
+        if (!atendimento.visitaSolicitada) {
+          await tx.atendimento.update({
+            where: { id: Number(dto.atendimentoId) },
+            data: { visitaSolicitada: true },
+          });
+        }
         let enderecoId: number | null = dto.enderecoId
           ? Number(dto.enderecoId)
           : null;
