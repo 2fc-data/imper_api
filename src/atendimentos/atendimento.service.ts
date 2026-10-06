@@ -19,6 +19,12 @@ import {
 
 const includeCtx = {
   user: { select: { id: true, nome: true, telefone: true } },
+  agendamentos: {
+    where: { tipo: 'VISITA', status: { not: 'CANCELADO' } },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    include: { endereco: true },
+  },
   _count: {
     select: {
       visitas: { where: { status: { not: 'CANCELADA' } } },
