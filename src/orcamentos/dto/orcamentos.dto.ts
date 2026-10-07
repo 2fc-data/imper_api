@@ -26,7 +26,7 @@ const linhaSchema = cascataIds.extend({
 const atividadeSchema = z.object({
   etapaId: z.number().int(),
   subServicoId: z.number().int(),
-  catalogoAtividadeId: z.string().min(1),
+  catalogoAtividadeId: z.string().min(1).optional(),
   linhas: z.array(linhaSchema).min(1, 'Informe ao menos 1 linha por atividade'),
 });
 

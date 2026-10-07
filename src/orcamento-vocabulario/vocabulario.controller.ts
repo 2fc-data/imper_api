@@ -14,12 +14,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { AppError } from '../lib/errors.js';
 import {
+  type AtualizarSubServicoDto,
   type AtualizarTermoDto,
-  atualizarTermoSchema,
   type ComboLoteDto,
   type ComboUnicoDto,
   type CriarSubServicoDto,
   type CriarTermoDto,
+  atualizarSubServicoSchema,
+  atualizarTermoSchema,
   comboLoteSchema,
   comboUnicoSchema,
   criarSubServicoSchema,
@@ -42,6 +44,14 @@ function parseFiltro(
   const numero = Number(valor);
   if (!Number.isInteger(numero)) {
     throw new AppError(400, `Filtro ${campo} inválido`);
+  }
+  return numero;
+}
+
+function parseId(valor: string, campo: string): number {
+  const numero = Number(valor);
+  if (!Number.isInteger(numero)) {
+    throw new AppError(400, `${campo} inválido`);
   }
   return numero;
 }
@@ -73,7 +83,7 @@ export class VocabularioController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(atualizarTermoSchema)) dto: AtualizarTermoDto,
   ) {
-    return this.service.atualizarTermo('verbos', Number(id), dto);
+    return this.service.atualizarTermo('verbos', parseId(id, 'Verbo'), dto);
   }
 
   @Get('objetos')
@@ -98,7 +108,7 @@ export class VocabularioController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(atualizarTermoSchema)) dto: AtualizarTermoDto,
   ) {
-    return this.service.atualizarTermo('objetos', Number(id), dto);
+    return this.service.atualizarTermo('objetos', parseId(id, 'Objeto'), dto);
   }
 
   @Get('locais')
@@ -123,7 +133,7 @@ export class VocabularioController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(atualizarTermoSchema)) dto: AtualizarTermoDto,
   ) {
-    return this.service.atualizarTermo('locais', Number(id), dto);
+    return this.service.atualizarTermo('locais', parseId(id, 'Local'), dto);
   }
 
   @Get('caracteristicas')
@@ -151,7 +161,11 @@ export class VocabularioController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(atualizarTermoSchema)) dto: AtualizarTermoDto,
   ) {
-    return this.service.atualizarTermo('caracteristicas', Number(id), dto);
+    return this.service.atualizarTermo(
+      'caracteristicas',
+      parseId(id, 'Característica'),
+      dto,
+    );
   }
 
   @Get('sub-servicos')
@@ -159,14 +173,10 @@ export class VocabularioController {
     @Query('etapaId') etapaId?: string,
     @Query('ativo') ativo?: string,
   ) {
-    if (etapaId === undefined) {
-      throw new AppError(400, 'Informe o parâmetro etapaId');
-    }
-    const numero = Number(etapaId);
-    if (!Number.isInteger(numero)) {
-      throw new AppError(400, 'etapaId inválido');
-    }
-    return this.service.listarSubServicos(numero, parseAtivo(ativo));
+    return this.service.listarSubServicos(
+      etapaId !== undefined ? parseId(etapaId, 'etapaId') : undefined,
+      parseAtivo(ativo),
+    );
   }
 
   @Permissions('gerenciar_catalogo')
@@ -186,15 +196,53 @@ export class VocabularioController {
     @Query('localId') localId?: string,
     @Query('caracteristicaId') caracteristicaId?: string,
   ) {
-    const subServicoId = Number(id);
-    if (!Number.isInteger(subServicoId)) {
-      throw new AppError(400, 'Sub-serviço inválido');
-    }
+    const subServicoId = parseId(id, 'Sub-serviço');
     return this.service.cascata(subServicoId, {
       verboId: parseFiltro(verboId, 'verboId'),
       objetoId: parseFiltro(objetoId, 'objetoId'),
       localId: parseFiltro(localId, 'localId'),
       caracteristicaId: parseFiltro(caracteristicaId, 'caracteristicaId'),
+    });
+  }
+
+  @Get('sub-servicos/:id/combos')
+  listarCombosDoSubServico(
+    @Param('id') id: string,
+    @Query('ativo') ativo?: string,
+  ) {
+    return this.service.listarCombosDoSubServico(
+      parseId(id, 'Sub-serviço'),
+      parseAtivo(ativo),
+    );
+  }
+
+  @Permissions('gerenciar_catalogo')
+  @Patch('sub-servicos/:id')
+  atualizarSubServico(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(atualizarSubServicoSchema))
+    dto: AtualizarSubServicoDto,
+  ) {
+    return this.service.atualizarSubServico(parseId(id, 'Sub-serviço'), dto);
+  }
+
+  @Permissions('gerenciar_catalogo')
+  @Delete('sub-servicos/:id')
+  removerSubServico(@Param('id') id: string) {
+    return this.service.removerSubServico(parseId(id, 'Sub-serviço'));
+  }
+
+  @Get('combinaoes')
+  listarCombos(
+    @Query('subServicoId') subServicoId?: string,
+    @Query('ativo') ativo?: string,
+  ) {
+    return this.service.listarCombos({
+      subServicoId:
+        subServicoId !== undefined
+          ? parseId(subServicoId, 'subServicoId')
+          : undefined,
+      ativo: parseAtivo(ativo),
     });
   }
 
@@ -215,8 +263,14 @@ export class VocabularioController {
   }
 
   @Permissions('gerenciar_catalogo')
+  @Patch('combinaoes/:id/reativar')
+  reativarCombo(@Param('id') id: string) {
+    return this.service.reativarCombo(parseId(id, 'Combinação'));
+  }
+
+  @Permissions('gerenciar_catalogo')
   @Delete('combinaoes/:id')
   removerCombo(@Param('id') id: string) {
-    return this.service.removerCombo(Number(id));
+    return this.service.removerCombo(parseId(id, 'Combinação'));
   }
 }

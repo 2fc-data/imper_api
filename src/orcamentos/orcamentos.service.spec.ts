@@ -27,6 +27,7 @@ const mockPrisma = {
   atendimento: { findUnique: vi.fn() },
   visitaTecnica: { findFirst: vi.fn(), findUnique: vi.fn() },
   material: { findMany: vi.fn() },
+  catalogoAtividade: { findMany: vi.fn() },
   orcamento: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -279,6 +280,47 @@ describe('OrcamentosService', () => {
           data: expect.objectContaining({ agendamentoId: null }),
         }),
       );
+    });
+
+    it('auto-resolve: omite catalogoAtividadeId → usa primeiro catálogo ativo do sub-serviço', async () => {
+      mockPrisma.catalogoAtividade.findMany.mockResolvedValue([
+        { id: 'cat-auto', subServicoId: 1 },
+      ]);
+
+      const dto = dtoBase();
+      delete dto.atividades[0].catalogoAtividadeId;
+
+      const result: any = await service.criar(dto, 1);
+
+      expect(mockPrisma.catalogoAtividade.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { subServicoId: { in: [1] }, ativo: true },
+        }),
+      );
+      const linhas = result.atividades.create;
+      expect(linhas).toHaveLength(2);
+      expect(linhas[0].catalogoAtividadeId).toBe('cat-auto');
+      expect(linhas[1].catalogoAtividadeId).toBe('cat-auto');
+    });
+
+    it('auto-resolve: catálogo ausente → 400 Sub-serviço sem atividade de catálogo', async () => {
+      mockPrisma.catalogoAtividade.findMany.mockResolvedValue([]);
+
+      const dto = dtoBase();
+      delete dto.atividades[0].catalogoAtividadeId;
+
+      await expect(service.criar(dto, 1)).rejects.toThrow(
+        'Sub-serviço sem atividade de catálogo',
+      );
+      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+    });
+
+    it('auto-resolve: mantém id explícito quando enviado', async () => {
+      const result: any = await service.criar(dtoBase(), 1);
+
+      expect(mockPrisma.catalogoAtividade.findMany).not.toHaveBeenCalled();
+      expect(result.atividades.create[0].catalogoAtividadeId).toBe('cat-1');
+      expect(result.atividades.create[1].catalogoAtividadeId).toBe('cat-1');
     });
   });
 
