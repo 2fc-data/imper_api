@@ -33,6 +33,19 @@ const includeCtx = {
       },
     },
   },
+  orcamentos: {
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    select: {
+      id: true,
+      codigo: true,
+      status: true,
+      valorTotal: true,
+      observacoes: true,
+      ficha: { select: { id: true } },
+      _count: { select: { atividades: true } },
+    },
+  },
 } satisfies Prisma.AtendimentoInclude;
 
 function comProximas<

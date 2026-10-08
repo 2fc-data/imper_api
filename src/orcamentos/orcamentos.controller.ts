@@ -24,8 +24,18 @@ export class OrcamentosController {
   constructor(private readonly orcamentosService: OrcamentosService) {}
 
   @Get()
-  async listar(@Query('status') status?: string, @Query('q') q?: string) {
-    return this.orcamentosService.listar({ status, q });
+  async listar(
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+    @Query('atendimentoId') atendimentoId?: string,
+  ) {
+    const aid = atendimentoId ? Number(atendimentoId) : undefined;
+    return this.orcamentosService.listar({
+      status,
+      q,
+      atendimentoId:
+        aid !== undefined && Number.isFinite(aid) && aid > 0 ? aid : undefined,
+    });
   }
 
   @Get(':id')

@@ -335,6 +335,22 @@ describe('OrcamentosService', () => {
       expect(arg.include).toHaveProperty('servicoMarketing');
       expect(arg.include).toHaveProperty('obra');
     });
+
+    it('filtra por atendimentoId quando informado', async () => {
+      mockPrisma.orcamento.findMany.mockResolvedValue([]);
+      await service.listar({ atendimentoId: 2 });
+
+      const arg = mockPrisma.orcamento.findMany.mock.calls[0][0];
+      expect(arg.where).toEqual({ atendimentoId: 2 });
+    });
+
+    it('não filtra atendimentoId quando ausente', async () => {
+      mockPrisma.orcamento.findMany.mockResolvedValue([]);
+      await service.listar({ status: 'RASCUNHO' });
+
+      const arg = mockPrisma.orcamento.findMany.mock.calls[0][0];
+      expect(arg.where).toEqual({ status: 'RASCUNHO' });
+    });
   });
 
   describe('detalhar', () => {

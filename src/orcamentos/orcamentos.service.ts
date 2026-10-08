@@ -20,6 +20,7 @@ const includeResumo = {
   user: { select: { id: true, nome: true } },
   obra: { select: { id: true, codigo: true, status: true } },
   servicoMarketing: { select: { id: true, titulo: true } },
+  ficha: { select: { id: true } },
   _count: { select: { atividades: true } },
 } satisfies Prisma.OrcamentoInclude;
 
@@ -41,11 +42,19 @@ const includeDetalhe = {
 export class OrcamentosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listar(params?: { status?: string; q?: string }) {
+  async listar(params?: {
+    status?: string;
+    q?: string;
+    atendimentoId?: number;
+  }) {
     const where: Prisma.OrcamentoWhereInput = {};
 
     if (params?.status) {
       where.status = params.status as any;
+    }
+
+    if (params?.atendimentoId) {
+      where.atendimentoId = params.atendimentoId;
     }
 
     if (params?.q) {
