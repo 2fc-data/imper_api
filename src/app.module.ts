@@ -26,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { PublicoModule } from './publico/publico.module.js';
 import { RbacModule } from './rbac/rbac.module.js';
 import { SeparacaoModule } from './separacao/separacao.module.js';
+import { ServicosAdminModule } from './servicos-admin/servicos-admin.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { VisitasModule } from './visitas/visitas.module.js';
 import { WhatsAppService } from './whatsapp/whatsapp.service.js';
@@ -56,6 +57,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     AtividadesOSModule,
     ChecklistModule,
     SeparacaoModule,
+    ServicosAdminModule,
     VisitasModule,
     EmailModule,
   ],

@@ -13,7 +13,7 @@ const materialLinha = z.object({
 });
 
 const linhaSchema = cascataIds.extend({
-  descricao: z.string().trim().min(1, 'Informe a descrição').max(1000),
+  descricao: z.string().trim().max(1000).default(''),
   unidadeId: z.number().int().nullable().optional(),
   quantidade: z.number().positive().nullable().optional(),
   areaM2: z.number().positive().nullable().optional(),
