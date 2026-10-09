@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { AssociarEquipeDto } from './dto/atividades-os.dto.js';
 
 @Injectable()
 export class AtividadesOSService {
@@ -22,14 +21,6 @@ export class AtividadesOSService {
         os: { select: { id: true, codigo: true } },
         etapaOS: { select: { id: true, nome: true } },
         catalogoAtividade: true,
-        equipe: {
-          include: {
-            lider: { select: { id: true, nome: true } },
-            membros: {
-              include: { usuario: { select: { id: true, nome: true } } },
-            },
-          },
-        },
         checklist: true,
       },
       orderBy: { criadoEm: 'desc' },
@@ -44,16 +35,6 @@ export class AtividadesOSService {
         etapaOS: { select: { id: true, nome: true } },
         catalogoAtividade: {
           include: { subSteps: { orderBy: { ordem: 'asc' } }, recursos: true },
-        },
-        equipe: {
-          include: {
-            lider: { select: { id: true, nome: true } },
-            membros: {
-              include: {
-                usuario: { select: { id: true, nome: true, telefone: true } },
-              },
-            },
-          },
         },
         checklist: {
           include: {
@@ -76,7 +57,6 @@ export class AtividadesOSService {
     etapaOSId: number;
     atividades: {
       catalogoAtividadeId: string;
-      equipeId?: string;
       dataPrevisao?: string;
     }[];
   }) {
@@ -110,7 +90,6 @@ export class AtividadesOSService {
             osId: data.osId,
             etapaOSId: data.etapaOSId,
             catalogoAtividadeId: ativ.catalogoAtividadeId,
-            equipeId: ativ.equipeId,
             dataPrevisao: ativ.dataPrevisao
               ? new Date(ativ.dataPrevisao)
               : undefined,
@@ -154,7 +133,6 @@ export class AtividadesOSService {
                   ? new Date(ativ.dataPrevisao)
                   : new Date(),
                 osId: data.osId,
-                equipeId: ativ.equipeId,
                 itens: { create: itemData },
               },
             });
@@ -173,26 +151,6 @@ export class AtividadesOSService {
     return this.prisma.atividadeOS.update({
       where: { id },
       data: { status: status as any },
-    });
-  }
-
-  async associarEquipe(id: string, dto: AssociarEquipeDto) {
-    await this.detalhar(id);
-    const equipe = await this.prisma.equipe.findFirst({
-      where: { id: dto.equipeId },
-    });
-    if (!equipe) throw new NotFoundException('Equipe não encontrada');
-    return this.prisma.atividadeOS.update({
-      where: { id },
-      data: {
-        equipeId: dto.equipeId,
-        dataPrevisao:
-          dto.dataPrevisao === undefined
-            ? undefined
-            : dto.dataPrevisao === null
-              ? null
-              : new Date(dto.dataPrevisao),
-      },
     });
   }
 }

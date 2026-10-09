@@ -6,7 +6,6 @@ const atividadeBase = {
   osId: 1,
   etapaOSId: 2,
   catalogoAtividadeId: 'cat-1',
-  equipeId: null,
   dataPrevisao: null,
   status: 'PENDENTE',
 };
@@ -17,7 +16,6 @@ const mockPrisma = {
     update: vi.fn(),
     create: vi.fn(),
   },
-  equipe: { findFirst: vi.fn() },
   etapaOS: { findUnique: vi.fn() },
   separacao: { count: vi.fn(), create: vi.fn() },
   catalogoAtividade: { findUnique: vi.fn() },
@@ -36,63 +34,7 @@ describe('AtividadesOSService', () => {
     vi.clearAllMocks();
     service = new AtividadesOSService(mockPrisma as any);
     mockPrisma.atividadeOS.findUnique.mockResolvedValue(atividadeBase);
-    mockPrisma.atividadeOS.update.mockResolvedValue({
-      ...atividadeBase,
-      equipeId: 'eq-1',
-    });
-    mockPrisma.equipe.findFirst.mockResolvedValue({
-      id: 'eq-1',
-      nome: 'Equipe A',
-    });
-  });
-
-  describe('associarEquipe', () => {
-    it('seta equipeId e converte dataPrevisao para Date', async () => {
-      const iso = '2026-10-05T12:00:00.000Z';
-
-      await service.associarEquipe('at-1', {
-        equipeId: 'eq-1',
-        dataPrevisao: iso,
-      });
-
-      expect(mockPrisma.equipe.findFirst).toHaveBeenCalledWith({
-        where: { id: 'eq-1' },
-      });
-      expect(mockPrisma.atividadeOS.update).toHaveBeenCalledWith({
-        where: { id: 'at-1' },
-        data: { equipeId: 'eq-1', dataPrevisao: new Date(iso) },
-      });
-    });
-
-    it('grava dataPrevisao null quando informada explicitamente', async () => {
-      await service.associarEquipe('at-1', {
-        equipeId: 'eq-1',
-        dataPrevisao: null,
-      });
-
-      expect(mockPrisma.atividadeOS.update).toHaveBeenCalledWith({
-        where: { id: 'at-1' },
-        data: { equipeId: 'eq-1', dataPrevisao: null },
-      });
-    });
-
-    it('lança 404 quando a atividade não existe', async () => {
-      mockPrisma.atividadeOS.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.associarEquipe('nao-existe', { equipeId: 'eq-1' }),
-      ).rejects.toThrow(NotFoundException);
-      expect(mockPrisma.atividadeOS.update).not.toHaveBeenCalled();
-    });
-
-    it('lança 404 quando a equipe não existe', async () => {
-      mockPrisma.equipe.findFirst.mockResolvedValue(null);
-
-      await expect(
-        service.associarEquipe('at-1', { equipeId: 'eq-9' }),
-      ).rejects.toThrow('Equipe não encontrada');
-      expect(mockPrisma.atividadeOS.update).not.toHaveBeenCalled();
-    });
+    mockPrisma.atividadeOS.update.mockResolvedValue(atividadeBase);
   });
 
   describe('planificar (SEP estável)', () => {
