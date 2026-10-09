@@ -16,6 +16,7 @@ import { EpisModule } from './epis/epis.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 import { EquipesModule } from './equipes/equipes.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
+import { ManutencoesVeiculosModule } from './manutencoes-veiculos/manutencoes-veiculos.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
 import { ObrasModule } from './obras/obras.module.js';
 import { OrcamentoVocabularioModule } from './orcamento-vocabulario/orcamento-vocabulario.module.js';
@@ -29,6 +30,7 @@ import { SeparacaoModule } from './separacao/separacao.module.js';
 import { ServicosAdminModule } from './servicos-admin/servicos-admin.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { VisitasModule } from './visitas/visitas.module.js';
+import { VeiculosModule } from './veiculos/veiculos.module.js';
 import { WhatsAppService } from './whatsapp/whatsapp.service.js';
 
 @Module({
@@ -43,6 +45,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     EquipamentosModule,
     EpisModule,
     ManutencoesModule,
+    ManutencoesVeiculosModule,
     MateriaisModule,
     OrcamentoVocabularioModule,
     OrcamentosModule,
@@ -59,6 +62,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     SeparacaoModule,
     ServicosAdminModule,
     VisitasModule,
+    VeiculosModule,
     EmailModule,
   ],
   controllers: [AppController],

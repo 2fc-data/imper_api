@@ -46,6 +46,10 @@ const PERMISSOES = [
   { chave: 'gerenciar_papeis',     descricao: 'Gerenciar papéis e permissões',  categoria: 'usuarios' },
   // Catálogo
   { chave: 'gerenciar_catalogo',   descricao: 'Gerenciar catálogo de atividades', categoria: 'configuracoes' },
+  // Frota
+  { chave: 'visualizar_frota',     descricao: 'Visualizar veículos e relatórios da frota', categoria: 'frota' },
+  { chave: 'registrar_km_frota',   descricao: 'Registrar quilometragem diária',            categoria: 'frota' },
+  { chave: 'gerenciar_frota',      descricao: 'Gerenciar veículos, abastecimentos e manutenções', categoria: 'frota' },
 ];
 
 // ── Mapeamento papel → permissões concedidas ────────────────────────────────
@@ -61,6 +65,7 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'gerenciar_equipamentos', 'gerenciar_epis',
     'criar_usuario', 'editar_usuario', 'definir_perfil',
     'gerenciar_catalogo',
+    'visualizar_frota', 'registrar_km_frota', 'gerenciar_frota',
   ],
 
   TECNICO: [
@@ -71,6 +76,7 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
   ALMOXARIFE: [
     'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'gerenciar_equipamentos', 'gerenciar_epis',
     'ver_obras',
+    'visualizar_frota', 'registrar_km_frota', 'gerenciar_frota',
   ],
 
   ATENDENTE: [

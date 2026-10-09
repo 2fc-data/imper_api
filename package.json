@@ -15,6 +15,7 @@
     "db:clear-users": "npx tsx scripts/clear-users-and-addresses.ts",
     "db:grant-admin": "npx tsx scripts/grant-admin-all-roles.ts",
     "db:seed-rbac": "npx tsx prisma/seed-rbac.ts",
+    "db:seed-frota": "npx tsx prisma/seed-frota.ts",
     "db:seed-vocabulario": "npx tsx prisma/seed-vocabulario.ts",
     "db:seed-wipe-fixture": "npx tsx scripts/seed-wipe-fixture.ts",
     "db:wipe-os-obra": "npx tsx scripts/wipe-os-obra.ts",

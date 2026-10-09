@@ -75,6 +75,10 @@ model User {
   disponibilidadePadroes   DisponibilidadePadrao[]
   disponibilidadeDatas     DisponibilidadeData[]
   visitas                  VisitaTecnica[]         @relation("TecnicoVisita")
+  veiculosResponsaveis     Veiculo[]
+  registrosKmVeiculos      RegistroKmVeiculo[]
+  abastecimentosVeiculos   AbastecimentoVeiculo[]
+  manutencoesVeiculos      ManutencaoVeiculo[]
 
   @@index([cargoId], map: "users_cargoId_fkey")
   @@map("users")
@@ -925,22 +929,24 @@ model Marca {
   epis         Epi[]
   equipamentos Equipamento[]
   materiais    Material[]
+  veiculos     Veiculo[]
 
   @@map("marcas")
 }
 
 model Fornecedor {
-  id           Int           @id @default(autoincrement())
-  nome         String        @db.VarChar(150)
-  cnpj         String?       @unique @db.VarChar(20)
-  telefone     String?       @db.VarChar(20)
-  email        String?       @db.VarChar(120)
-  ativo        Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  Epi          Epi[]
-  equipamentos Equipamento[]
-  materiais    Material[]
+  id                    Int                    @id @default(autoincrement())
+  nome                  String                 @db.VarChar(150)
+  cnpj                  String?                @unique @db.VarChar(20)
+  telefone              String?                @db.VarChar(20)
+  email                 String?                @db.VarChar(120)
+  ativo                 Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  Epi                   Epi[]
+  equipamentos          Equipamento[]
+  materiais             Material[]
+  abastecimentosVeiculo AbastecimentoVeiculo[]
 
   @@map("fornecedores")
 }
@@ -984,13 +990,14 @@ model EstadoConservacao {
 }
 
 model TipoManutencao {
-  id          Int          @id @default(autoincrement())
-  nome        String       @db.VarChar(120)
-  ativo       Boolean      @default(true)
-  ordem       Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  manutencoes Manutencao[]
+  id                 Int                 @id @default(autoincrement())
+  nome               String              @db.VarChar(120)
+  ativo              Boolean             @default(true)
+  ordem              Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  manutencoes        Manutencao[]
+  manutencoesVeiculo ManutencaoVeiculo[]
 
   @@map("tipos_manutencao")
 }
@@ -1005,6 +1012,7 @@ model Cor {
   updatedAt DateTime   @updatedAt
   epis      Epi[]
   materiais Material[]
+  veiculos  Veiculo[]
 
   @@map("cores")
 }
@@ -1669,6 +1677,137 @@ model ObraAtividadeMaterial {
   @@map("obras_atividades_materiais")
 }
 
+// ---------- Frota (veículos) ----------
+model StatusVeiculo {
+  id        Int       @id @default(autoincrement())
+  nome      String    @unique @db.VarChar(50)
+  ativo     Boolean   @default(true)
+  ordem     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  veiculos  Veiculo[]
+
+  @@map("status_veiculo")
+}
+
+model TipoVeiculo {
+  id        Int       @id @default(autoincrement())
+  nome      String    @unique @db.VarChar(50)
+  ativo     Boolean   @default(true)
+  ordem     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  veiculos  Veiculo[]
+
+  @@map("tipo_veiculo")
+}
+
+model Veiculo {
+  id            Int                @id @default(autoincrement())
+  codigo        String             @unique @db.VarChar(50)
+  placa         String             @unique @db.VarChar(10)
+  descricao     String             @db.VarChar(255)
+  modelo        String?            @db.VarChar(120)
+  ano           Int?
+  combustivel   CombustivelVeiculo @default(GASOLINA)
+  odometroAtual Decimal            @default(0) @db.Decimal(7, 1)
+  observacoes   String?            @db.VarChar(1000)
+  ativo         Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  marcaId       Int?
+  marca         Marca?        @relation(fields: [marcaId], references: [id])
+  corId         Int?
+  cor           Cor?          @relation(fields: [corId], references: [id])
+  tipoId        Int
+  tipo          TipoVeiculo   @relation(fields: [tipoId], references: [id])
+  statusId      Int
+  status        StatusVeiculo @relation(fields: [statusId], references: [id])
+  responsavelId Int?
+  responsavel   User?         @relation(fields: [responsavelId], references: [id])
+
+  registrosKm    RegistroKmVeiculo[]
+  abastecimentos AbastecimentoVeiculo[]
+  manutencoes    ManutencaoVeiculo[]
+
+  @@index([statusId])
+  @@index([tipoId])
+  @@index([marcaId])
+  @@index([responsavelId])
+  @@index([descricao])
+  @@map("veiculos")
+}
+
+model RegistroKmVeiculo {
+  id           Int      @id @default(autoincrement())
+  data         DateTime @db.Date
+  odometro     Decimal  @db.Decimal(7, 1)
+  kmPercorrido Decimal  @db.Decimal(9, 2)
+  observacao   String?  @db.VarChar(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  veiculoId       Int
+  veiculo         Veiculo @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  registradoPorId Int?
+  registradoPor   User?   @relation(fields: [registradoPorId], references: [id])
+
+  @@unique([veiculoId, data])
+  @@index([veiculoId, data])
+  @@map("registros_km_veiculo")
+}
+
+model AbastecimentoVeiculo {
+  id            Int      @id @default(autoincrement())
+  data          DateTime @db.Date
+  odometro      Decimal  @db.Decimal(7, 1)
+  litros        Decimal  @db.Decimal(12, 3)
+  valorTotal    Decimal  @db.Decimal(12, 2)
+  precoLitro    Decimal  @db.Decimal(12, 4)
+  kmDesdeUltimo Decimal? @db.Decimal(9, 2)
+  kmPorLitro    Decimal? @db.Decimal(12, 4)
+  observacao    String?  @db.VarChar(500)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  veiculoId       Int
+  veiculo         Veiculo     @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  fornecedorId    Int?
+  fornecedor      Fornecedor? @relation(fields: [fornecedorId], references: [id])
+  registradoPorId Int?
+  registradoPor   User?       @relation(fields: [registradoPorId], references: [id])
+
+  @@index([veiculoId])
+  @@index([data])
+  @@map("abastecimentos_veiculo")
+}
+
+model ManutencaoVeiculo {
+  id                Int              @id @default(autoincrement())
+  data              DateTime         @db.Date
+  descricao         String           @db.VarChar(500)
+  local             String?          @db.VarChar(200)
+  custoPecas        Decimal          @default(0) @db.Decimal(12, 2)
+  custoMaoDeObra    Decimal          @default(0) @db.Decimal(12, 2)
+  custoTotal        Decimal          @default(0) @db.Decimal(12, 2)
+  status            StatusManutencao @default(PENDENTE)
+  proximaManutencao DateTime?        @db.Date
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  veiculoId               Int
+  veiculo                 Veiculo        @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  tipoId                  Int
+  tipo                    TipoManutencao @relation(fields: [tipoId], references: [id])
+  responsavelManutencaoId Int?
+  responsavelManutencao   User?          @relation(fields: [responsavelManutencaoId], references: [id])
+
+  @@index([veiculoId])
+  @@index([status])
+  @@map("manutencoes_veiculo")
+}
+
 enum CanalAtendimento {
   WHATSAPP
   FORMULARIO
@@ -1944,4 +2083,13 @@ enum StatusAditivoObra {
   PENDENTE
   APROVADO
   RECUSADO
+}
+
+enum CombustivelVeiculo {
+  GASOLINA
+  ALCOOL
+  DIESEL
+  FLEX
+  ELETRICO
+  OUTRO
 }
