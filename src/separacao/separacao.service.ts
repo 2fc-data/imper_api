@@ -6,16 +6,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class SeparacaoService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listar(params?: { osId?: number; equipeId?: string; status?: string }) {
+  async listar(params?: { osId?: number; status?: string }) {
     const where: Record<string, unknown> = {};
     if (params?.osId) where.osId = params.osId;
-    if (params?.equipeId) where.equipeId = params.equipeId;
     if (params?.status) {
       const statusMap: Record<string, string> = {
         PENDENTE: 'SEPARACAO_PENDENTE',
         CONCLUIDA: 'SEPARACAO_CONCLUIDA',
         SEPARACAO: 'SEPARACAO_CONCLUIDA',
-        EQUIPE_NOTIFICADA: 'EQUIPE_NOTIFICADA',
         RETIRADA_PENDENTE: 'RETIRADA_PENDENTE',
         RETIRADA_CONCLUIDA: 'RETIRADA_CONCLUIDA',
         DEVOLUCAO_PENDENTE: 'DEVOLUCAO_PENDENTE',
@@ -28,11 +26,6 @@ export class SeparacaoService {
       where,
       include: {
         os: { select: { id: true, codigo: true } },
-        equipe: {
-          include: {
-            lider: { select: { id: true, nome: true } },
-          },
-        },
         confirmadoPor: { select: { id: true, nome: true } },
         itens: {
           include: {
@@ -51,14 +44,6 @@ export class SeparacaoService {
       where: { id },
       include: {
         os: { select: { id: true, codigo: true } },
-        equipe: {
-          include: {
-            lider: { select: { id: true, nome: true } },
-            membros: {
-              include: { usuario: { select: { id: true, nome: true } } },
-            },
-          },
-        },
         confirmadoPor: { select: { id: true, nome: true } },
         itens: {
           include: {
@@ -82,14 +67,6 @@ export class SeparacaoService {
         dataConfirmacao: new Date(),
         confirmadoPorId: usuarioId,
       },
-    });
-  }
-
-  async notificarEquipe(id: number) {
-    await this.detalhar(id);
-    return this.prisma.separacao.update({
-      where: { id },
-      data: { statusNovo: 'EQUIPE_NOTIFICADA' },
     });
   }
 

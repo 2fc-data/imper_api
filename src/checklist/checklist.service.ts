@@ -52,23 +52,4 @@ export class ChecklistService {
       data: { status: 'BLOQUEADA', observacao: motivo },
     });
   }
-
-  async listarPendentesEquipe(equipeId: string) {
-    return this.prisma.checklistExecucao.findMany({
-      where: {
-        atividadeOS: { equipeId },
-        status: 'PENDENTE',
-      },
-      include: {
-        atividadeOS: {
-          include: {
-            catalogoAtividade: { select: { nome: true } },
-            os: { select: { codigo: true } },
-          },
-        },
-        subStepAtividade: true,
-      },
-      orderBy: { atividadeOS: { criadoEm: 'asc' } },
-    });
-  }
 }

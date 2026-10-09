@@ -14,8 +14,6 @@ async function main() {
     'checklist_execucao',
     'atividades_os_linhas',
     'atividades_os',
-    'membros_equipe',
-    'equipes',
     'separacao_itens',
     'separacoes',
     'etapa_os_materiais',

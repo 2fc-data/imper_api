@@ -21,12 +21,10 @@ export class SeparacaoController {
   @Get()
   async listar(
     @Query('osId') osId?: string,
-    @Query('equipeId') equipeId?: string,
     @Query('status') status?: string,
   ) {
     return this.service.listar({
       osId: osId ? Number(osId) : undefined,
-      equipeId,
       status,
     });
   }
@@ -39,11 +37,6 @@ export class SeparacaoController {
   @Put(':id/confirmar')
   async confirmarSeparacao(@Param('id') id: string, @Req() req: Request) {
     return this.service.confirmarSeparacao(Number(id), (req as any).user.id);
-  }
-
-  @Put(':id/notificar-equipe')
-  async notificarEquipe(@Param('id') id: string) {
-    return this.service.notificarEquipe(Number(id));
   }
 
   @Put(':id/retirada')

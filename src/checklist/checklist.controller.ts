@@ -30,9 +30,4 @@ export class ChecklistController {
   async bloquear(@Param('id') id: string, @Body('motivo') motivo: string) {
     return this.service.bloquear(id, motivo);
   }
-
-  @Get('equipe/:equipeId/pendentes')
-  async listarPendentesEquipe(@Param('equipeId') equipeId: string) {
-    return this.service.listarPendentesEquipe(equipeId);
-  }
 }

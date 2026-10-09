@@ -24,12 +24,6 @@ async function main() {
     const atv = await p.atividadeOS.deleteMany({
       where: { os: { codigo: { startsWith: PREFIX } } },
     });
-    const mem = await p.membroEquipe.deleteMany({
-      where: { equipe: { os: { codigo: { startsWith: PREFIX } } } },
-    });
-    const eq = await p.equipe.deleteMany({
-      where: { os: { codigo: { startsWith: PREFIX } } },
-    });
     const etapa = await p.etapaOS.deleteMany({
       where: { ordemServico: { codigo: { startsWith: PREFIX } } },
     });
@@ -52,7 +46,7 @@ async function main() {
       where: { nome: { startsWith: PREFIX } },
     });
     console.log(
-      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} mem=${mem.count} eq=${eq.count} etapa=${etapa.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`,
+      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} etapa=${etapa.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`,
     );
     return;
   }
@@ -223,29 +217,12 @@ async function main() {
   });
   console.log('Catálogo criado:', catalogo.id);
 
-  // 8. Criar Equipe
-  const equipe = await p.equipe.create({
-    data: {
-      nome: `${PREFIX} - Equipe A Acabamento`,
-      osId: os.id,
-      liderId: 2,
-      membros: {
-        create: [
-          { usuarioId: 3, funcao: 'Marceneiro' },
-          { usuarioId: 4, funcao: 'Ajudante' },
-        ],
-      },
-    },
-  });
-  console.log('Equipe criada:', equipe.id);
-
   // 9. Criar AtividadeOS
   const atv = await p.atividadeOS.create({
     data: {
       osId: os.id,
       etapaOSId: etapaOS.id,
       catalogoAtividadeId: catalogo.id,
-      equipeId: equipe.id,
       status: 'EM_ANDAMENTO',
     },
   });
@@ -269,7 +246,6 @@ async function main() {
       codigo: `${PREFIX}-${TS}-SEP`,
       etapaOsId: etapaOS.id,
       osId: os.id,
-      equipeId: equipe.id,
       dataNecessidade: new Date(),
       status: 'PENDENTE',
       statusNovo: 'SEPARACAO_PENDENTE',
@@ -294,7 +270,6 @@ async function main() {
   console.log('\n✅ Seed completo!');
   console.log(`   Cliente: ${clienteUser.id}`);
   console.log(`   OS: ${os.id} (${os.codigo})`);
-  console.log(`   Equipe: ${equipe.id}`);
   console.log(`   AtividadeOS: ${atv.id}`);
   console.log(`   Separação: ${sep.id}`);
   console.log('\nExecute com --rollback para limpar.');

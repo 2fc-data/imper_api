@@ -9,12 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { AtividadesOSService } from './atividades-os.service.js';
-import {
-  type AssociarEquipeDto,
-  associarEquipeSchema,
-} from './dto/atividades-os.dto.js';
 
 @Controller('atividades-os')
 @UseGuards(JwtAuthGuard)
@@ -53,13 +48,5 @@ export class AtividadesOSController {
     @Body('status') status: string,
   ) {
     return this.service.atualizarStatus(id, status);
-  }
-
-  @Put(':id/equipe')
-  async associarEquipe(
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(associarEquipeSchema)) dto: AssociarEquipeDto,
-  ) {
-    return this.service.associarEquipe(id, dto);
   }
 }

@@ -14,7 +14,6 @@ import { DisponibilidadeModule } from './disponibilidade/disponibilidade.module.
 import { EmailModule } from './email/email.module.js';
 import { EpisModule } from './epis/epis.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
-import { EquipesModule } from './equipes/equipes.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
 import { ManutencoesVeiculosModule } from './manutencoes-veiculos/manutencoes-veiculos.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
@@ -56,7 +55,6 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     UsuariosModule,
     CatalogoAtividadesModule,
     DisponibilidadeModule,
-    EquipesModule,
     AtividadesOSModule,
     ChecklistModule,
     SeparacaoModule,

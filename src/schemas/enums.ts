@@ -74,8 +74,6 @@ export type EspecialidadeAtividade =
 
 export type EnumTipoRecursoAtividade = 'EQUIPAMENTO' | 'EPI' | 'MATERIAL';
 
-export type EnumStatusEquipe = 'PENDENTE' | 'EM_EXECUCAO' | 'CONCLUIDA';
-
 export type EnumStatusAtividadeOS =
   | 'PENDENTE'
   | 'EM_ANDAMENTO'
@@ -87,7 +85,6 @@ export type EnumStatusChecklist = 'PENDENTE' | 'CONCLUIDA' | 'BLOQUEADA';
 export type EnumStatusSeparacaoNovo =
   | 'SEPARACAO_PENDENTE'
   | 'SEPARACAO_CONCLUIDA'
-  | 'EQUIPE_NOTIFICADA'
   | 'RETIRADA_PENDENTE'
   | 'RETIRADA_CONCLUIDA'
   | 'DEVOLUCAO_PENDENTE'

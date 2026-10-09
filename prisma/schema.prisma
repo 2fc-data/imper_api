@@ -47,10 +47,8 @@ model User {
   entregasEpiRecebidas     EntregaEpi[]            @relation("EpiColaborador")
   entregasEpiRegistradas   EntregaEpi[]            @relation("EntregaEpiRegistradoPor")
   equipamentosResponsaveis Equipamento[]           @relation("EquipamentoResponsavel")
-  equipesLideradas         Equipe[]                @relation("EquipeLider")
   lancamentos              LancamentoFinanceiro[]  @relation("LancamentoCriadoPor")
   manutencoesResponsaveis  Manutencao[]            @relation("ManutencaoResponsavel")
-  membrosEquipe            MembroEquipe[]
   movimentos               MovimentoEstoque[]      @relation("MovimentoRegistradoPor")
   notificacoes             Notificacao[]
   orcamentosUser           Orcamento[]             @relation("OrcamentoUser")
@@ -426,7 +424,6 @@ model OrdemServico {
   assinatura           Assinatura?
   atividadesOS         AtividadeOS[]
   compras              Compra[]
-  equipes              Equipe[]
   etapas               EtapaOS[]
   historico            HistoricoPosicao[]
   movimentos           MovimentoEstoque[]
@@ -708,21 +705,18 @@ model Separacao {
   confirmadoPorId Int?
   dataConfirmacao DateTime?
   dataPrevista    DateTime?
-  equipeId        String?
   osId            Int?
   statusNovo      EnumStatusSeparacaoNovo @default(SEPARACAO_PENDENTE)
   itens           SeparacaoItem[]
   entregasEpi     EntregaEpi[]
   confirmadoPor   User?                   @relation("SeparacaoConfirmadoPor", fields: [confirmadoPorId], references: [id])
   criadoPor       User?                   @relation("SeparacaoCriador", fields: [criadoPorId], references: [id])
-  equipe          Equipe?                 @relation(fields: [equipeId], references: [id])
   etapaOs         EtapaOS                 @relation(fields: [etapaOsId], references: [id], onDelete: Cascade)
   os              OrdemServico?           @relation("SeparacaoEquipe", fields: [osId], references: [id])
 
   @@index([criadoPorId], map: "separacoes_criadoPorId_fkey")
   @@index([etapaOsId], map: "separacoes_etapaOsId_fkey")
   @@index([osId])
-  @@index([equipeId])
   @@index([confirmadoPorId], map: "separacoes_confirmadoPorId_fkey")
   @@map("separacoes")
 }
@@ -1297,49 +1291,16 @@ model RecursoAtividade {
   @@map("recurso_atividades")
 }
 
-model Equipe {
-  id         String           @id @default(cuid())
-  nome       String
-  osId       Int
-  liderId    Int
-  status     EnumStatusEquipe @default(PENDENTE)
-  criadoEm   DateTime         @default(now())
-  atividades AtividadeOS[]
-  lider      User             @relation("EquipeLider", fields: [liderId], references: [id])
-  os         OrdemServico     @relation(fields: [osId], references: [id])
-  membros    MembroEquipe[]
-  separacoes Separacao[]
-
-  @@index([liderId], map: "equipes_liderId_fkey")
-  @@index([osId], map: "equipes_osId_fkey")
-  @@map("equipes")
-}
-
-model MembroEquipe {
-  id        String  @id @default(cuid())
-  equipeId  String
-  usuarioId Int
-  funcao    String?
-  equipe    Equipe  @relation(fields: [equipeId], references: [id])
-  usuario   User    @relation(fields: [usuarioId], references: [id])
-
-  @@unique([equipeId, usuarioId])
-  @@index([usuarioId], map: "membros_equipe_usuarioId_fkey")
-  @@map("membros_equipe")
-}
-
 model AtividadeOS {
   id                  String                @id @default(cuid())
   osId                Int
   etapaOSId           Int
   catalogoAtividadeId String
-  equipeId            String?
   dataPrevisao        DateTime?
   status              EnumStatusAtividadeOS @default(PENDENTE)
   criadoEm            DateTime              @default(now())
   atualizadoEm        DateTime              @updatedAt
   catalogoAtividade   CatalogoAtividade     @relation(fields: [catalogoAtividadeId], references: [id])
-  equipe              Equipe?               @relation(fields: [equipeId], references: [id])
   etapaOS             EtapaOS               @relation(fields: [etapaOSId], references: [id])
   os                  OrdemServico          @relation(fields: [osId], references: [id])
   checklist           ChecklistExecucao[]
@@ -1348,7 +1309,6 @@ model AtividadeOS {
   linhas              AtividadeOSLinha[]
 
   @@index([catalogoAtividadeId], map: "atividades_os_catalogoAtividadeId_fkey")
-  @@index([equipeId], map: "atividades_os_equipeId_fkey")
   @@index([etapaOSId], map: "atividades_os_etapaOSId_fkey")
   @@index([osId], map: "atividades_os_osId_fkey")
   @@map("atividades_os")
@@ -1992,12 +1952,6 @@ enum EnumTipoRecursoAtividade {
   MATERIAL
 }
 
-enum EnumStatusEquipe {
-  PENDENTE
-  EM_EXECUCAO
-  CONCLUIDA
-}
-
 enum EnumStatusAtividadeOS {
   PENDENTE
   EM_ANDAMENTO
@@ -2014,7 +1968,6 @@ enum EnumStatusChecklist {
 enum EnumStatusSeparacaoNovo {
   SEPARACAO_PENDENTE
   SEPARACAO_CONCLUIDA
-  EQUIPE_NOTIFICADA
   RETIRADA_PENDENTE
   RETIRADA_CONCLUIDA
   DEVOLUCAO_PENDENTE

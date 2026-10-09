@@ -141,15 +141,9 @@ async function main() {
     data: { etapaOsId: etapaOs1.id, materialId: material.id, quantidadePlanejada: 10 },
   });
 
-  console.log('5/7 Equipe, atividade, checklist, separação, compras, estoque...');
-  const equipe = await prisma.equipe.create({
-    data: { nome: 'Equipe A', osId: os1.id, liderId: u2.id },
-  });
-  await prisma.membroEquipe.create({
-    data: { equipeId: equipe.id, usuarioId: u2.id, funcao: 'Executor' },
-  });
+  console.log('5/7 Atividade, checklist, separação, compras, estoque...');
   const atividade = await prisma.atividadeOS.create({
-    data: { osId: os1.id, etapaOSId: etapaOs2.id, catalogoAtividadeId: catalogo.id, equipeId: equipe.id },
+    data: { osId: os1.id, etapaOSId: etapaOs2.id, catalogoAtividadeId: catalogo.id },
   });
   await prisma.atividadeOSLinha.create({
     data: {
