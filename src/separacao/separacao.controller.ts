@@ -6,12 +6,13 @@ import {
   Param,
   Put,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { SeparacaoService } from './separacao.service.js';
+
+type UsuarioReq = { id: number };
 
 @Controller('separacao')
 @UseGuards(JwtAuthGuard)
@@ -20,11 +21,11 @@ export class SeparacaoController {
 
   @Get()
   async listar(
-    @Query('osId') osId?: string,
+    @Query('obraId') obraId?: string,
     @Query('status') status?: string,
   ) {
     return this.service.listar({
-      osId: osId ? Number(osId) : undefined,
+      obraId: obraId ? Number(obraId) : undefined,
       status,
     });
   }
@@ -35,8 +36,11 @@ export class SeparacaoController {
   }
 
   @Put(':id/confirmar')
-  async confirmarSeparacao(@Param('id') id: string, @Req() req: Request) {
-    return this.service.confirmarSeparacao(Number(id), (req as any).user.id);
+  async confirmarSeparacao(
+    @Param('id') id: string,
+    @CurrentUser() user: UsuarioReq,
+  ) {
+    return this.service.confirmarSeparacao(Number(id), user.id);
   }
 
   @Put(':id/retirada')
@@ -54,11 +58,11 @@ export class SeparacaoController {
     @Param('id') id: string,
     @Param('itemId') itemId: string,
     @Body() body: { colaboradorId: number; observacao?: string },
-    @Req() req: Request,
+    @CurrentUser() user: UsuarioReq,
   ) {
     return this.service.registrarRetiradaItem(Number(id), Number(itemId), {
       ...body,
-      registradoPorId: (req as any).user.id,
+      registradoPorId: user.id,
     });
   }
 
@@ -67,11 +71,11 @@ export class SeparacaoController {
     @Param('id') id: string,
     @Param('itemId') itemId: string,
     @Body() body: { observacao?: string; status?: 'DEVOLVIDO' | 'PERDIDO' },
-    @Req() req: Request,
+    @CurrentUser() user: UsuarioReq,
   ) {
     return this.service.registrarDevolucaoItem(Number(id), Number(itemId), {
       ...body,
-      registradoPorId: (req as any).user.id,
+      registradoPorId: user.id,
     });
   }
 

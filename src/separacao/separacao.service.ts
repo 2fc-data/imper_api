@@ -6,9 +6,30 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class SeparacaoService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listar(params?: { osId?: number; status?: string }) {
+  private includeComum = {
+    executucaoAtividade: {
+      include: {
+        atividade: { include: { obraEtapa: { select: { obraId: true } } } },
+      },
+    },
+    confirmadoPor: { select: { id: true, nome: true } },
+    itens: {
+      include: {
+        material: true,
+        epi: true,
+        equipamento: true,
+        colaborador: { select: { id: true, nome: true } },
+      },
+    },
+  } as const;
+
+  async listar(params?: { obraId?: number; status?: string }) {
     const where: Record<string, unknown> = {};
-    if (params?.osId) where.osId = params.osId;
+    if (params?.obraId) {
+      where.executucaoAtividade = {
+        atividade: { obraEtapa: { obraId: params.obraId } },
+      };
+    }
     if (params?.status) {
       const statusMap: Record<string, string> = {
         PENDENTE: 'SEPARACAO_PENDENTE',
@@ -24,17 +45,7 @@ export class SeparacaoService {
 
     return this.prisma.separacao.findMany({
       where,
-      include: {
-        os: { select: { id: true, codigo: true } },
-        confirmadoPor: { select: { id: true, nome: true } },
-        itens: {
-          include: {
-            material: true,
-            epi: true,
-            equipamento: true,
-          },
-        },
-      },
+      include: this.includeComum,
       orderBy: { dataNecessidade: 'asc' },
     });
   }
@@ -42,17 +53,7 @@ export class SeparacaoService {
   async detalhar(id: number) {
     const item = await this.prisma.separacao.findUnique({
       where: { id },
-      include: {
-        os: { select: { id: true, codigo: true } },
-        confirmadoPor: { select: { id: true, nome: true } },
-        itens: {
-          include: {
-            material: true,
-            epi: true,
-            equipamento: true,
-          },
-        },
-      },
+      include: this.includeComum,
     });
     if (!item) throw new NotFoundException(`Separação ${id} não encontrada`);
     return item;
@@ -96,6 +97,11 @@ export class SeparacaoService {
     },
   ) {
     const separacao = await this.detalhar(separacaoId);
+    if (!dados.colaboradorId)
+      throw new AppError(
+        400,
+        'Informe o colaborador que está retirando o item',
+      );
     const item = separacao.itens.find((i) => i.id === itemId);
     if (!item)
       throw new NotFoundException(
@@ -104,8 +110,10 @@ export class SeparacaoService {
     if (item.status !== 'PENDENTE')
       throw new AppError(409, 'Item já foi processado');
 
+    const obraId =
+      separacao.executucaoAtividade?.atividade?.obraEtapa?.obraId ?? null;
+
     return this.prisma.$transaction(async (tx) => {
-      // MATERIAL: criar movimento de estoque (saída)
       if (item.materialId) {
         const saldo = await tx.saldoEstoque.findUnique({
           where: { materialId: item.materialId },
@@ -130,7 +138,7 @@ export class SeparacaoService {
             quantidade: qtd,
             saldoApos: novoSaldo,
             separacaoItemId: itemId,
-            ordemServicoId: separacao.osId ?? undefined,
+            obraId: obraId ?? undefined,
             registradoPorId: dados.registradoPorId,
             observacao:
               dados.observacao ?? `Retirada - Separação ${separacaoId}`,
@@ -138,7 +146,6 @@ export class SeparacaoService {
         });
       }
 
-      // EPI: criar entrega
       if (item.epiId) {
         await tx.entregaEpi.create({
           data: {
@@ -147,14 +154,13 @@ export class SeparacaoService {
             quantidade: item.quantidadeNecessaria,
             observacao: dados.observacao,
             registradoPorId: dados.registradoPorId,
-            osId: separacao.osId ?? undefined,
+            executucaoAtividadeId: separacao.executucaoAtividadeId,
             separacaoId,
             status: 'EM_USO',
           },
         });
       }
 
-      // EQUIPAMENTO: criar retirada
       if (item.equipamentoId) {
         await tx.retiradaEquipamento.create({
           data: {
@@ -162,17 +168,17 @@ export class SeparacaoService {
             colaboradorId: dados.colaboradorId,
             observacao: dados.observacao,
             registradoPorId: dados.registradoPorId,
-            osId: separacao.osId ?? undefined,
+            executucaoAtividadeId: separacao.executucaoAtividadeId,
             status: 'EM_USO',
           },
         });
       }
 
-      // Atualizar item
       return tx.separacaoItem.update({
         where: { id: itemId },
         data: {
-          status: 'CONFERIDO',
+          status: 'RETIRADO',
+          colaboradorId: dados.colaboradorId,
           retiradoPorId: dados.registradoPorId,
           retiradoEm: new Date(),
           observacao: dados.observacao,
@@ -196,13 +202,29 @@ export class SeparacaoService {
       throw new NotFoundException(
         `Item ${itemId} não encontrado na separação ${separacaoId}`,
       );
-    if (item.status !== 'CONFERIDO')
+    if (item.status !== 'RETIRADO') {
+      if (
+        item.status === 'DEVOLVIDO' ||
+        item.status === 'PERDIDO' ||
+        item.status === 'CONFERIDO'
+      )
+        throw new AppError(
+          409,
+          `Item já foi finalizado com status ${item.status}; devolução já registrada`,
+        );
       throw new AppError(409, 'Item ainda não foi retirado');
+    }
 
     const statusFinal = dados.status ?? 'DEVOLVIDO';
+    if (statusFinal !== 'DEVOLVIDO' && statusFinal !== 'PERDIDO')
+      throw new AppError(
+        400,
+        "Status de devolução inválido. Use 'DEVOLVIDO' ou 'PERDIDO'",
+      );
+    const obraId =
+      separacao.executucaoAtividade?.atividade?.obraEtapa?.obraId ?? null;
 
     return this.prisma.$transaction(async (tx) => {
-      // MATERIAL: criar movimento de estoque (entrada) — apenas se devolvido
       if (item.materialId && statusFinal === 'DEVOLVIDO') {
         const saldo = await tx.saldoEstoque.findUnique({
           where: { materialId: item.materialId },
@@ -223,7 +245,7 @@ export class SeparacaoService {
             quantidade: qtd,
             saldoApos: novoSaldo,
             separacaoItemId: itemId,
-            ordemServicoId: separacao.osId ?? undefined,
+            obraId: obraId ?? undefined,
             registradoPorId: dados.registradoPorId,
             observacao:
               dados.observacao ?? `Devolução - Separação ${separacaoId}`,
@@ -231,7 +253,6 @@ export class SeparacaoService {
         });
       }
 
-      // EPI: atualizar entrega existente
       if (item.epiId) {
         const entrega = await tx.entregaEpi.findFirst({
           where: { separacaoId, epiId: item.epiId, status: 'EM_USO' },
@@ -247,12 +268,11 @@ export class SeparacaoService {
         }
       }
 
-      // EQUIPAMENTO: atualizar retirada existente
       if (item.equipamentoId) {
         const retirada = await tx.retiradaEquipamento.findFirst({
           where: {
             equipamentoId: item.equipamentoId,
-            osId: separacao.osId,
+            executucaoAtividadeId: separacao.executucaoAtividadeId,
             status: 'EM_USO',
           },
         });
@@ -270,6 +290,7 @@ export class SeparacaoService {
       return tx.separacaoItem.update({
         where: { id: itemId },
         data: {
+          status: statusFinal,
           observacao: dados.observacao,
         },
       });

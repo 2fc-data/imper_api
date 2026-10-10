@@ -16,9 +16,11 @@ import { ChecklistService } from './checklist.service.js';
 export class ChecklistController {
   constructor(private readonly service: ChecklistService) {}
 
-  @Get('atividade/:atividadeOSId')
-  async listarPorAtividade(@Param('atividadeOSId') atividadeOSId: string) {
-    return this.service.listarPorAtividade(atividadeOSId);
+  @Get('execucao/:executucaoAtividadeId')
+  async listarPorExecucao(
+    @Param('executucaoAtividadeId') executucaoAtividadeId: string,
+  ) {
+    return this.service.listarPorExecucao(executucaoAtividadeId);
   }
 
   @Put(':id/concluir')

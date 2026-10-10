@@ -8,6 +8,7 @@ const mockPrisma = {
     findUnique: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   etapa: { findUnique: vi.fn() },
   verbo: {
@@ -127,7 +128,7 @@ describe('VocabularioService', () => {
         { verboId: 1, objetoId: 10 },
         { verboId: 1, objetoId: 10, localId: null },
       ]);
-      expect(resultado).toEqual({ criados: 1, ignorados: 1 });
+      expect(resultado).toEqual({ criados: 1, reativados: 0, ignorados: 1 });
       expect(mockPrisma.subServicoAtividade.createMany).toHaveBeenCalledTimes(
         1,
       );
@@ -136,13 +137,18 @@ describe('VocabularioService', () => {
     it('ignora combos já existentes (comparação com NULL explícito)', async () => {
       mockPrisma.subServico.findUnique.mockResolvedValue({ id: 1 });
       mockPrisma.subServicoAtividade.findMany.mockResolvedValue([
-        { verboId: 1, objetoId: 10, localId: null, caracteristicaId: null },
+        combo(7, {
+          verboId: 1,
+          objetoId: 10,
+          localId: null,
+          caracteristicaId: null,
+        }),
       ]);
       const resultado = await service.criarLote(1, [
         { verboId: 1, objetoId: 10, localId: null },
         { verboId: 1, objetoId: 11, localId: 5 },
       ]);
-      expect(resultado).toEqual({ criados: 1, ignorados: 1 });
+      expect(resultado).toEqual({ criados: 1, reativados: 0, ignorados: 1 });
       expect(mockPrisma.subServicoAtividade.createMany).toHaveBeenCalledWith({
         data: [
           {
@@ -154,6 +160,28 @@ describe('VocabularioService', () => {
           },
         ],
       });
+    });
+
+    it('reativa combos existentes inativos em vez de recriar', async () => {
+      mockPrisma.subServico.findUnique.mockResolvedValue({ id: 1 });
+      mockPrisma.subServicoAtividade.findMany.mockResolvedValue([
+        combo(7, {
+          ativo: false,
+          verboId: 1,
+          objetoId: 10,
+          localId: null,
+          caracteristicaId: null,
+        }),
+      ]);
+      const resultado = await service.criarLote(1, [
+        { verboId: 1, objetoId: 10, localId: null },
+      ]);
+      expect(resultado).toEqual({ criados: 0, reativados: 1, ignorados: 0 });
+      expect(mockPrisma.subServicoAtividade.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: [7] } },
+        data: { ativo: true },
+      });
+      expect(mockPrisma.subServicoAtividade.createMany).not.toHaveBeenCalled();
     });
 
     it('lança 404 quando o sub-serviço não existe', async () => {

@@ -9,25 +9,41 @@ async function main() {
 
   if (rollback) {
     console.log('Rollback: removendo dados do seed-fluxo2...');
-    const cli = await p.user.deleteMany({
-      where: { email: { startsWith: 'seed-' } },
-    });
     const sepItens = await p.separacaoItem.deleteMany({
-      where: { separacao: { os: { codigo: { startsWith: PREFIX } } } },
+      where: {
+        separacao: {
+          executucaoAtividade: {
+            atividade: { obraEtapa: { obra: { codigo: { startsWith: PREFIX } } } },
+          },
+        },
+      },
     });
     const sep = await p.separacao.deleteMany({
-      where: { os: { codigo: { startsWith: PREFIX } } },
+      where: {
+        executucaoAtividade: {
+          atividade: { obraEtapa: { obra: { codigo: { startsWith: PREFIX } } } },
+        },
+      },
     });
-    const check = await p.checklistExecucao.deleteMany({
-      where: { atividadeOS: { os: { codigo: { startsWith: PREFIX } } } },
+    const check = await p.checklistAtividade.deleteMany({
+      where: {
+        executucaoAtividade: {
+          atividade: { obraEtapa: { obra: { codigo: { startsWith: PREFIX } } } },
+        },
+      },
     });
-    const atv = await p.atividadeOS.deleteMany({
-      where: { os: { codigo: { startsWith: PREFIX } } },
+    const exec = await p.execucaoAtividade.deleteMany({
+      where: {
+        atividade: { obraEtapa: { obra: { codigo: { startsWith: PREFIX } } } },
+      },
     });
-    const etapa = await p.etapaOS.deleteMany({
-      where: { ordemServico: { codigo: { startsWith: PREFIX } } },
+    const atv = await p.obraAtividade.deleteMany({
+      where: { obraEtapa: { obra: { codigo: { startsWith: PREFIX } } } },
     });
-    const os = await p.ordemServico.deleteMany({
+    const obraEtapa = await p.obraEtapa.deleteMany({
+      where: { obra: { codigo: { startsWith: PREFIX } } },
+    });
+    const obra = await p.obra.deleteMany({
       where: { codigo: { startsWith: PREFIX } },
     });
     const orc = await p.orcamento.deleteMany({
@@ -35,6 +51,9 @@ async function main() {
     });
     const atend = await p.atendimento.deleteMany({
       where: { descricao: { startsWith: PREFIX } },
+    });
+    const cli = await p.user.deleteMany({
+      where: { email: { startsWith: 'seed-' } },
     });
     const rec = await p.recursoAtividade.deleteMany({
       where: { catalogoAtividade: { nome: { startsWith: PREFIX } } },
@@ -46,7 +65,7 @@ async function main() {
       where: { nome: { startsWith: PREFIX } },
     });
     console.log(
-      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} atv=${atv.count} etapa=${etapa.count} os=${os.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`,
+      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} exec=${exec.count} atv=${atv.count} obraEtapa=${obraEtapa.count} obra=${obra.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`,
     );
     return;
   }
@@ -66,6 +85,23 @@ async function main() {
     },
   });
   console.log('Cliente criado:', clienteUser.id);
+
+  // 1b. Colaborador de campo que recebe os itens na retirada
+  const colaboradorEmail = 'seed-colaborador@example.com';
+  let colaborador = await p.user.findFirst({
+    where: { email: colaboradorEmail },
+  });
+  if (!colaborador) {
+    colaborador = await p.user.create({
+      data: {
+        nome: `${PREFIX} - Colaborador`,
+        email: colaboradorEmail,
+        telefone: '(11) 97777-7777',
+        senhaHash: 'seed2-not-a-real-hash',
+      },
+    });
+  }
+  console.log('Colaborador criado:', colaborador.id);
 
   // 2. Criar atendimento
   const atendimento = await p.atendimento.create({
@@ -94,19 +130,21 @@ async function main() {
   });
   console.log('Orçamento criado:', orcamento.id);
 
-  // 4. Criar OS
-  const os = await p.ordemServico.create({
+  // 4. Criar Obra (cadeia substitui a antiga OS)
+  const obra = await p.obra.create({
     data: {
-      codigo: `${PREFIX}-${TS}-OS`,
+      codigo: `${PREFIX}-${TS}-OBR`,
       orcamentoId: orcamento.id,
       userId: clienteUser.id,
       atendimentoId: atendimento.id,
       urgencia: 'NORMAL',
-      status: 'EM_ANDAMENTO',
-      valorTotal: new Prisma.Decimal('10000.00'),
+      status: 'EM_EXECUCAO',
+      valorContratado: new Prisma.Decimal('10000.00'),
+      aprovadoPorId: clienteUser.id,
+      aprovadoEm: new Date(),
     },
   });
-  console.log('OS criada:', os.id);
+  console.log('Obra criada:', obra.id);
 
   // 5. Criar Etapa (se não existir nenhuma)
   let etapa = await p.etapa.findFirst({ where: { ativo: true } });
@@ -119,17 +157,16 @@ async function main() {
     console.log('Etapa existente:', etapa.id);
   }
 
-  // 6. Criar EtapaOS
-  const etapaOS = await p.etapaOS.create({
+  // 6. Criar ObraEtapa
+  const obraEtapa = await p.obraEtapa.create({
     data: {
-      ordemServicoId: os.id,
+      obraId: obra.id,
       etapaId: etapa.id,
       nome: `${PREFIX} - Etapa de Acabamento`,
       ordem: 1,
-      status: 'PENDENTE',
     },
   });
-  console.log('EtapaOS criada:', etapaOS.id);
+  console.log('ObraEtapa criada:', obraEtapa.id);
 
   // 7. Criar catálogo de atividades
   const catalogo = await p.catalogoAtividade.create({
@@ -217,22 +254,57 @@ async function main() {
   });
   console.log('Catálogo criado:', catalogo.id);
 
-  // 9. Criar AtividadeOS
-  const atv = await p.atividadeOS.create({
+  // 8. Garantir verbos/objetos/sub-serviço para a atividade
+  const verbo = await p.verbo.upsert({
+    where: { nome: 'assentar' },
+    update: {},
+    create: { nome: 'assentar' },
+  });
+  const objeto = await p.objeto.upsert({
+    where: { nome: 'piso' },
+    update: {},
+    create: { nome: 'piso' },
+  });
+  const subServico = await p.subServico.upsert({
+    where: { etapaId_nome: { etapaId: etapa.id, nome: 'Pisos e Revestimentos' } },
+    update: {},
+    create: { nome: 'Pisos e Revestimentos', etapaId: etapa.id, ativo: true },
+  });
+  console.log(
+    `Vocabulário: verbo=${verbo.id} objeto=${objeto.id} subServico=${subServico.id}`,
+  );
+
+  // 9. Criar ObraAtividade
+  const atv = await p.obraAtividade.create({
     data: {
-      osId: os.id,
-      etapaOSId: etapaOS.id,
+      obraEtapaId: obraEtapa.id,
       catalogoAtividadeId: catalogo.id,
-      status: 'EM_ANDAMENTO',
+      subServicoId: subServico.id,
+      verboId: verbo.id,
+      objetoId: objeto.id,
+      descricao: 'Assentamento de piso cerâmico',
+      ordem: 1,
+      cancelada: false,
     },
   });
-  console.log('AtividadeOS criada:', atv.id);
+  console.log('ObraAtividade criada:', atv.id);
 
-  // 10. Criar ChecklistExecucao (um por sub-step)
+  // 9. Criar ExecucaoAtividade
+  const exec = await p.execucaoAtividade.create({
+    data: {
+      atividadeId: atv.id,
+      status: 'EM_ANDAMENTO',
+      dataPrevisao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      criadoPorId: 1,
+    },
+  });
+  console.log('ExecucaoAtividade criada:', exec.id);
+
+  // 10. Criar ChecklistAtividade (um por sub-step)
   for (const s of catalogo.subSteps) {
-    await p.checklistExecucao.create({
+    await p.checklistAtividade.create({
       data: {
-        atividadeOSId: atv.id,
+        executucaoAtividadeId: exec.id,
         subStepAtividadeId: s.id,
         status: 'PENDENTE',
       },
@@ -244,10 +316,8 @@ async function main() {
   const sep = await p.separacao.create({
     data: {
       codigo: `${PREFIX}-${TS}-SEP`,
-      etapaOsId: etapaOS.id,
-      osId: os.id,
+      executucaoAtividadeId: exec.id,
       dataNecessidade: new Date(),
-      status: 'PENDENTE',
       statusNovo: 'SEPARACAO_PENDENTE',
     },
   });
@@ -255,7 +325,22 @@ async function main() {
 
   // 12. Criar SeparacaoItem (apenas para materiais)
   const materiais = catalogo.recursos.filter((r) => r.tipo === 'MATERIAL');
-  for (const r of materiais) {
+  const [primeiro, ...demais] = materiais;
+  if (primeiro) {
+    await p.separacaoItem.create({
+      data: {
+        separacaoId: sep.id,
+        materialId: primeiro.itemCatalogoId,
+        quantidadeNecessaria: primeiro.quantidade,
+        quantidadeSeparada: new Prisma.Decimal('0'),
+        status: 'RETIRADO',
+        colaboradorId: colaborador.id,
+        retiradoPorId: 1,
+        retiradoEm: new Date(),
+      },
+    });
+  }
+  for (const r of demais) {
     await p.separacaoItem.create({
       data: {
         separacaoId: sep.id,
@@ -269,8 +354,8 @@ async function main() {
 
   console.log('\n✅ Seed completo!');
   console.log(`   Cliente: ${clienteUser.id}`);
-  console.log(`   OS: ${os.id} (${os.codigo})`);
-  console.log(`   AtividadeOS: ${atv.id}`);
+  console.log(`   Obra: ${obra.id} (${obra.codigo})`);
+  console.log(`   ExecucaoAtividade: ${exec.id}`);
   console.log(`   Separação: ${sep.id}`);
   console.log('\nExecute com --rollback para limpar.');
 }

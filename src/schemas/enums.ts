@@ -23,17 +23,6 @@ export type StatusOrcamento =
 
 export type TipoItemServico = 'SERVICO' | 'MATERIAL' | 'EQUIPAMENTO';
 
-export type StatusOS =
-  | 'AGUARDANDO_APROVACAO'
-  | 'AGENDADO'
-  | 'EM_ANDAMENTO'
-  | 'CONCLUIDO'
-  | 'CONFIRMADO'
-  | 'EM_SEPARACAO'
-  | 'SEPARADO'
-  | 'ENTREGUE'
-  | 'CANCELADO';
-
 export type TipoAgendamento = 'VISITA' | 'ORCAMENTO' | 'RETORNO' | 'REUNIAO';
 
 export type StatusAgendamento =
@@ -74,7 +63,7 @@ export type EspecialidadeAtividade =
 
 export type EnumTipoRecursoAtividade = 'EQUIPAMENTO' | 'EPI' | 'MATERIAL';
 
-export type EnumStatusAtividadeOS =
+export type EnumStatusExecucaoAtividade =
   | 'PENDENTE'
   | 'EM_ANDAMENTO'
   | 'CONCLUIDA'

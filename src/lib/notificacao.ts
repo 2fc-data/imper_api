@@ -7,7 +7,7 @@ export async function notificarUsuarios(
     titulo: string;
     mensagem: string;
     link?: string | null;
-    ordemServicoId?: number | null;
+    obraId?: number | null;
   },
 ): Promise<void> {
   const ids = [...new Set(userIds)];
@@ -18,7 +18,7 @@ export async function notificarUsuarios(
       titulo: input.titulo,
       mensagem: input.mensagem,
       link: input.link ?? null,
-      ordemServicoId: input.ordemServicoId ?? null,
+      obraId: input.obraId ?? null,
     })),
   });
 }
@@ -30,7 +30,7 @@ export async function notificarPapeis(
     titulo: string;
     mensagem: string;
     link?: string | null;
-    ordemServicoId?: number | null;
+    obraId?: number | null;
   },
 ): Promise<void> {
   const papeis = await prisma.papelRbac.findMany({
