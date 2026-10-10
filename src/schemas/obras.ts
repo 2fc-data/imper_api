@@ -85,16 +85,6 @@ export const atualizarAtividadeObraSchema = z
     { message: 'Ao menos um campo além de updatedAt deve ser fornecido' },
   );
 
-export const criarOsSchema = z.object({
-  etapaIds: z.array(z.number().int().positive()).min(1, 'Ao menos uma etapa é obrigatória'),
-  tecnicoResponsavelId: z.number().int().positive().optional(),
-  dataInicioPrevista: z.string().datetime().optional(),
-  observacoes: z.string().optional(),
-  materiais: z.array(materialItemSchema).optional(),
-  epis: z.array(epiItemSchema).optional(),
-  equipamentos: z.array(equipamentoItemSchema).optional(),
-});
-
 export const itemAditivoSchema = z.object({
   acrescimo: z.enum(['novaEtapa', 'novaAtividade', 'cancelarAtividade']),
   nome: z.string().optional(),

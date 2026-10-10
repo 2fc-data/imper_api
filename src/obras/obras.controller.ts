@@ -21,7 +21,6 @@ import {
   criarAditivoSchema,
   criarAtividadeSchema,
   criarEtapaSchema,
-  criarOsSchema,
   listarObrasQuerySchema,
 } from '../schemas/obras.js';
 import type {
@@ -31,7 +30,6 @@ import type {
   CriarAditivoInput,
   CriarAtividadeInput,
   CriarEtapaInput,
-  CriarOsInput,
   ListarObrasQueryInput,
 } from './dto/obras.dto.js';
 import { ObrasService } from './obras.service.js';
@@ -116,15 +114,6 @@ export class ObrasController {
     @Body(new ZodValidationPipe(atualizarAtividadeObraSchema)) dto: AtualizarAtividadeObraInput,
   ) {
     return this.obrasService.syncAtividadeObra(Number(id), aid, dto);
-  }
-
-  @Post(':id/os')
-  @Permissions('criar_os')
-  async criarOsDaObra(
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(criarOsSchema)) dto: CriarOsInput,
-  ) {
-    return this.obrasService.criarOsDaObra(Number(id), dto);
   }
 
   @Post(':id/aditivos')

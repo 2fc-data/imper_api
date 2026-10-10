@@ -5,7 +5,6 @@ import {
   criarAditivoSchema,
   criarAtividadeSchema,
   criarEtapaSchema,
-  criarOsSchema,
   listarObrasQuerySchema,
 } from './obras.js';
 
@@ -68,13 +67,6 @@ describe('atualizarAtividadeObraSchema', () => {
     expect(
       atualizarAtividadeObraSchema.safeParse({ updatedAt: '2026-10-04T10:00:00.000Z' }).success,
     ).toBe(false);
-  });
-});
-
-describe('criarOsSchema', () => {
-  it('exige ao menos uma etapa', () => {
-    expect(criarOsSchema.safeParse({ etapaIds: [1, 2] }).success).toBe(true);
-    expect(criarOsSchema.safeParse({ etapaIds: [] }).success).toBe(false);
   });
 });
 

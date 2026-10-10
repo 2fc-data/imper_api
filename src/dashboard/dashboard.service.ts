@@ -9,7 +9,7 @@ export class DashboardService {
     const [
       atendimentosNovos,
       orcamentosAbertos,
-      osAndamento,
+      execucoesAndamento,
       materiaisLowStock,
     ] = await Promise.all([
       this.prisma.atendimento.count({
@@ -18,7 +18,7 @@ export class DashboardService {
       this.prisma.orcamento.count({
         where: { status: { in: ['RASCUNHO', 'ENVIADO'] } },
       }),
-      this.prisma.ordemServico.count({
+      this.prisma.execucaoAtividade.count({
         where: { status: 'EM_ANDAMENTO' },
       }),
       this.prisma.material.count({
@@ -33,7 +33,7 @@ export class DashboardService {
     return {
       atendimentosNovos,
       orcamentosAbertos,
-      osAndamento,
+      execucoesAndamento,
       baixaEstoque: materiaisLowStock,
     };
   }

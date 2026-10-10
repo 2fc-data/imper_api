@@ -8,7 +8,6 @@ import type {
   CriarAditivoInput,
   CriarAtividadeInput,
   CriarEtapaInput,
-  CriarOsInput,
   ListarObrasQueryInput,
 } from './dto/obras.dto.js';
 
@@ -33,7 +32,7 @@ export class ObrasService {
       include: {
         user: { select: { id: true, nome: true, email: true, telefone: true } },
         aprovadoPor: { select: { id: true, nome: true } },
-        _count: { select: { ordensServico: true, aditivos: true } },
+        _count: { select: { aditivos: true, etapas: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -77,15 +76,17 @@ export class ObrasService {
                 objeto: true,
                 local: true,
                 caracteristica: true,
+                execucoes: {
+                  orderBy: { criadoEm: 'desc' },
+                  include: {
+                    checklist: true,
+                    separacoes: {
+                      include: { itens: true },
+                    },
+                  },
+                },
               },
             },
-          },
-        },
-        ordensServico: {
-          orderBy: { createdAt: 'desc' },
-          include: {
-            tecnicoResponsavel: { select: { id: true, nome: true } },
-            etapas: { select: { id: true, nome: true, status: true } },
           },
         },
         aditivos: {
@@ -127,20 +128,31 @@ export class ObrasService {
   async concluir(id: number, userId: number) {
     const obra = await this.prisma.obra.findUnique({
       where: { id },
-      include: { ordensServico: { select: { id: true, status: true } } },
+      include: {
+        etapas: {
+          include: {
+            atividades: {
+              include: { execucoes: { select: { id: true, status: true } } },
+            },
+          },
+        },
+      },
     });
     if (!obra) throw new AppError(404, 'Obra não encontrada');
     if (obra.status === 'CONCLUIDA' || obra.status === 'CANCELADA') {
       throw new AppError(409, 'Obra já está encerrada');
     }
 
-    const pendentes = obra.ordensServico.filter(
-      (os) => os.status !== 'CONCLUIDO' && os.status !== 'CONFIRMADO',
+    const execucoes = obra.etapas.flatMap((e) =>
+      e.atividades.flatMap((a) => a.execucoes),
+    );
+    const pendentes = execucoes.filter(
+      (ex) => ex.status !== 'CONCLUIDA' && ex.status !== 'CANCELADA',
     );
     if (pendentes.length > 0) {
       throw new AppError(
         409,
-        `Existem ${pendentes.length} OSs pendentes de conclusão nesta Obra`,
+        `Existem ${pendentes.length} execuções pendentes de conclusão nesta Obra`,
       );
     }
 
@@ -210,15 +222,17 @@ export class ObrasService {
   async excluirEtapa(obraId: number, etapaId: number) {
     const etapa = await this.prisma.obraEtapa.findFirst({
       where: { id: etapaId, obraId },
-      include: { atividades: true },
+      include: {
+        atividades: {
+          include: { execucoes: { select: { id: true } } },
+        },
+      },
     });
     if (!etapa) throw new AppError(404, 'Etapa da obra não encontrada');
 
-    const comOS = await this.prisma.etapaOS.findFirst({
-      where: { obraEtapaId: etapaId },
-    });
-    if (comOS) {
-      throw new AppError(409, 'Etapa possui OSs vinculadas e não pode ser excluída');
+    const comExecucao = etapa.atividades.some((a) => a.execucoes.length > 0);
+    if (comExecucao) {
+      throw new AppError(409, 'Etapa possui execuções vinculadas e não pode ser excluída');
     }
 
     await this.prisma.obraEtapa.delete({ where: { id: etapaId } });
@@ -318,15 +332,6 @@ export class ObrasService {
         },
       });
 
-      const copiasLinha = await tx.atividadeOSLinha.updateMany({
-        where: { obraAtividadeId: atividadeId },
-        data: {
-          descricao: dto.descricao ?? undefined,
-          quantidade: dto.quantidade ?? undefined,
-          areaM2: dto.areaM2 ?? undefined,
-        },
-      });
-
       if (dto.materiais) {
         await tx.obraAtividadeMaterial.deleteMany({
           where: { obraAtividadeId: atividadeId },
@@ -343,110 +348,7 @@ export class ObrasService {
         }
       }
 
-      return { atividade: updated, copiasAtualizadas: copiasLinha.count };
-    });
-  }
-
-  async criarOsDaObra(obraId: number, dto: CriarOsInput) {
-    const obra = await this.prisma.obra.findUnique({
-      where: { id: obraId },
-      include: {
-        etapas: {
-          where: { id: { in: dto.etapaIds }, inativo: false },
-          include: {
-            atividades: {
-              where: { cancelada: false },
-              include: {
-                materiais: true,
-                catalogoAtividade: { include: { subSteps: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!obra) throw new AppError(404, 'Obra não encontrada');
-    if (obra.etapas.length === 0) {
-      throw new AppError(400, 'Nenhuma etapa ativa encontrada para a OS');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      const codigoOS = await this.gerarCodigoOS(tx);
-
-      const os = await tx.ordemServico.create({
-        data: {
-          codigo: codigoOS,
-          obraId,
-          userId: obra.userId,
-          atendimentoId: obra.atendimentoId,
-          enderecoId: obra.enderecoId,
-          urgencia: obra.urgencia,
-          status: 'AGENDADO',
-          tecnicoResponsavelId: dto.tecnicoResponsavelId ?? null,
-          dataInicioPrevista: dto.dataInicioPrevista ? new Date(dto.dataInicioPrevista) : null,
-          observacoes: dto.observacoes ?? null,
-        },
-      });
-
-      for (const obraEtapa of obra.etapas) {
-        const etapaOs = await tx.etapaOS.create({
-          data: {
-            ordemServicoId: os.id,
-            obraEtapaId: obraEtapa.id,
-            etapaId: obraEtapa.etapaId,
-            nome: obraEtapa.nome,
-            ordem: obraEtapa.ordem,
-            status: 'PENDENTE',
-          },
-        });
-
-        for (const obraAtiv of obraEtapa.atividades) {
-          const ativOs = await tx.atividadeOS.create({
-            data: {
-              osId: os.id,
-              etapaOSId: etapaOs.id,
-              catalogoAtividadeId: obraAtiv.catalogoAtividadeId,
-              status: 'PENDENTE',
-            },
-          });
-
-          await tx.atividadeOSLinha.create({
-            data: {
-              atividadeOSId: ativOs.id,
-              obraAtividadeId: obraAtiv.id,
-              ordem: obraAtiv.ordem,
-              descricao: obraAtiv.descricao,
-              verboId: obraAtiv.verboId,
-              objetoId: obraAtiv.objetoId,
-              localId: obraAtiv.localId,
-              caracteristicaId: obraAtiv.caracteristicaId,
-              unidadeId: obraAtiv.unidadeId,
-              quantidade: obraAtiv.quantidade,
-              areaM2: obraAtiv.areaM2,
-            },
-          });
-
-          for (const step of obraAtiv.catalogoAtividade.subSteps) {
-            await tx.checklistExecucao.create({
-              data: {
-                atividadeOSId: ativOs.id,
-                subStepAtividadeId: step.id,
-                status: 'PENDENTE',
-              },
-            });
-          }
-        }
-      }
-
-      if (obra.status === 'EM_PREPARACAO') {
-        await tx.obra.update({
-          where: { id: obraId },
-          data: { status: 'EM_EXECUCAO' },
-        });
-      }
-
-      return { os };
+      return { atividade: updated };
     });
   }
 
@@ -519,10 +421,5 @@ export class ObrasService {
     });
 
     return { aditivo: recusado };
-  }
-
-  private async gerarCodigoOS(tx: any) {
-    const count = await tx.ordemServico.count();
-    return `OS-${String(count + 1).padStart(4, '0')}`;
   }
 }

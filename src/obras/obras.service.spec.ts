@@ -5,11 +5,6 @@ const mockTx = {
   obraEtapa: { create: vi.fn() },
   obraAtividade: { create: vi.fn(), update: vi.fn() },
   obraAtividadeMaterial: { create: vi.fn(), deleteMany: vi.fn() },
-  ordemServico: { count: vi.fn(), create: vi.fn() },
-  etapaOS: { create: vi.fn() },
-  atividadeOS: { create: vi.fn() },
-  atividadeOSLinha: { create: vi.fn(), updateMany: vi.fn() },
-  checklistExecucao: { create: vi.fn() },
   aditivoObra: { update: vi.fn() },
 };
 
@@ -26,9 +21,6 @@ const mockPrisma = {
     delete: vi.fn(),
   },
   obraAtividade: {
-    findFirst: vi.fn(),
-  },
-  etapaOS: {
     findFirst: vi.fn(),
   },
   aditivoObra: {
@@ -75,34 +67,75 @@ describe('ObrasService', () => {
   });
 
   describe('concluir', () => {
-    it('lança 409 se a obra já estiver encerrada', async () => {
-      mockPrisma.obra.findUnique.mockResolvedValue({
-        id: 1,
-        status: 'CONCLUIDA',
-        ordensServico: [],
-      });
-      await expect(service.concluir(1, 1)).rejects.toThrow('Obra já está encerrada');
+    it('lança 404 se a obra não for encontrada', async () => {
+      mockPrisma.obra.findUnique.mockResolvedValue(null);
+      await expect(service.concluir(999, 1)).rejects.toThrow(
+        'Obra não encontrada',
+      );
     });
 
-    it('lança 409 se existirem OSs não concluídas', async () => {
+    it.each(['CONCLUIDA', 'CANCELADA'])(
+      'lança 409 se a obra já estiver encerrada (%s)',
+      async (status) => {
+        mockPrisma.obra.findUnique.mockResolvedValue({
+          id: 1,
+          status,
+          etapas: [],
+        });
+        await expect(service.concluir(1, 1)).rejects.toThrow(
+          'Obra já está encerrada',
+        );
+      },
+    );
+
+    it('lança 409 se existirem execuções não concluídas', async () => {
       mockPrisma.obra.findUnique.mockResolvedValue({
         id: 1,
         status: 'EM_EXECUCAO',
-        ordensServico: [{ id: 10, status: 'EM_ANDAMENTO' }],
+        etapas: [
+          {
+            atividades: [
+              {
+                execucoes: [
+                  { id: 20, status: 'CONCLUIDA' },
+                  { id: 21, status: 'EM_ANDAMENTO' },
+                ],
+              },
+            ],
+          },
+        ],
       });
-      await expect(service.concluir(1, 1)).rejects.toThrow('Existem 1 OSs pendentes');
+      await expect(service.concluir(1, 1)).rejects.toThrow(
+        'Existem 1 execuções pendentes',
+      );
     });
 
-    it('conclui a obra com sucesso quando todas as OSs estiverem concluídas', async () => {
+    it('conclui a obra com sucesso quando todas as execuções estiverem concluídas ou canceladas', async () => {
       mockPrisma.obra.findUnique.mockResolvedValue({
         id: 1,
         status: 'EM_EXECUCAO',
-        ordensServico: [{ id: 10, status: 'CONCLUIDO' }],
+        etapas: [
+          {
+            atividades: [
+              {
+                execucoes: [
+                  { id: 20, status: 'CONCLUIDA' },
+                  { id: 21, status: 'CANCELADA' },
+                ],
+              },
+            ],
+          },
+          { atividades: [] },
+        ],
       });
       mockPrisma.obra.update.mockResolvedValue({ id: 1, status: 'CONCLUIDA' });
 
       const result = await service.concluir(1, 1);
       expect(result.obra.status).toBe('CONCLUIDA');
+      expect(mockPrisma.obra.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { status: 'CONCLUIDA' },
+      });
     });
   });
 

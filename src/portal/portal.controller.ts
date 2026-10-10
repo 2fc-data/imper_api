@@ -60,16 +60,16 @@ export class PortalController {
     );
   }
 
-  @Get('os')
-  listarOs(@CurrentUser() user: UsuarioReq) {
-    return this.portal.listarOs(user.id);
+  @Get('obras')
+  listarObras(@CurrentUser() user: UsuarioReq) {
+    return this.portal.listarObras(user.id);
   }
 
-  @Get('os/:id')
-  detalharOs(@CurrentUser() user: UsuarioReq, @Param('id') id: string) {
-    return this.portal.detalharOs(
+  @Get('obras/:id')
+  detalharObra(@CurrentUser() user: UsuarioReq, @Param('id') id: string) {
+    return this.portal.detalharObra(
       user.id,
-      this.parseId(id, 'Ordem de serviço não encontrada'),
+      this.parseId(id, 'Obra não encontrada'),
     );
   }
 

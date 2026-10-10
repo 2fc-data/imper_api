@@ -6,7 +6,6 @@ import type {
   criarAditivoSchema,
   criarAtividadeSchema,
   criarEtapaSchema,
-  criarOsSchema,
   listarObrasQuerySchema,
 } from '../../schemas/obras.js';
 
@@ -15,6 +14,5 @@ export type CriarEtapaInput = z.infer<typeof criarEtapaSchema>;
 export type AtualizarEtapaInput = z.infer<typeof atualizarEtapaSchema>;
 export type CriarAtividadeInput = z.infer<typeof criarAtividadeSchema>;
 export type AtualizarAtividadeObraInput = z.infer<typeof atualizarAtividadeObraSchema>;
-export type CriarOsInput = z.infer<typeof criarOsSchema>;
 export type CriarAditivoInput = z.infer<typeof criarAditivoSchema>;
 export type AtualizarObraInput = z.infer<typeof atualizarObraSchema>;

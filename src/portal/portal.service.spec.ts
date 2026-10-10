@@ -13,15 +13,15 @@ const mockOrcamentos = {
   listarDoUsuario: vi.fn(),
   detalharParaUsuario: vi.fn(),
 };
-const mockOs = {
-  listarDoUsuario: vi.fn(),
-  detalharParaUsuario: vi.fn(),
-};
 const mockPrisma = {
   user: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+  },
+  obra: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
   },
 };
 
@@ -31,7 +31,6 @@ function criarService() {
     mockAtendimentos as any,
     mockAgendamentos as any,
     mockOrcamentos as any,
-    mockOs as any,
   );
 }
 
@@ -63,14 +62,34 @@ describe('PortalService', () => {
       expect(mockOrcamentos.detalharParaUsuario).toHaveBeenCalledWith(7, 10);
     });
 
-    it('listarOs → os.listarDoUsuario(userId)', async () => {
-      await criarService().listarOs(7);
-      expect(mockOs.listarDoUsuario).toHaveBeenCalledWith(7);
+    it('listarObras → prisma.obra.findMany com escopo do usuário', async () => {
+      await criarService().listarObras(7);
+      expect(mockPrisma.obra.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { OR: [{ userId: 7 }, { acessos: { some: { userId: 7, ativo: true } } }] },
+        }),
+      );
     });
 
-    it('detalharOs → os.detalharParaUsuario(userId, id)', async () => {
-      await criarService().detalharOs(7, 10);
-      expect(mockOs.detalharParaUsuario).toHaveBeenCalledWith(7, 10);
+    it('detalharObra → prisma.obra.findFirst com escopo do usuário', async () => {
+      mockPrisma.obra.findFirst.mockResolvedValue({ id: 10 });
+      const res = await criarService().detalharObra(7, 10);
+      expect(mockPrisma.obra.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 10,
+            OR: [{ userId: 7 }, { acessos: { some: { userId: 7, ativo: true } } }],
+          },
+        }),
+      );
+      expect(res).toEqual({ id: 10 });
+    });
+
+    it('detalharObra lança 404 quando obra não encontrada', async () => {
+      mockPrisma.obra.findFirst.mockResolvedValue(null);
+      await expect(criarService().detalharObra(7, 999)).rejects.toThrow(
+        'Obra não encontrada',
+      );
     });
   });
 

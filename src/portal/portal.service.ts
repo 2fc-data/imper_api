@@ -3,7 +3,6 @@ import { AgendamentoService } from '../agendamentos/agendamento.service.js';
 import { AtendimentoService } from '../atendimentos/atendimento.service.js';
 import { AppError } from '../lib/errors.js';
 import { OrcamentosService } from '../orcamentos/orcamentos.service.js';
-import { OsService } from '../os/os.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AtualizarPerfilInput } from '../schemas/portal.js';
 
@@ -14,7 +13,6 @@ export class PortalService {
     private readonly atendimentos: AtendimentoService,
     private readonly agendamentos: AgendamentoService,
     private readonly orcamentos: OrcamentosService,
-    private readonly os: OsService,
   ) {}
 
   listarAtendimentos(userId: number) {
@@ -44,12 +42,31 @@ export class PortalService {
     return this.orcamentos.aprovar(id, userId);
   }
 
-  listarOs(userId: number) {
-    return this.os.listarDoUsuario(userId);
+  listarObras(userId: number) {
+    return this.prisma.obra.findMany({
+      where: { OR: [{ userId }, { acessos: { some: { userId, ativo: true } } }] },
+      include: { etapas: { include: { atividades: true } } },
+    });
   }
 
-  detalharOs(userId: number, id: number) {
-    return this.os.detalharParaUsuario(userId, id);
+  async detalharObra(userId: number, id: number) {
+    const obra = await this.prisma.obra.findFirst({
+      where: {
+        id,
+        OR: [{ userId }, { acessos: { some: { userId, ativo: true } } }],
+      },
+      include: {
+        etapas: {
+          include: {
+            atividades: {
+              include: { execucoes: { include: { checklist: true, separacoes: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!obra) throw new AppError(404, 'Obra não encontrada');
+    return obra;
   }
 
   async atualizarPerfil(userId: number, data: AtualizarPerfilInput) {

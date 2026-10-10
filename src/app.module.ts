@@ -4,7 +4,6 @@ import { AgendamentoModule } from './agendamentos/agendamento.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AtendimentoModule } from './atendimentos/atendimento.module.js';
-import { AtividadesOSModule } from './atividades-os/atividades-os.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CatalogoAtividadesModule } from './catalogo-atividades/catalogo-atividades.module.js';
 import { ChecklistModule } from './checklist/checklist.module.js';
@@ -14,13 +13,13 @@ import { DisponibilidadeModule } from './disponibilidade/disponibilidade.module.
 import { EmailModule } from './email/email.module.js';
 import { EpisModule } from './epis/epis.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
+import { ExecucaoModule } from './execucao/execucao.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
 import { ManutencoesVeiculosModule } from './manutencoes-veiculos/manutencoes-veiculos.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
 import { ObrasModule } from './obras/obras.module.js';
 import { OrcamentoVocabularioModule } from './orcamento-vocabulario/orcamento-vocabulario.module.js';
 import { OrcamentosModule } from './orcamentos/orcamentos.module.js';
-import { OsModule } from './os/os.module.js';
 import { PortalModule } from './portal/portal.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { PublicoModule } from './publico/publico.module.js';
@@ -48,14 +47,13 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     MateriaisModule,
     OrcamentoVocabularioModule,
     OrcamentosModule,
-    OsModule,
     PortalModule,
     PublicoModule,
     RbacModule,
     UsuariosModule,
     CatalogoAtividadesModule,
     DisponibilidadeModule,
-    AtividadesOSModule,
+    ExecucaoModule,
     ChecklistModule,
     SeparacaoModule,
     ServicosAdminModule,
