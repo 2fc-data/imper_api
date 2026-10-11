@@ -52,17 +52,6 @@ export type StatusMaterial = 'ATIVO' | 'INATIVO';
 
 export type TipoMovimento = 'ENTRADA' | 'SAIDA';
 
-export type EspecialidadeAtividade =
-  | 'IMPERMEABILIZACAO'
-  | 'PINTURA'
-  | 'ELETRICA'
-  | 'HIDRAULICA'
-  | 'CIVIL'
-  | 'LIMPEZA'
-  | 'OUTROS';
-
-export type EnumTipoRecursoAtividade = 'EQUIPAMENTO' | 'EPI' | 'MATERIAL';
-
 export type EnumStatusExecucaoAtividade =
   | 'PENDENTE'
   | 'EM_ANDAMENTO'

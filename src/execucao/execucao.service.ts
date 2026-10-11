@@ -27,7 +27,7 @@ export class ExecucaoService {
       where: { id },
       include: {
         atividade: { include: { obraEtapa: true } },
-        checklist: { include: { subStepAtividade: true } },
+        checklist: true,
         separacoes: { include: { itens: true } },
         retiradas: true,
         entregasEpi: true,
@@ -44,7 +44,6 @@ export class ExecucaoService {
       include: {
         obraEtapa: { include: { obra: true } },
         materiais: true,
-        catalogoAtividade: { include: { subSteps: true, recursos: true } },
       },
     });
     if (!atividade)
@@ -60,16 +59,6 @@ export class ExecucaoService {
       const execucao = await tx.execucaoAtividade.create({
         data: { atividadeId, criadoPorId: userId, status: 'PENDENTE' },
       });
-
-      const subSteps = atividade.catalogoAtividade.subSteps;
-      if (subSteps.length) {
-        await tx.checklistAtividade.createMany({
-          data: subSteps.map((s) => ({
-            executucaoAtividadeId: execucao.id,
-            subStepAtividadeId: s.id,
-          })),
-        });
-      }
 
       const separacao = await tx.separacao.create({
         data: {
@@ -88,17 +77,6 @@ export class ExecucaoService {
           materialId: m.materialId,
           quantidadeNecessaria: m.quantidade,
         }));
-      for (const r of atividade.catalogoAtividade.recursos) {
-        const base = {
-          separacaoId: separacao.id,
-          quantidadeNecessaria: Number(r.quantidade),
-        };
-        if (r.tipo === 'MATERIAL')
-          itens.push({ ...base, materialId: r.itemCatalogoId });
-        if (r.tipo === 'EPI') itens.push({ ...base, epiId: r.itemCatalogoId });
-        if (r.tipo === 'EQUIPAMENTO')
-          itens.push({ ...base, equipamentoId: r.itemCatalogoId });
-      }
       if (itens.length) await tx.separacaoItem.createMany({ data: itens });
 
       return tx.execucaoAtividade.findUniqueOrThrow({

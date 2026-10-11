@@ -11,7 +11,6 @@ import {
 const atividadeValida = {
   obraEtapaId: 1,
   subServicoId: 2,
-  catalogoAtividadeId: 'clx1',
   descricao: 'Aplicar membrana asfáltica',
   verboId: 1,
   objetoId: 2,

@@ -43,7 +43,6 @@ export const equipamentoItemSchema = z.object({
 export const criarAtividadeSchema = z.object({
   obraEtapaId: z.number().int().positive(),
   subServicoId: z.number().int().positive(),
-  catalogoAtividadeId: z.string().min(1).optional(),
   descricao: z.string().min(1),
   verboId: z.number().int().positive(),
   objetoId: z.number().int().positive(),

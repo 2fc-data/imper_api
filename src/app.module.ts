@@ -5,7 +5,6 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AtendimentoModule } from './atendimentos/atendimento.module.js';
 import { AuthModule } from './auth/auth.module.js';
-import { CatalogoAtividadesModule } from './catalogo-atividades/catalogo-atividades.module.js';
 import { ChecklistModule } from './checklist/checklist.module.js';
 import { CommonModule } from './common/common.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
@@ -51,7 +50,6 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     PublicoModule,
     RbacModule,
     UsuariosModule,
-    CatalogoAtividadesModule,
     DisponibilidadeModule,
     ExecucaoModule,
     ChecklistModule,

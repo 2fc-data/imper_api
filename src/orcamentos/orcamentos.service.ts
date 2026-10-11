@@ -269,24 +269,6 @@ export class OrcamentosService {
     return validade;
   }
 
-  private async resolverCatalogoAtividadeId(
-    subServicoIds: number[],
-  ): Promise<Map<number, string>> {
-    if (subServicoIds.length === 0) return new Map();
-    const encontrados = await this.prisma.catalogoAtividade.findMany({
-      where: { subServicoId: { in: subServicoIds }, ativo: true },
-      orderBy: [{ criadoEm: 'asc' }, { id: 'asc' }],
-      select: { id: true, subServicoId: true },
-    });
-    const mapa = new Map<number, string>();
-    for (const c of encontrados) {
-      if (c.subServicoId != null && !mapa.has(c.subServicoId)) {
-        mapa.set(c.subServicoId, c.id);
-      }
-    }
-    return mapa;
-  }
-
   private async montarAtividades(dto: CriarOrcamentoDto) {
     const materialIds = [
       ...new Set(
@@ -306,27 +288,9 @@ export class OrcamentosService {
       return m?.custoUnitario != null ? Number(m.custoUnitario) : 0;
     };
 
-    const subIdsSemCatalogo = [
-      ...new Set(
-        dto.atividades
-          .filter((a) => !a.catalogoAtividadeId)
-          .map((a) => a.subServicoId),
-      ),
-    ];
-    const catalogoPorSub =
-      await this.resolverCatalogoAtividadeId(subIdsSemCatalogo);
-    const catalogosResolvidos = dto.atividades.map((a) => {
-      if (a.catalogoAtividadeId) return a.catalogoAtividadeId;
-      const id = catalogoPorSub.get(a.subServicoId);
-      if (!id) {
-        throw new AppError(400, 'Sub-serviço sem atividade de catálogo');
-      }
-      return id;
-    });
-
     let ordem = 0;
     const linhasTotais: number[] = [];
-    const linhas = dto.atividades.flatMap((a, idx) =>
+    const linhas = dto.atividades.flatMap((a) =>
       a.linhas.map((l) => {
         const mo = moValorTotal(l);
         const matsComCusto = l.materiais.map((m) => ({
@@ -340,7 +304,6 @@ export class OrcamentosService {
         return {
           etapaId: a.etapaId,
           subServicoId: a.subServicoId,
-          catalogoAtividadeId: catalogosResolvidos[idx],
           descricao: l.descricao,
           verboId: l.verboId,
           objetoId: l.objetoId,
@@ -488,7 +451,6 @@ export class OrcamentosService {
           data: {
             obraEtapaId,
             subServicoId: atividade.subServicoId,
-            catalogoAtividadeId: atividade.catalogoAtividadeId,
             descricao: atividade.descricao,
             verboId: atividade.verboId,
             objetoId: atividade.objetoId,

@@ -55,17 +55,8 @@ async function main() {
     const cli = await p.user.deleteMany({
       where: { email: { startsWith: 'seed-' } },
     });
-    const rec = await p.recursoAtividade.deleteMany({
-      where: { catalogoAtividade: { nome: { startsWith: PREFIX } } },
-    });
-    const sub = await p.subStepAtividade.deleteMany({
-      where: { catalogoAtividade: { nome: { startsWith: PREFIX } } },
-    });
-    const cat = await p.catalogoAtividade.deleteMany({
-      where: { nome: { startsWith: PREFIX } },
-    });
     console.log(
-      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} exec=${exec.count} atv=${atv.count} obraEtapa=${obraEtapa.count} obra=${obra.count} orc=${orc.count} atend=${atend.count} rec=${rec.count} sub=${sub.count} cat=${cat.count}`,
+      `Removidos: cli=${cli.count} sepItens=${sepItens.count} sep=${sep.count} check=${check.count} exec=${exec.count} atv=${atv.count} obraEtapa=${obraEtapa.count} obra=${obra.count} orc=${orc.count} atend=${atend.count}`,
     );
     return;
   }
@@ -168,93 +159,7 @@ async function main() {
   });
   console.log('ObraEtapa criada:', obraEtapa.id);
 
-  // 7. Criar catálogo de atividades
-  const catalogo = await p.catalogoAtividade.create({
-    data: {
-      nome: `${PREFIX} - Assentamento de Piso Cerâmico`,
-      descricao: 'Atividade de assentamento de piso cerâmico com acabamento',
-      especialidadeNecessaria: 'CIVIL',
-      tempoEstimadoHoras: new Prisma.Decimal('8.00'),
-      ativo: true,
-      subSteps: {
-        create: [
-          {
-            ordem: 1,
-            descricao: 'Limpeza do contrapiso',
-            observacao: 'Remover toda sujeira e poeira',
-          },
-          {
-            ordem: 2,
-            descricao: 'Aplicação de argamassa AC-II',
-            observacao: 'Espalhar uniformemente',
-          },
-          {
-            ordem: 3,
-            descricao: 'Assentamento das peças cerâmicas',
-            observacao: 'Alinhar com esquadro',
-          },
-          {
-            ordem: 4,
-            descricao: 'Rejuntamento',
-            observacao: 'Preencher juntas completamente',
-          },
-          {
-            ordem: 5,
-            descricao: 'Limpeza final',
-            observacao: 'Remover resíduos de rejunte',
-          },
-        ],
-      },
-      recursos: {
-        create: [
-          {
-            tipo: 'MATERIAL',
-            itemCatalogoId: 1,
-            quantidade: new Prisma.Decimal('50'),
-          },
-          {
-            tipo: 'MATERIAL',
-            itemCatalogoId: 2,
-            quantidade: new Prisma.Decimal('25'),
-          },
-          {
-            tipo: 'MATERIAL',
-            itemCatalogoId: 3,
-            quantidade: new Prisma.Decimal('5'),
-          },
-          {
-            tipo: 'EQUIPAMENTO',
-            itemCatalogoId: 1,
-            quantidade: new Prisma.Decimal('1'),
-          },
-          {
-            tipo: 'EQUIPAMENTO',
-            itemCatalogoId: 2,
-            quantidade: new Prisma.Decimal('1'),
-          },
-          {
-            tipo: 'EPI',
-            itemCatalogoId: 1,
-            quantidade: new Prisma.Decimal('4'),
-          },
-          {
-            tipo: 'EPI',
-            itemCatalogoId: 2,
-            quantidade: new Prisma.Decimal('4'),
-          },
-          {
-            tipo: 'EPI',
-            itemCatalogoId: 3,
-            quantidade: new Prisma.Decimal('4'),
-          },
-        ],
-      },
-    },
-    include: { subSteps: true, recursos: true },
-  });
-  console.log('Catálogo criado:', catalogo.id);
-
-  // 8. Garantir verbos/objetos/sub-serviço para a atividade
+  // 7. Garantir verbos/objetos/sub-serviço
   const verbo = await p.verbo.upsert({
     where: { nome: 'assentar' },
     update: {},
@@ -274,11 +179,17 @@ async function main() {
     `Vocabulário: verbo=${verbo.id} objeto=${objeto.id} subServico=${subServico.id}`,
   );
 
+  // 8. Garantir materiais para a atividade
+  const materiais = await p.material.findMany({ take: 3, orderBy: { id: 'asc' } });
+  if (materiais.length === 0) {
+    throw new Error('Nenhum material cadastrado — rode o seed principal antes.');
+  }
+  console.log(`Materiais usados: ${materiais.map((m) => m.id).join(', ')}`);
+
   // 9. Criar ObraAtividade
   const atv = await p.obraAtividade.create({
     data: {
       obraEtapaId: obraEtapa.id,
-      catalogoAtividadeId: catalogo.id,
       subServicoId: subServico.id,
       verboId: verbo.id,
       objetoId: objeto.id,
@@ -289,7 +200,20 @@ async function main() {
   });
   console.log('ObraAtividade criada:', atv.id);
 
-  // 9. Criar ExecucaoAtividade
+  // 9b. Materiais vinculados à atividade
+  for (let i = 0; i < materiais.length; i++) {
+    await p.obraAtividadeMaterial.create({
+      data: {
+        obraAtividadeId: atv.id,
+        materialId: materiais[i].id,
+        quantidade: new Prisma.Decimal(String(10 * (i + 1))),
+        custoUnitario: new Prisma.Decimal('0'),
+      },
+    });
+  }
+  console.log(`Materiais da atividade: ${materiais.length}`);
+
+  // 10. Criar ExecucaoAtividade
   const exec = await p.execucaoAtividade.create({
     data: {
       atividadeId: atv.id,
@@ -300,19 +224,27 @@ async function main() {
   });
   console.log('ExecucaoAtividade criada:', exec.id);
 
-  // 10. Criar ChecklistAtividade (um por sub-step)
-  for (const s of catalogo.subSteps) {
+  // 11. Criar ChecklistAtividade (descricao/ordem próprios)
+  const checklistItens = [
+    { descricao: 'Limpeza do contrapiso', ordem: 1 },
+    { descricao: 'Aplicação de argamassa AC-II', ordem: 2 },
+    { descricao: 'Assentamento das peças cerâmicas', ordem: 3 },
+    { descricao: 'Rejuntamento', ordem: 4 },
+    { descricao: 'Limpeza final', ordem: 5 },
+  ];
+  for (const item of checklistItens) {
     await p.checklistAtividade.create({
       data: {
         executucaoAtividadeId: exec.id,
-        subStepAtividadeId: s.id,
+        descricao: item.descricao,
+        ordem: item.ordem,
         status: 'PENDENTE',
       },
     });
   }
-  console.log(`Checklist criado: ${catalogo.subSteps.length} itens`);
+  console.log(`Checklist criado: ${checklistItens.length} itens`);
 
-  // 11. Criar Separacao
+  // 12. Criar Separacao
   const sep = await p.separacao.create({
     data: {
       codigo: `${PREFIX}-${TS}-SEP`,
@@ -323,29 +255,26 @@ async function main() {
   });
   console.log('Separação criada:', sep.id);
 
-  // 12. Criar SeparacaoItem (apenas para materiais)
-  const materiais = catalogo.recursos.filter((r) => r.tipo === 'MATERIAL');
+  // 13. Criar SeparacaoItem (apenas para materiais)
   const [primeiro, ...demais] = materiais;
-  if (primeiro) {
+  await p.separacaoItem.create({
+    data: {
+      separacaoId: sep.id,
+      materialId: primeiro.id,
+      quantidadeNecessaria: new Prisma.Decimal('10'),
+      quantidadeSeparada: new Prisma.Decimal('0'),
+      status: 'RETIRADO',
+      colaboradorId: colaborador.id,
+      retiradoPorId: 1,
+      retiradoEm: new Date(),
+    },
+  });
+  for (let i = 0; i < demais.length; i++) {
     await p.separacaoItem.create({
       data: {
         separacaoId: sep.id,
-        materialId: primeiro.itemCatalogoId,
-        quantidadeNecessaria: primeiro.quantidade,
-        quantidadeSeparada: new Prisma.Decimal('0'),
-        status: 'RETIRADO',
-        colaboradorId: colaborador.id,
-        retiradoPorId: 1,
-        retiradoEm: new Date(),
-      },
-    });
-  }
-  for (const r of demais) {
-    await p.separacaoItem.create({
-      data: {
-        separacaoId: sep.id,
-        materialId: r.itemCatalogoId,
-        quantidadeNecessaria: r.quantidade,
+        materialId: demais[i].id,
+        quantidadeNecessaria: new Prisma.Decimal(String(10 * (i + 2))),
         quantidadeSeparada: new Prisma.Decimal('0'),
       },
     });

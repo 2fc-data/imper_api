@@ -82,28 +82,13 @@ const DIVISOES: Divisao[] = [
 // Desativações diretas (sem mescla)
 const DESATIVAR_IDS = [3, 12]; // Aplicar fundo, Aplicar primer
 
-type ComboWhere = {
-  subServicoId: number;
-  verboId: number;
-  objetoId: number;
-  localId: number | null;
-  caracteristicaId: number | null;
-};
-
 async function reApontarFks(deId: number, paraId: number) {
   const stats = {
-    catalogo: 0,
     combosMove: 0,
     combosDel: 0,
     orcamento: 0,
     obra: 0,
   };
-
-  const rCat = await p.catalogoAtividade.updateMany({
-    where: { subServicoId: deId },
-    data: { subServicoId: paraId },
-  });
-  stats.catalogo = rCat.count;
 
   const fonteCombos = await p.subServicoAtividade.findMany({
     where: { subServicoId: deId },
@@ -145,61 +130,6 @@ async function reApontarFks(deId: number, paraId: number) {
   return stats;
 }
 
-async function garantirCatalogo(
-  subServicoId: number,
-  etapaId: number,
-): Promise<boolean> {
-  const existe = await p.catalogoAtividade.findFirst({
-    where: { subServicoId, ativo: true },
-  });
-  if (existe) return false;
-
-  const sub = await p.subServico.findUnique({ where: { id: subServicoId } });
-  await p.catalogoAtividade.create({
-    data: {
-      nome: `Item — ${sub?.nome ?? subServicoId}`,
-      descricao: `Atividade de catálogo para sub-serviço ${sub?.nome ?? subServicoId} (garantia pós-migração)`,
-      especialidadeNecessaria: 'OUTROS',
-      tempoEstimadoHoras: 1,
-      etapaId,
-      subServicoId,
-    },
-  });
-  return true;
-}
-
-async function clonarCatalogoPara(
-  fonteId: number,
-  destinoId: number,
-  etapaId: number,
-  novoNome: string,
-): Promise<'clonado' | 'jaExistia' | 'garantido'> {
-  const existente = await p.catalogoAtividade.findFirst({
-    where: { subServicoId: destinoId, ativo: true },
-  });
-  if (existente) return 'jaExistia';
-
-  const fonteCat = await p.catalogoAtividade.findFirst({
-    where: { subServicoId: fonteId, ativo: true },
-  });
-  if (!fonteCat) {
-    const ok = await garantirCatalogo(destinoId, etapaId);
-    return ok ? 'garantido' : 'jaExistia';
-  }
-
-  await p.catalogoAtividade.create({
-    data: {
-      nome: `Item — ${novoNome}`,
-      descricao: fonteCat.descricao ?? `Clonado de ${fonteCat.nome}`,
-      especialidadeNecessaria: fonteCat.especialidadeNecessaria,
-      tempoEstimadoHoras: fonteCat.tempoEstimadoHoras,
-      etapaId,
-      subServicoId: destinoId,
-    },
-  });
-  return 'clonado';
-}
-
 async function main() {
   console.log(
     '--- Sub-serviços: mesclas (reapontar FKs → renomear → desativar perdedores) ---',
@@ -226,7 +156,7 @@ async function main() {
       }
       const stats = await reApontarFks(perdedorId, mescla.sobrevivente);
       console.log(
-        `  FK id=${perdedorId} → ${mescla.sobrevivente}: cat=${stats.catalogo}, combos move/del=${stats.combosMove}/${stats.combosDel}, orc=${stats.orcamento}, obra=${stats.obra}`,
+        `  FK id=${perdedorId} → ${mescla.sobrevivente}: combos move/del=${stats.combosMove}/${stats.combosDel}, orc=${stats.orcamento}, obra=${stats.obra}`,
       );
       await p.subServico.update({
         where: { id: perdedorId },
@@ -316,7 +246,7 @@ async function main() {
   }
 
   console.log(
-    '\n--- Sub-serviços: divisões (renomear fonte + criar novo + clonar catálogo) ---',
+    '\n--- Sub-serviços: divisões (renomear fonte + criar novo) ---',
   );
   for (const div of DIVISOES) {
     const fonte = await p.subServico.findUnique({ where: { id: div.fonteId } });
@@ -349,51 +279,19 @@ async function main() {
     const existente = await p.subServico.findFirst({
       where: { etapaId: div.etapaId, nome: div.novoNome },
     });
-    let novoId: number;
     if (existente) {
-      novoId = existente.id;
       console.log(
-        `  novo sub "${div.novoNome}" já existe (id=${novoId}) — mantendo`,
+        `  novo sub "${div.novoNome}" já existe (id=${existente.id}) — mantendo`,
       );
     } else {
       const criado = await p.subServico.create({
         data: { etapaId: div.etapaId, nome: div.novoNome, ativo: true },
       });
-      novoId = criado.id;
       console.log(
-        `  novo sub "${div.novoNome}" criado (id=${novoId}, etapa ${div.etapaId})`,
+        `  novo sub "${div.novoNome}" criado (id=${criado.id}, etapa ${div.etapaId})`,
       );
     }
-
-    const resultado = await clonarCatalogoPara(
-      div.fonteId,
-      novoId,
-      div.etapaId,
-      div.novoNome,
-    );
-    console.log(
-      `  catálogo "${div.novoNome}" (id=${novoId}): ${resultado}`,
-    );
   }
-
-  console.log(
-    '\n--- Garantia de catálogo (todo sub ativo ≥ 1 item ativo) ---',
-  );
-  const ativos = await p.subServico.findMany({
-    where: { ativo: true },
-    orderBy: { id: 'asc' },
-  });
-  let criados = 0;
-  for (const sub of ativos) {
-    const ok = await garantirCatalogo(sub.id, sub.etapaId);
-    if (ok) {
-      console.log(`  catálogo criado para sub id=${sub.id} ("${sub.nome}")`);
-      criados++;
-    }
-  }
-  console.log(
-    `  ${criados} catálogo(s) criado(s); ${ativos.length} sub(s) ativo(s) verificado(s)`,
-  );
 
   console.log('\n--- Resumo final (subs ativos por etapa) ---');
   const finais = await p.subServico.findMany({

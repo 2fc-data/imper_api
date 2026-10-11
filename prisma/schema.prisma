@@ -313,7 +313,6 @@ model Etapa {
   itensServico        ServicoItem[]
   subServicos         SubServico[]
   orcamentoAtividades OrcamentoAtividade[]
-  catalogoAtividades  CatalogoAtividade[]
 
   @@map("etapas")
 }
@@ -1126,54 +1125,6 @@ model UsuarioPapel {
   @@map("usuario_papel")
 }
 
-model CatalogoAtividade {
-  id                      String                 @id @default(cuid())
-  nome                    String
-  descricao               String?
-  especialidadeNecessaria EspecialidadeAtividade
-  tempoEstimadoHoras      Decimal?               @db.Decimal(5, 2)
-  ativo                   Boolean                @default(true)
-  criadoEm                DateTime               @default(now())
-  atualizadoEm            DateTime               @updatedAt
-  etapaId                 Int?
-  subServicoId            Int?
-  recursos                RecursoAtividade[]
-  subSteps                SubStepAtividade[]
-  orcamentoAtividades     OrcamentoAtividade[]
-  obrasAtividades         ObraAtividade[]
-  etapa                   Etapa?                 @relation(fields: [etapaId], references: [id])
-  subServico              SubServico?            @relation(fields: [subServicoId], references: [id])
-
-  @@index([etapaId])
-  @@index([subServicoId])
-  @@map("catalogo_atividades")
-}
-
-model SubStepAtividade {
-  id                  String               @id @default(cuid())
-  catalogoAtividadeId String
-  ordem               Int
-  descricao           String
-  observacao          String?
-  checklistAtividades ChecklistAtividade[]
-  catalogoAtividade   CatalogoAtividade    @relation(fields: [catalogoAtividadeId], references: [id])
-
-  @@unique([catalogoAtividadeId, ordem])
-  @@map("substep_atividades")
-}
-
-model RecursoAtividade {
-  id                  String                   @id @default(cuid())
-  catalogoAtividadeId String
-  tipo                EnumTipoRecursoAtividade
-  itemCatalogoId      Int
-  quantidade          Decimal                  @default(1.00) @db.Decimal(10, 2)
-  catalogoAtividade   CatalogoAtividade        @relation(fields: [catalogoAtividadeId], references: [id])
-
-  @@index([catalogoAtividadeId], map: "recurso_atividades_catalogoAtividadeId_fkey")
-  @@map("recurso_atividades")
-}
-
 model ExecucaoAtividade {
   id            String                      @id @default(cuid())
   atividadeId   String
@@ -1202,18 +1153,17 @@ model ExecucaoAtividade {
 model ChecklistAtividade {
   id                    String              @id @default(cuid())
   executucaoAtividadeId String
-  subStepAtividadeId    String
+  descricao             String              @db.VarChar(300)
+  ordem                 Int                 @default(0)
   status                EnumStatusChecklist @default(PENDENTE)
   concluidoEm           DateTime?
   concluidoPorId        Int?
   observacao            String?
   executucaoAtividade   ExecucaoAtividade   @relation(fields: [executucaoAtividadeId], references: [id], onDelete: Cascade)
   concluidoPor          User?               @relation(fields: [concluidoPorId], references: [id])
-  subStepAtividade      SubStepAtividade    @relation(fields: [subStepAtividadeId], references: [id])
 
-  @@index([executucaoAtividadeId])
+  @@index([executucaoAtividadeId, ordem])
   @@index([concluidoPorId], map: "checklist_atividade_concluidoPorId_fkey")
-  @@index([subStepAtividadeId], map: "checklist_atividade_subStepAtividadeId_fkey")
   @@map("checklist_atividade")
 }
 
@@ -1282,7 +1232,6 @@ model SubServico {
   combinacoes         SubServicoAtividade[]
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
-  catalogoAtividades  CatalogoAtividade[]
 
   @@unique([etapaId, nome])
   @@map("sub_servicos")
@@ -1345,7 +1294,6 @@ model OrcamentoAtividade {
   orcamentoId         Int
   etapaId             Int
   subServicoId        Int
-  catalogoAtividadeId String
   descricao           String                       @db.VarChar(1000)
   verboId             Int
   objetoId            Int
@@ -1366,7 +1314,6 @@ model OrcamentoAtividade {
   orcamento           Orcamento                    @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
   etapa               Etapa                        @relation(fields: [etapaId], references: [id])
   subServico          SubServico                   @relation(fields: [subServicoId], references: [id])
-  catalogoAtividade   CatalogoAtividade            @relation(fields: [catalogoAtividadeId], references: [id])
   verbo               Verbo                        @relation(fields: [verboId], references: [id])
   objeto              Objeto                       @relation(fields: [objetoId], references: [id])
   local               LocalObra?                   @relation(fields: [localId], references: [id])
@@ -1450,7 +1397,6 @@ model ObraAtividade {
   id                  String                  @id @default(cuid())
   obraEtapaId         Int
   subServicoId        Int
-  catalogoAtividadeId String
   descricao           String                  @db.VarChar(1000)
   verboId             Int
   objetoId            Int
@@ -1472,7 +1418,6 @@ model ObraAtividade {
   updatedAt           DateTime                @updatedAt
   obraEtapa           ObraEtapa               @relation(fields: [obraEtapaId], references: [id], onDelete: Cascade)
   subServico          SubServico              @relation(fields: [subServicoId], references: [id])
-  catalogoAtividade   CatalogoAtividade       @relation(fields: [catalogoAtividadeId], references: [id])
   verbo               Verbo                   @relation(fields: [verboId], references: [id])
   objeto              Objeto                  @relation(fields: [objetoId], references: [id])
   local               LocalObra?              @relation(fields: [localId], references: [id])
@@ -1779,22 +1724,6 @@ enum StatusManutencao {
   EM_ANDAMENTO
   CONCLUIDA
   CANCELADA
-}
-
-enum EspecialidadeAtividade {
-  IMPERMEABILIZACAO
-  PINTURA
-  ELETRICA
-  HIDRAULICA
-  CIVIL
-  LIMPEZA
-  OUTROS
-}
-
-enum EnumTipoRecursoAtividade {
-  EQUIPAMENTO
-  EPI
-  MATERIAL
 }
 
 enum EnumStatusExecucaoAtividade {

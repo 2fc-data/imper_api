@@ -9,10 +9,9 @@ export class ChecklistService {
     return this.prisma.checklistAtividade.findMany({
       where: { executucaoAtividadeId },
       include: {
-        subStepAtividade: true,
         concluidoPor: { select: { id: true, nome: true } },
       },
-      orderBy: { subStepAtividade: { ordem: 'asc' } },
+      orderBy: { ordem: 'asc' },
     });
   }
 

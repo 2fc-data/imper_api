@@ -66,11 +66,6 @@ export class ObrasService {
               orderBy: { ordem: 'asc' },
               include: {
                 materiais: { include: { material: true } },
-                catalogoAtividade: {
-                  include: {
-                    recursos: true,
-                  },
-                },
                 subServico: true,
                 verbo: true,
                 objeto: true,
@@ -245,19 +240,6 @@ export class ObrasService {
     });
     if (!etapa) throw new AppError(404, 'Etapa da obra não encontrada');
 
-    let catalogoAtividadeId = dto.catalogoAtividadeId;
-    if (!catalogoAtividadeId) {
-      const cat = await this.prisma.catalogoAtividade.findFirst({
-        where: { subServicoId: dto.subServicoId, ativo: true },
-        orderBy: [{ criadoEm: 'asc' }, { id: 'asc' }],
-        select: { id: true },
-      });
-      if (!cat) {
-        throw new AppError(400, 'Sub-serviço sem atividade de catálogo');
-      }
-      catalogoAtividadeId = cat.id;
-    }
-
     const ultimaOrdem = await this.prisma.obraAtividade.findFirst({
       where: { obraEtapaId: dto.obraEtapaId },
       orderBy: { ordem: 'desc' },
@@ -269,7 +251,6 @@ export class ObrasService {
         data: {
           obraEtapaId: dto.obraEtapaId,
           subServicoId: dto.subServicoId,
-          catalogoAtividadeId,
           descricao: dto.descricao,
           verboId: dto.verboId,
           objetoId: dto.objetoId,

@@ -12,7 +12,6 @@ const mockTx = {
   etapaOS: { create: vi.fn() },
   atividadeOS: { create: vi.fn() },
   atividadeOSLinha: { create: vi.fn() },
-  catalogoAtividade: { findMany: vi.fn() },
   checklistExecucao: { create: vi.fn() },
   separacao: { create: vi.fn() },
   etapaOSMaterial: { upsert: vi.fn() },
@@ -26,7 +25,6 @@ const mockPrisma = {
   atendimento: { findUnique: vi.fn() },
   visitaTecnica: { findFirst: vi.fn(), findUnique: vi.fn() },
   material: { findMany: vi.fn() },
-  catalogoAtividade: { findMany: vi.fn() },
   orcamento: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -58,7 +56,6 @@ function dtoBase(): CriarOrcamentoDto {
       {
         etapaId: 1,
         subServicoId: 1,
-        catalogoAtividadeId: 'cat-1',
         linhas: [
           {
             descricao: 'Aplicar tinta PVA na parede',
@@ -127,7 +124,6 @@ describe('OrcamentosService', () => {
         ordem: 0,
         etapaId: 1,
         subServicoId: 1,
-        catalogoAtividadeId: 'cat-1',
         moValorTotal: 350,
         materiaisValor: 21,
         linhaValorTotal: 371,
@@ -279,47 +275,6 @@ describe('OrcamentosService', () => {
           data: expect.objectContaining({ agendamentoId: null }),
         }),
       );
-    });
-
-    it('auto-resolve: omite catalogoAtividadeId → usa primeiro catálogo ativo do sub-serviço', async () => {
-      mockPrisma.catalogoAtividade.findMany.mockResolvedValue([
-        { id: 'cat-auto', subServicoId: 1 },
-      ]);
-
-      const dto = dtoBase();
-      delete dto.atividades[0].catalogoAtividadeId;
-
-      const result: any = await service.criar(dto, 1);
-
-      expect(mockPrisma.catalogoAtividade.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { subServicoId: { in: [1] }, ativo: true },
-        }),
-      );
-      const linhas = result.atividades.create;
-      expect(linhas).toHaveLength(2);
-      expect(linhas[0].catalogoAtividadeId).toBe('cat-auto');
-      expect(linhas[1].catalogoAtividadeId).toBe('cat-auto');
-    });
-
-    it('auto-resolve: catálogo ausente → 400 Sub-serviço sem atividade de catálogo', async () => {
-      mockPrisma.catalogoAtividade.findMany.mockResolvedValue([]);
-
-      const dto = dtoBase();
-      delete dto.atividades[0].catalogoAtividadeId;
-
-      await expect(service.criar(dto, 1)).rejects.toThrow(
-        'Sub-serviço sem atividade de catálogo',
-      );
-      expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
-    });
-
-    it('auto-resolve: mantém id explícito quando enviado', async () => {
-      const result: any = await service.criar(dtoBase(), 1);
-
-      expect(mockPrisma.catalogoAtividade.findMany).not.toHaveBeenCalled();
-      expect(result.atividades.create[0].catalogoAtividadeId).toBe('cat-1');
-      expect(result.atividades.create[1].catalogoAtividadeId).toBe('cat-1');
     });
   });
 
@@ -642,7 +597,6 @@ describe('OrcamentosService', () => {
             ordem: 0,
             etapaId: 1,
             subServicoId: 1,
-            catalogoAtividadeId: 'cat-1',
             descricao: 'Linha A',
             verboId: 1,
             objetoId: 2,
@@ -658,7 +612,6 @@ describe('OrcamentosService', () => {
             ordem: 1,
             etapaId: 1,
             subServicoId: 1,
-            catalogoAtividadeId: 'cat-1',
             descricao: 'Linha B',
             verboId: 2,
             objetoId: 3,
@@ -674,7 +627,6 @@ describe('OrcamentosService', () => {
             ordem: 2,
             etapaId: 2,
             subServicoId: 2,
-            catalogoAtividadeId: 'cat-2',
             descricao: 'Linha C',
             verboId: 3,
             objetoId: 4,
@@ -800,7 +752,6 @@ describe('OrcamentosService', () => {
         data: expect.objectContaining({
           obraEtapaId: 11,
           subServicoId: 1,
-          catalogoAtividadeId: 'cat-1',
           descricao: 'Linha A',
           ordem: 0,
           aditivoId: null,
@@ -811,7 +762,6 @@ describe('OrcamentosService', () => {
         data: expect.objectContaining({
           obraEtapaId: 11,
           subServicoId: 1,
-          catalogoAtividadeId: 'cat-1',
           descricao: 'Linha B',
           ordem: 1,
         }),
@@ -820,7 +770,6 @@ describe('OrcamentosService', () => {
         data: expect.objectContaining({
           obraEtapaId: 12,
           subServicoId: 2,
-          catalogoAtividadeId: 'cat-2',
           descricao: 'Linha C',
           ordem: 2,
         }),
