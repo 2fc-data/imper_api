@@ -94,7 +94,7 @@ describe('OrcamentosService', () => {
         status: 'ORCAMENTAMENTO',
         visitaSolicitada: false,
       });
-      mockPrisma.orcamento.findFirst.mockResolvedValue({ codigo: 'ORM-005' });
+      mockPrisma.orcamento.findMany.mockResolvedValue([{ codigo: 'ORM-005' }]);
       mockPrisma.material.findMany.mockResolvedValue([
         { id: 1, custoUnitario: 10.5 },
         { id: 2, custoUnitario: 3 },
@@ -160,6 +160,58 @@ describe('OrcamentosService', () => {
       const diff = result.validade.getTime() - antes;
       expect(diff).toBeGreaterThan(29 * 86400000);
       expect(diff).toBeLessThan(31 * 86400000);
+    });
+
+    it('ignora códigos legados (seed) e gera ORM-001 sem colidir', async () => {
+      mockPrisma.orcamento.findMany.mockResolvedValue([
+        { codigo: 'seed2-abc12-ORC' },
+        { codigo: 'ORM-001' },
+      ]);
+
+      const result: any = await service.criar(dtoBase(), 1);
+
+      expect(result.codigo).toBe('ORM-002');
+      expect(mockPrisma.orcamento.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { codigo: { startsWith: 'ORM-' } },
+        }),
+      );
+    });
+
+    it('re-tenta quando o ORM-NNN colide (P2002) e grava na 2ª tentativa', async () => {
+      mockPrisma.orcamento.create
+        .mockRejectedValueOnce(
+          new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+            code: 'P2002',
+            clientVersion: 'test',
+            meta: { target: ['codigo'] },
+          }),
+        )
+        .mockImplementation((args: any) => Promise.resolve(args.data));
+
+      const result: any = await service.criar(dtoBase(), 1);
+
+      expect(result.codigo).toBe('ORM-006');
+      expect(mockPrisma.orcamento.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('lança 409 quando as 3 tentativas de código colidem', async () => {
+      mockPrisma.orcamento.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['codigo'] },
+        }),
+      );
+
+      try {
+        await service.criar(dtoBase(), 1);
+        expect.unreachable('deveria lançar AppError');
+      } catch (e) {
+        expect(e).toBeInstanceOf(AppError);
+        expect((e as AppError).getStatus()).toBe(409);
+      }
+      expect(mockPrisma.orcamento.create).toHaveBeenCalledTimes(3);
     });
 
     it('lança 404 quando o atendimento não existe', async () => {

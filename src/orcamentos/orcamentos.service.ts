@@ -147,28 +147,45 @@ export class OrcamentosService {
       ? new Date(dto.validade)
       : this.validadePadrao();
 
-    return this.prisma.orcamento.create({
-      data: {
-        codigo,
-        atendimentoId: dto.atendimentoId,
-        visitaId: dto.visitaId ?? null,
-        agendamentoId: dto.agendamentoId ?? null,
-        userId: atendimento.userId,
-        enderecoId: dto.enderecoId ?? null,
-        servicoMarketingId: dto.servicoMarketingId ?? null,
-        urgencia: dto.urgencia,
-        status: 'RASCUNHO',
-        areaM2: dto.areaM2 ?? null,
-        valorM2: dto.valorM2 ?? null,
-        valorTotal: total,
-        validade,
-        observacoes: dto.observacoes ?? null,
-        criadoPorId: userId,
-        atividades: { create: linhas },
-        ...(dto.ficha ? { ficha: { create: { ...dto.ficha } } } : {}),
-      },
-      include: includeResumo,
-    });
+    const dados = {
+      codigo,
+      atendimentoId: dto.atendimentoId,
+      visitaId: dto.visitaId ?? null,
+      agendamentoId: dto.agendamentoId ?? null,
+      userId: atendimento.userId,
+      enderecoId: dto.enderecoId ?? null,
+      servicoMarketingId: dto.servicoMarketingId ?? null,
+      urgencia: dto.urgencia,
+      status: 'RASCUNHO' as const,
+      areaM2: dto.areaM2 ?? null,
+      valorM2: dto.valorM2 ?? null,
+      valorTotal: total,
+      validade,
+      observacoes: dto.observacoes ?? null,
+      criadoPorId: userId,
+      atividades: { create: linhas },
+      ...(dto.ficha ? { ficha: { create: { ...dto.ficha } } } : {}),
+    };
+
+    // ORM-NNN pode colidir (corrida entre clientes, códigos legados) → nova tentativa.
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const codigoTentativa =
+        tentativa === 0 ? codigo : await this.gerarCodigo();
+      try {
+        return await this.prisma.orcamento.create({
+          data: { ...dados, codigo: codigoTentativa },
+          include: includeResumo,
+        });
+      } catch (e) {
+        if (
+          !(e instanceof Prisma.PrismaClientKnownRequestError) ||
+          e.code !== 'P2002'
+        ) {
+          throw e;
+        }
+      }
+    }
+    throw new AppError(409, 'Não foi possível gerar o código do orçamento');
   }
 
   async atualizar(id: number, dto: CriarOrcamentoDto) {
@@ -250,17 +267,18 @@ export class OrcamentosService {
   }
 
   private async gerarCodigo(): Promise<string> {
-    const maxCode = await this.prisma.orcamento.findFirst({
-      orderBy: { id: 'desc' },
+    // Só os códigos ORM-NNN entram na sequência: códigos legados/de seed
+    // (ex.: "seed2-abc-ORC") não terminam em número e quebravam a lógica.
+    const existentes = await this.prisma.orcamento.findMany({
+      where: { codigo: { startsWith: 'ORM-' } },
       select: { codigo: true },
     });
-
-    let nextNum = 1;
-    if (maxCode) {
-      const match = maxCode.codigo.match(/(\d+)$/);
-      if (match) nextNum = Number(match[1]) + 1;
+    let max = 0;
+    for (const { codigo } of existentes) {
+      const m = codigo.match(/^ORM-(\d+)$/);
+      if (m) max = Math.max(max, Number(m[1]));
     }
-    return `ORM-${String(nextNum).padStart(3, '0')}`;
+    return `ORM-${String(max + 1).padStart(3, '0')}`;
   }
 
   private validadePadrao(): Date {
