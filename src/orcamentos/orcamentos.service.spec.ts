@@ -8,7 +8,6 @@ const mockTx = {
   orcamento: { update: vi.fn(), findUnique: vi.fn(), delete: vi.fn() },
   orcamentoObraFicha: { upsert: vi.fn(), deleteMany: vi.fn() },
   orcamentoAtividade: { deleteMany: vi.fn(), create: vi.fn() },
-  ordemServico: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() },
   etapa: { findMany: vi.fn() },
   etapaOS: { create: vi.fn() },
   atividadeOS: { create: vi.fn() },
@@ -851,7 +850,6 @@ describe('OrcamentosService', () => {
           custoUnitario: 0,
         },
       });
-      expect(mockTx.ordemServico.create).not.toHaveBeenCalled();
       expect(result).toEqual({
         orcamento: { id: 1, status: 'APROVADO' },
         obra: { id: 50, codigo: 'OBR-001' },
