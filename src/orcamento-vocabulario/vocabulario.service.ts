@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
-import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AtualizarEtapaDto,
   AtualizarSubServicoDto,
   AtualizarTermoDto,
-  ComboDto,
   CriarEtapaDto,
   CriarSubServicoDto,
   CriarTermoDto,
@@ -160,7 +158,9 @@ export class VocabularioService {
     if (!Number.isInteger(id)) {
       throw new AppError(404, 'Sub-serviço não encontrado');
     }
-    const existente = await this.prisma.subServico.findUnique({ where: { id } });
+    const existente = await this.prisma.subServico.findUnique({
+      where: { id },
+    });
     if (!existente) throw new AppError(404, 'Sub-serviço não encontrado');
 
     if (dto.etapaId !== undefined && dto.etapaId !== existente.etapaId) {
@@ -175,7 +175,8 @@ export class VocabularioService {
       const duplicado = await this.prisma.subServico.findFirst({
         where: { etapaId: etapaIdAlvo, nome: dto.nome },
       });
-      if (duplicado) throw new AppError(409, 'Sub-serviço já existe nesta etapa');
+      if (duplicado)
+        throw new AppError(409, 'Sub-serviço já existe nesta etapa');
     }
 
     return this.prisma.subServico.update({
@@ -188,133 +189,13 @@ export class VocabularioService {
     if (!Number.isInteger(id)) {
       throw new AppError(404, 'Sub-serviço não encontrado');
     }
-    const existente = await this.prisma.subServico.findUnique({ where: { id } });
+    const existente = await this.prisma.subServico.findUnique({
+      where: { id },
+    });
     if (!existente) throw new AppError(404, 'Sub-serviço não encontrado');
     return this.prisma.subServico.update({
       where: { id },
       data: { ativo: false },
-    });
-  }
-
-  async listarCombos(filtros: { subServicoId?: number; ativo?: boolean } = {}) {
-    return this.prisma.subServicoAtividade.findMany({
-      where: {
-        ...(filtros.subServicoId !== undefined && {
-          subServicoId: filtros.subServicoId,
-        }),
-        ...(filtros.ativo !== undefined && { ativo: filtros.ativo }),
-      },
-      include: {
-        subServico: {
-          select: { id: true, etapaId: true, nome: true, ativo: true },
-        },
-        verbo: { select: { id: true, nome: true } },
-        objeto: { select: { id: true, nome: true } },
-        local: { select: { id: true, nome: true } },
-        caracteristica: { select: { id: true, nome: true } },
-      },
-      orderBy: [{ subServicoId: 'asc' }, { id: 'asc' }],
-    });
-  }
-
-  async listarCombosDoSubServico(subServicoId: number, ativo?: boolean) {
-    if (!Number.isInteger(subServicoId)) {
-      throw new AppError(404, 'Sub-serviço não encontrado');
-    }
-    const sub = await this.prisma.subServico.findUnique({
-      where: { id: subServicoId },
-    });
-    if (!sub) throw new AppError(404, 'Sub-serviço não encontrado');
-    return this.listarCombos({ subServicoId, ativo });
-  }
-
-  async criarLote(subServicoId: number, combos: ComboDto[]) {
-    return this.prisma.$transaction(async (tx) => {
-      const subServico = await tx.subServico.findUnique({
-        where: { id: subServicoId },
-      });
-      if (!subServico) throw new AppError(404, 'Sub-serviço não encontrado');
-
-      const existentes = await tx.subServicoAtividade.findMany({
-        where: { subServicoId },
-      });
-      const chave = (c: ComboDto) =>
-        [
-          c.verboId,
-          c.objetoId,
-          c.localId ?? null,
-          c.caracteristicaId ?? null,
-        ].join('|');
-      const mapa = new Map(existentes.map((l) => [chave(l as ComboDto), l]));
-
-      const novos: ComboDto[] = [];
-      const paraReativar: number[] = [];
-      const vistos = new Set<string>();
-
-      for (const c of combos) {
-        const k = chave(c);
-        if (vistos.has(k)) continue;
-        vistos.add(k);
-        const existente = mapa.get(k);
-        if (!existente) {
-          novos.push(c);
-        } else if (!existente.ativo) {
-          paraReativar.push(existente.id);
-        }
-      }
-
-      if (paraReativar.length > 0) {
-        await tx.subServicoAtividade.updateMany({
-          where: { id: { in: paraReativar } },
-          data: { ativo: true },
-        });
-      }
-      if (novos.length > 0) {
-        await tx.subServicoAtividade.createMany({
-          data: novos.map((c) => ({
-            subServicoId,
-            verboId: c.verboId,
-            objetoId: c.objetoId,
-            localId: c.localId ?? null,
-            caracteristicaId: c.caracteristicaId ?? null,
-          })),
-        });
-      }
-
-      const ignorados = combos.length - novos.length - paraReativar.length;
-      return {
-        criados: novos.length,
-        reativados: paraReativar.length,
-        ignorados: Math.max(ignorados, 0),
-      };
-    });
-  }
-
-  async removerCombo(id: number) {
-    if (!Number.isInteger(id)) {
-      throw new AppError(404, 'Combinação não encontrada');
-    }
-    const existente = await this.prisma.subServicoAtividade.findUnique({
-      where: { id },
-    });
-    if (!existente) throw new AppError(404, 'Combinação não encontrada');
-    return this.prisma.subServicoAtividade.update({
-      where: { id },
-      data: { ativo: false },
-    });
-  }
-
-  async reativarCombo(id: number) {
-    if (!Number.isInteger(id)) {
-      throw new AppError(404, 'Combinação não encontrada');
-    }
-    const existente = await this.prisma.subServicoAtividade.findUnique({
-      where: { id },
-    });
-    if (!existente) throw new AppError(404, 'Combinação não encontrada');
-    return this.prisma.subServicoAtividade.update({
-      where: { id },
-      data: { ativo: true },
     });
   }
 

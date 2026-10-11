@@ -2,25 +2,16 @@ import { AppError } from '../lib/errors.js';
 import { VocabularioService } from './vocabulario.service.js';
 
 const mockPrisma = {
-  subServico: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   subServicoAtividade: {
     findMany: vi.fn(),
-    findUnique: vi.fn(),
-    createMany: vi.fn(),
-    update: vi.fn(),
-    updateMany: vi.fn(),
   },
-  etapa: { findUnique: vi.fn() },
   verbo: {
-    findMany: vi.fn(),
     findFirst: vi.fn(),
-    findUnique: vi.fn(),
     create: vi.fn(),
   },
-  $transaction: vi.fn(),
 };
 
-function combo(id: number, overrides: Record<string, unknown> = {}) {
+function linhaCascata(id: number, overrides: Record<string, unknown> = {}) {
   return {
     id,
     subServicoId: 1,
@@ -39,14 +30,11 @@ describe('VocabularioService', () => {
   beforeEach(() => {
     service = new VocabularioService(mockPrisma as any);
     vi.clearAllMocks();
-    mockPrisma.$transaction.mockImplementation(async (fn: any) =>
-      fn(mockPrisma),
-    );
   });
 
   describe('cascata (faceted)', () => {
     const linhas = [
-      combo(1, {
+      linhaCascata(1, {
         verboId: 1,
         objetoId: 10,
         localId: null,
@@ -55,7 +43,7 @@ describe('VocabularioService', () => {
         local: null,
         caracteristica: { id: 100, nome: 'branca' },
       }),
-      combo(2, {
+      linhaCascata(2, {
         verboId: 1,
         objetoId: 11,
         localId: 20,
@@ -64,7 +52,7 @@ describe('VocabularioService', () => {
         local: { id: 20, nome: 'sala' },
         caracteristica: null,
       }),
-      combo(3, {
+      linhaCascata(3, {
         verboId: 2,
         objetoId: 12,
         localId: null,
@@ -117,78 +105,6 @@ describe('VocabularioService', () => {
           where: { subServicoId: 1, ativo: true },
         }),
       );
-    });
-  });
-
-  describe('criarLote (dedup)', () => {
-    it('combos idênticos no mesmo lote (localId null) → criados 1, ignorados 1', async () => {
-      mockPrisma.subServico.findUnique.mockResolvedValue({ id: 1 });
-      mockPrisma.subServicoAtividade.findMany.mockResolvedValue([]);
-      const resultado = await service.criarLote(1, [
-        { verboId: 1, objetoId: 10 },
-        { verboId: 1, objetoId: 10, localId: null },
-      ]);
-      expect(resultado).toEqual({ criados: 1, reativados: 0, ignorados: 1 });
-      expect(mockPrisma.subServicoAtividade.createMany).toHaveBeenCalledTimes(
-        1,
-      );
-    });
-
-    it('ignora combos já existentes (comparação com NULL explícito)', async () => {
-      mockPrisma.subServico.findUnique.mockResolvedValue({ id: 1 });
-      mockPrisma.subServicoAtividade.findMany.mockResolvedValue([
-        combo(7, {
-          verboId: 1,
-          objetoId: 10,
-          localId: null,
-          caracteristicaId: null,
-        }),
-      ]);
-      const resultado = await service.criarLote(1, [
-        { verboId: 1, objetoId: 10, localId: null },
-        { verboId: 1, objetoId: 11, localId: 5 },
-      ]);
-      expect(resultado).toEqual({ criados: 1, reativados: 0, ignorados: 1 });
-      expect(mockPrisma.subServicoAtividade.createMany).toHaveBeenCalledWith({
-        data: [
-          {
-            subServicoId: 1,
-            verboId: 1,
-            objetoId: 11,
-            localId: 5,
-            caracteristicaId: null,
-          },
-        ],
-      });
-    });
-
-    it('reativa combos existentes inativos em vez de recriar', async () => {
-      mockPrisma.subServico.findUnique.mockResolvedValue({ id: 1 });
-      mockPrisma.subServicoAtividade.findMany.mockResolvedValue([
-        combo(7, {
-          ativo: false,
-          verboId: 1,
-          objetoId: 10,
-          localId: null,
-          caracteristicaId: null,
-        }),
-      ]);
-      const resultado = await service.criarLote(1, [
-        { verboId: 1, objetoId: 10, localId: null },
-      ]);
-      expect(resultado).toEqual({ criados: 0, reativados: 1, ignorados: 0 });
-      expect(mockPrisma.subServicoAtividade.updateMany).toHaveBeenCalledWith({
-        where: { id: { in: [7] } },
-        data: { ativo: true },
-      });
-      expect(mockPrisma.subServicoAtividade.createMany).not.toHaveBeenCalled();
-    });
-
-    it('lança 404 quando o sub-serviço não existe', async () => {
-      mockPrisma.subServico.findUnique.mockResolvedValue(null);
-      await expect(
-        service.criarLote(999, [{ verboId: 1, objetoId: 10 }]),
-      ).rejects.toThrow(AppError);
     });
   });
 

@@ -16,14 +16,10 @@ import { AppError } from '../lib/errors.js';
 import {
   type AtualizarSubServicoDto,
   type AtualizarTermoDto,
-  type ComboLoteDto,
-  type ComboUnicoDto,
-  type CriarSubServicoDto,
-  type CriarTermoDto,
   atualizarSubServicoSchema,
   atualizarTermoSchema,
-  comboLoteSchema,
-  comboUnicoSchema,
+  type CriarSubServicoDto,
+  type CriarTermoDto,
   criarSubServicoSchema,
   criarTermoSchema,
 } from './dto/vocabulario.dto.js';
@@ -205,17 +201,6 @@ export class VocabularioController {
     });
   }
 
-  @Get('sub-servicos/:id/combos')
-  listarCombosDoSubServico(
-    @Param('id') id: string,
-    @Query('ativo') ativo?: string,
-  ) {
-    return this.service.listarCombosDoSubServico(
-      parseId(id, 'Sub-serviço'),
-      parseAtivo(ativo),
-    );
-  }
-
   @Permissions('gerenciar_catalogo')
   @Patch('sub-servicos/:id')
   atualizarSubServico(
@@ -230,47 +215,5 @@ export class VocabularioController {
   @Delete('sub-servicos/:id')
   removerSubServico(@Param('id') id: string) {
     return this.service.removerSubServico(parseId(id, 'Sub-serviço'));
-  }
-
-  @Get('combinaoes')
-  listarCombos(
-    @Query('subServicoId') subServicoId?: string,
-    @Query('ativo') ativo?: string,
-  ) {
-    return this.service.listarCombos({
-      subServicoId:
-        subServicoId !== undefined
-          ? parseId(subServicoId, 'subServicoId')
-          : undefined,
-      ativo: parseAtivo(ativo),
-    });
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Post('combinaoes/lote')
-  criarCombosLote(
-    @Body(new ZodValidationPipe(comboLoteSchema)) dto: ComboLoteDto,
-  ) {
-    return this.service.criarLote(dto.subServicoId, dto.combos);
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Post('combinaoes')
-  criarCombo(
-    @Body(new ZodValidationPipe(comboUnicoSchema)) dto: ComboUnicoDto,
-  ) {
-    return this.service.criarLote(dto.subServicoId, [dto]);
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Patch('combinaoes/:id/reativar')
-  reativarCombo(@Param('id') id: string) {
-    return this.service.reativarCombo(parseId(id, 'Combinação'));
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Delete('combinaoes/:id')
-  removerCombo(@Param('id') id: string) {
-    return this.service.removerCombo(parseId(id, 'Combinação'));
   }
 }
