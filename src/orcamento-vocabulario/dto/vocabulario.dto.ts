@@ -55,28 +55,12 @@ export const atualizarEtapaSchema = z.object({
     .min(1, 'Informe o nome')
     .max(120, 'Máximo de 120 caracteres')
     .optional(),
-  ordem: z.number().int('Ordem inválida').min(1, 'Ordem deve ser >= 1').optional(),
-  ativo: z.boolean().optional(),
-});
-
-const comboBaseSchema = z.object({
-  verboId: z.number().int('Verbo inválido'),
-  objetoId: z.number().int('Objeto inválido'),
-  localId: z.number().int('Local inválido').nullable().optional(),
-  caracteristicaId: z
+  ordem: z
     .number()
-    .int('Característica inválida')
-    .nullable()
+    .int('Ordem inválida')
+    .min(1, 'Ordem deve ser >= 1')
     .optional(),
-});
-
-export const comboLoteSchema = z.object({
-  subServicoId: z.number().int('Sub-serviço inválido'),
-  combos: z.array(comboBaseSchema).min(1, 'Informe ao menos uma combinação'),
-});
-
-export const comboUnicoSchema = comboBaseSchema.extend({
-  subServicoId: z.number().int('Sub-serviço inválido'),
+  ativo: z.boolean().optional(),
 });
 
 export type CriarTermoDto = z.infer<typeof criarTermoSchema>;
@@ -85,6 +69,3 @@ export type CriarSubServicoDto = z.infer<typeof criarSubServicoSchema>;
 export type AtualizarSubServicoDto = z.infer<typeof atualizarSubServicoSchema>;
 export type CriarEtapaDto = z.infer<typeof criarEtapaSchema>;
 export type AtualizarEtapaDto = z.infer<typeof atualizarEtapaSchema>;
-export type ComboLoteDto = z.infer<typeof comboLoteSchema>;
-export type ComboUnicoDto = z.infer<typeof comboUnicoSchema>;
-export type ComboDto = z.infer<typeof comboBaseSchema>;
