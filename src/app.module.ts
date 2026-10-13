@@ -26,8 +26,8 @@ import { RbacModule } from './rbac/rbac.module.js';
 import { SeparacaoModule } from './separacao/separacao.module.js';
 import { ServicosAdminModule } from './servicos-admin/servicos-admin.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
-import { VisitasModule } from './visitas/visitas.module.js';
 import { VeiculosModule } from './veiculos/veiculos.module.js';
+import { VisitasModule } from './visitas/visitas.module.js';
 import { WhatsAppService } from './whatsapp/whatsapp.service.js';
 
 @Module({
@@ -44,6 +44,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     ManutencoesModule,
     ManutencoesVeiculosModule,
     MateriaisModule,
+    ObrasModule,
     OrcamentoVocabularioModule,
     OrcamentosModule,
     PortalModule,

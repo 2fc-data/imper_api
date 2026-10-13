@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { TipoMaterial } from '@prisma/client';
 import type { Request } from 'express';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type {
   MaterialInputDto,
@@ -49,6 +50,7 @@ export class MateriaisController {
   }
 
   @Post('lookups/categorias')
+  @Permissions('gerenciar_catalogo')
   async criarCategoria(
     @Body() body: { nome: string; descricao?: string; ordem?: number },
   ) {
@@ -56,6 +58,7 @@ export class MateriaisController {
   }
 
   @Put('lookups/categorias/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarCategoria(
     @Param('id') id: string,
     @Body() body: {
@@ -69,6 +72,7 @@ export class MateriaisController {
   }
 
   @Delete('lookups/categorias/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarCategoria(@Param('id') id: string) {
     return this.materiaisService.desativarCategoria(Number(id));
   }
@@ -81,6 +85,7 @@ export class MateriaisController {
   }
 
   @Post('lookups/subcategorias')
+  @Permissions('gerenciar_catalogo')
   async criarSubcategoria(
     @Body() body: {
       categoriaId: number;
@@ -93,6 +98,7 @@ export class MateriaisController {
   }
 
   @Put('lookups/subcategorias/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarSubcategoria(
     @Param('id') id: string,
     @Body() body: {
@@ -106,6 +112,7 @@ export class MateriaisController {
   }
 
   @Delete('lookups/subcategorias/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarSubcategoria(@Param('id') id: string) {
     return this.materiaisService.desativarSubcategoria(Number(id));
   }
@@ -118,11 +125,13 @@ export class MateriaisController {
   }
 
   @Post('lookups/marcas')
+  @Permissions('gerenciar_catalogo')
   async criarMarca(@Body() body: { nome: string }) {
     return this.materiaisService.criarMarca(body);
   }
 
   @Put('lookups/marcas/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarMarca(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -131,6 +140,7 @@ export class MateriaisController {
   }
 
   @Delete('lookups/marcas/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarMarca(@Param('id') id: string) {
     return this.materiaisService.desativarMarca(Number(id));
   }
@@ -143,11 +153,13 @@ export class MateriaisController {
   }
 
   @Post('lookups/cores')
+  @Permissions('gerenciar_catalogo')
   async criarCor(@Body() body: { nome: string }) {
     return this.materiaisService.criarCor(body);
   }
 
   @Put('lookups/cores/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarCor(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -156,11 +168,13 @@ export class MateriaisController {
   }
 
   @Delete('lookups/cores/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarCor(@Param('id') id: string) {
     return this.materiaisService.desativarCor(Number(id));
   }
 
   @Delete(':id')
+  @Permissions('gerenciar_estoque')
   async excluir(@Param('id') id: string) {
     return this.materiaisService.excluir(Number(id));
   }
@@ -171,16 +185,19 @@ export class MateriaisController {
   }
 
   @Post()
+  @Permissions('criar_material')
   async criar(@Body() dto: MaterialInputDto) {
     return this.materiaisService.criar(dto);
   }
 
   @Put(':id')
+  @Permissions('gerenciar_estoque')
   async atualizar(@Param('id') id: string, @Body() dto: MaterialUpdateDto) {
     return this.materiaisService.atualizar(Number(id), dto);
   }
 
   @Post(':id/entrada')
+  @Permissions('entrada_estoque')
   async registrarEntrada(
     @Param('id') id: string,
     @Body() dto: MaterialMovimentoDto,
@@ -194,6 +211,7 @@ export class MateriaisController {
   }
 
   @Post(':id/saida')
+  @Permissions('gerenciar_estoque')
   async registrarSaida(
     @Param('id') id: string,
     @Body() dto: MaterialMovimentoDto,

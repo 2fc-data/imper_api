@@ -16,26 +16,26 @@ const PERMISSOES = [
   // Orçamentos / financeiro
   { chave: 'ver_financeiro',       descricao: 'Ver dados financeiros',          categoria: 'financeiro' },
   { chave: 'aprovar_compra',       descricao: 'Aprovar compras',                categoria: 'financeiro' },
+  { chave: 'aprovar_orcamento',    descricao: 'Aprovar/recusar orçamento',      categoria: 'financeiro' },
   // Serviços
   { chave: 'criar_servico',        descricao: 'Criar serviço',                  categoria: 'configuracoes' },
   { chave: 'editar_servico',       descricao: 'Editar serviço',                 categoria: 'configuracoes' },
-  // Ordens de Serviço
-  { chave: 'criar_os',             descricao: 'Criar OS',                       categoria: 'ordens_servico' },
-  { chave: 'editar_os',            descricao: 'Editar OS',                      categoria: 'ordens_servico' },
-  { chave: 'iniciar_os',           descricao: 'Iniciar OS',                     categoria: 'ordens_servico' },
-  { chave: 'concluir_os',          descricao: 'Concluir OS',                    categoria: 'ordens_servico' },
-  { chave: 'aprovar_os',           descricao: 'Aprovar OS',                     categoria: 'ordens_servico' },
-  { chave: 'cancelar_os',          descricao: 'Cancelar OS',                    categoria: 'ordens_servico' },
-  { chave: 'gerenciar_os',         descricao: 'Gerenciar OS (visão completa)',  categoria: 'ordens_servico' },
+  // Execução de atividades (substitui a antiga camada de Ordens de Serviço)
+  { chave: 'criar_execucao',       descricao: 'Criar execução de atividades',   categoria: 'execucao' },
+  { chave: 'editar_execucao',      descricao: 'Editar execução de atividades',  categoria: 'execucao' },
+  { chave: 'iniciar_execucao',     descricao: 'Iniciar execução',               categoria: 'execucao' },
+  { chave: 'concluir_execucao',    descricao: 'Concluir execução',              categoria: 'execucao' },
+  { chave: 'gerenciar_execucao',   descricao: 'Gerenciar execuções (visão completa)', categoria: 'execucao' },
   // Obras
-  { chave: 'ver_obras',            descricao: 'Ver obras e painel',             categoria: 'ordens_servico' },
-  { chave: 'editar_obra',          descricao: 'Editar mestre da obra',          categoria: 'ordens_servico' },
-  { chave: 'criar_aditivo',        descricao: 'Criar aditivo de obra',          categoria: 'ordens_servico' },
-  { chave: 'aprovar_aditivo',      descricao: 'Aprovar/recusar aditivo',        categoria: 'ordens_servico' },
+  { chave: 'ver_obras',            descricao: 'Ver obras e painel',             categoria: 'obras' },
+  { chave: 'editar_obra',          descricao: 'Editar mestre da obra',          categoria: 'obras' },
+  { chave: 'criar_aditivo',        descricao: 'Criar aditivo de obra',          categoria: 'obras' },
+  { chave: 'aprovar_aditivo',      descricao: 'Aprovar/recusar aditivo',        categoria: 'obras' },
   // Estoque / insumos
   { chave: 'gerenciar_estoque',    descricao: 'Gerenciar estoque e materiais',  categoria: 'estoque' },
   { chave: 'entrada_estoque',      descricao: 'Registrar entradas de estoque',  categoria: 'estoque' },
   { chave: 'criar_material',       descricao: 'Criar material',                 categoria: 'estoque' },
+  { chave: 'separar_item',         descricao: 'Separar itens para execução',    categoria: 'estoque' },
   { chave: 'gerenciar_equipamentos', descricao: 'Gerenciar equipamentos',       categoria: 'estoque' },
   { chave: 'gerenciar_epis',       descricao: 'Gerenciar EPIs',                 categoria: 'estoque' },
   // Usuários / RBAC
@@ -45,7 +45,7 @@ const PERMISSOES = [
   { chave: 'resetar_senha_usuario',descricao: 'Resetar senha de usuário',       categoria: 'usuarios' },
   { chave: 'gerenciar_papeis',     descricao: 'Gerenciar papéis e permissões',  categoria: 'usuarios' },
   // Catálogo
-  { chave: 'gerenciar_catalogo',   descricao: 'Gerenciar catálogo de atividades', categoria: 'configuracoes' },
+  { chave: 'gerenciar_catalogo',   descricao: 'Gerenciar catálogos e vocabulários', categoria: 'configuracoes' },
   // Frota
   { chave: 'visualizar_frota',     descricao: 'Visualizar veículos e relatórios da frota', categoria: 'frota' },
   { chave: 'registrar_km_frota',   descricao: 'Registrar quilometragem diária',            categoria: 'frota' },
@@ -58,30 +58,30 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
 
   SUPERVISOR: [
     'criar_atendimento', 'editar_atendimento',
-    'ver_financeiro', 'aprovar_compra',
+    'ver_financeiro', 'aprovar_compra', 'aprovar_orcamento',
     'criar_servico', 'editar_servico',
-    'criar_os', 'editar_os', 'iniciar_os', 'concluir_os', 'aprovar_os', 'cancelar_os', 'gerenciar_os',
+    'criar_execucao', 'editar_execucao', 'iniciar_execucao', 'concluir_execucao', 'gerenciar_execucao',
     'ver_obras', 'editar_obra', 'criar_aditivo',
-    'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'gerenciar_equipamentos', 'gerenciar_epis',
+    'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'separar_item', 'gerenciar_equipamentos', 'gerenciar_epis',
     'criar_usuario', 'editar_usuario', 'definir_perfil',
     'gerenciar_catalogo',
     'visualizar_frota', 'registrar_km_frota', 'gerenciar_frota',
   ],
 
   TECNICO: [
-    'editar_os', 'iniciar_os', 'concluir_os', 'gerenciar_os',
+    'editar_execucao', 'iniciar_execucao', 'concluir_execucao', 'gerenciar_execucao',
     'ver_obras',
   ],
 
   ALMOXARIFE: [
-    'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'gerenciar_equipamentos', 'gerenciar_epis',
+    'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'separar_item', 'gerenciar_equipamentos', 'gerenciar_epis',
     'ver_obras',
     'visualizar_frota', 'registrar_km_frota', 'gerenciar_frota',
   ],
 
   ATENDENTE: [
     'criar_atendimento', 'editar_atendimento',
-    'criar_os', 'editar_os',
+    'criar_execucao', 'editar_execucao',
     'ver_obras',
   ],
 

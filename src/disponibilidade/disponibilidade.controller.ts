@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DisponibilidadeService } from './disponibilidade.service.js';
 
@@ -25,6 +26,7 @@ export class DisponibilidadeController {
   }
 
   @Post('padroes')
+  @Permissions('editar_atendimento')
   async criarPadrao(
     @Body() body: {
       userId: number;
@@ -38,6 +40,7 @@ export class DisponibilidadeController {
   }
 
   @Patch('padroes/:id')
+  @Permissions('editar_atendimento')
   async atualizarPadrao(
     @Param('id') id: string,
     @Body() body: Record<string, any>,
@@ -46,6 +49,7 @@ export class DisponibilidadeController {
   }
 
   @Delete('padroes/:id')
+  @Permissions('editar_atendimento')
   async excluirPadrao(@Param('id') id: string) {
     await this.service.excluirPadrao(Number(id));
     return { success: true };
@@ -67,6 +71,7 @@ export class DisponibilidadeController {
   }
 
   @Post('datas')
+  @Permissions('editar_atendimento')
   async criarData(
     @Body() body: {
       userId: number;
@@ -81,6 +86,7 @@ export class DisponibilidadeController {
   }
 
   @Patch('datas/:id')
+  @Permissions('editar_atendimento')
   async atualizarData(
     @Param('id') id: string,
     @Body() body: Record<string, any>,
@@ -89,6 +95,7 @@ export class DisponibilidadeController {
   }
 
   @Delete('datas/:id')
+  @Permissions('editar_atendimento')
   async excluirData(@Param('id') id: string) {
     await this.service.excluirData(Number(id));
     return { success: true };

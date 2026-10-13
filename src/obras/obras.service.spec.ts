@@ -54,7 +54,9 @@ describe('ObrasService', () => {
   describe('detalhar', () => {
     it('lança 404 se a obra não for encontrada', async () => {
       mockPrisma.obra.findUnique.mockResolvedValue(null);
-      await expect(service.detalhar(999)).rejects.toThrow('Obra não encontrada');
+      await expect(service.detalhar(999)).rejects.toThrow(
+        'Obra não encontrada',
+      );
     });
 
     it('retorna os detalhes da obra', async () => {
@@ -141,7 +143,10 @@ describe('ObrasService', () => {
 
   describe('aditivos', () => {
     it('cria aditivo no status PENDENTE', async () => {
-      mockPrisma.obra.findUnique.mockResolvedValue({ id: 1, status: 'EM_EXECUCAO' });
+      mockPrisma.obra.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'EM_EXECUCAO',
+      });
       mockPrisma.aditivoObra.create.mockResolvedValue({
         id: 1,
         obraId: 1,
@@ -150,7 +155,11 @@ describe('ObrasService', () => {
         status: 'PENDENTE',
       });
 
-      const result = await service.criarAditivo(1, { descricao: 'Teste', valor: 500, itens: [{ acrescimo: 'novaEtapa' }] });
+      const result = await service.criarAditivo(1, {
+        descricao: 'Teste',
+        valor: 500,
+        itens: [{ acrescimo: 'novaEtapa' }],
+      });
       expect(result.aditivo.status).toBe('PENDENTE');
     });
 
@@ -161,7 +170,10 @@ describe('ObrasService', () => {
         valor: 1000,
         status: 'PENDENTE',
       });
-      mockTx.aditivoObra.update.mockResolvedValue({ id: 1, status: 'APROVADO' });
+      mockTx.aditivoObra.update.mockResolvedValue({
+        id: 1,
+        status: 'APROVADO',
+      });
 
       const result = await service.aprovarAditivo(1, 2);
       expect(result.aditivo.status).toBe('APROVADO');
@@ -178,7 +190,10 @@ describe('ObrasService', () => {
         id: 1,
         status: 'PENDENTE',
       });
-      mockPrisma.aditivoObra.update.mockResolvedValue({ id: 1, status: 'RECUSADO' });
+      mockPrisma.aditivoObra.update.mockResolvedValue({
+        id: 1,
+        status: 'RECUSADO',
+      });
 
       const result = await service.recusarAditivo(1, 2);
       expect(result.aditivo.status).toBe('RECUSADO');

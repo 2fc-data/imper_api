@@ -1,30 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import {
-  type LookupCrud,
-  LookupService,
-} from '../common/services/lookup.service.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class VeiculosService {
-  private readonly tiposVeiculo: LookupCrud;
-  private readonly statusVeiculos: LookupCrud;
-
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly lookup: LookupService,
-  ) {
-    this.tiposVeiculo = this.lookup.criarCrud(this.prisma.tipoVeiculo, {
-      labelSingular: 'Tipo de veículo',
-      duplicateMessage: () => 'Tipo de veículo já cadastrado',
-    });
-    this.statusVeiculos = this.lookup.criarCrud(this.prisma.statusVeiculo, {
-      labelSingular: 'Status de veículo',
-      duplicateMessage: () => 'Status de veículo já cadastrado',
-    });
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async listar(params?: { q?: string; statusId?: number; tipoId?: number }) {
     const where: Record<string, unknown> = { ativo: true };
@@ -206,8 +187,12 @@ export class VeiculosService {
         ...(data.descricao !== undefined && { descricao: data.descricao }),
         ...(data.modelo !== undefined && { modelo: data.modelo }),
         ...(data.ano !== undefined && { ano: data.ano }),
-        ...(data.combustivel !== undefined && { combustivel: data.combustivel }),
-        ...(data.observacoes !== undefined && { observacoes: data.observacoes }),
+        ...(data.combustivel !== undefined && {
+          combustivel: data.combustivel,
+        }),
+        ...(data.observacoes !== undefined && {
+          observacoes: data.observacoes,
+        }),
         ...(data.marcaId !== undefined && { marcaId: data.marcaId }),
         ...(data.corId !== undefined && { corId: data.corId }),
         ...(data.tipoId !== undefined && { tipoId: data.tipoId }),
@@ -229,7 +214,10 @@ export class VeiculosService {
   async excluir(id: number) {
     const veiculo = await this.detalhar(id);
     if (Number(veiculo.odometroAtual) > 0) {
-      throw new AppError(409, 'Não é possível excluir veículo com km registrado');
+      throw new AppError(
+        409,
+        'Não é possível excluir veículo com km registrado',
+      );
     }
     return this.prisma.veiculo.update({
       where: { id },
@@ -246,7 +234,7 @@ export class VeiculosService {
     }
 
     const kmPercorrido = Number(data.kmPercorrido);
-    if (isNaN(kmPercorrido) || kmPercorrido <= 0) {
+    if (Number.isNaN(kmPercorrido) || kmPercorrido <= 0) {
       throw new AppError(422, 'kmPercorrido deve ser maior que zero');
     }
 
@@ -321,7 +309,7 @@ export class VeiculosService {
       data.kmPercorrido !== undefined
         ? Number(data.kmPercorrido)
         : Number(registro.kmPercorrido);
-    if (isNaN(kmPercorrido) || kmPercorrido <= 0) {
+    if (Number.isNaN(kmPercorrido) || kmPercorrido <= 0) {
       throw new AppError(422, 'kmPercorrido deve ser maior que zero');
     }
 
@@ -412,10 +400,10 @@ export class VeiculosService {
 
     const litros = Number(data.litros);
     const valorTotal = Number(data.valorTotal);
-    if (isNaN(litros) || litros <= 0) {
+    if (Number.isNaN(litros) || litros <= 0) {
       throw new AppError(422, 'litros deve ser maior que zero');
     }
-    if (isNaN(valorTotal) || valorTotal <= 0) {
+    if (Number.isNaN(valorTotal) || valorTotal <= 0) {
       throw new AppError(422, 'valorTotal deve ser maior que zero');
     }
 
@@ -489,10 +477,10 @@ export class VeiculosService {
       data.valorTotal !== undefined
         ? Number(data.valorTotal)
         : Number(abastecimento.valorTotal);
-    if (isNaN(litros) || litros <= 0) {
+    if (Number.isNaN(litros) || litros <= 0) {
       throw new AppError(422, 'litros deve ser maior que zero');
     }
-    if (isNaN(valorTotal) || valorTotal <= 0) {
+    if (Number.isNaN(valorTotal) || valorTotal <= 0) {
       throw new AppError(422, 'valorTotal deve ser maior que zero');
     }
 

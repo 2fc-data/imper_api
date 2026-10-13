@@ -47,7 +47,9 @@ export class ExecucaoService {
       },
     });
     if (!atividade)
-      throw new NotFoundException(`ObraAtividade ${atividadeId} não encontrada`);
+      throw new NotFoundException(
+        `ObraAtividade ${atividadeId} não encontrada`,
+      );
 
     const existente = await this.prisma.execucaoAtividade.findFirst({
       where: { atividadeId, status: { not: 'CANCELADA' } },

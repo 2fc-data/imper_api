@@ -19,22 +19,34 @@ const atividadeValida = {
 describe('listarObrasQuerySchema', () => {
   it('aceita query vazia e rejeita status fora do enum', () => {
     expect(listarObrasQuerySchema.safeParse({}).success).toBe(true);
-    expect(listarObrasQuerySchema.safeParse({ status: 'EM_EXECUCAO' }).success).toBe(true);
-    expect(listarObrasQuerySchema.safeParse({ status: 'EM_OBRA' }).success).toBe(false);
+    expect(
+      listarObrasQuerySchema.safeParse({ status: 'EM_EXECUCAO' }).success,
+    ).toBe(true);
+    expect(
+      listarObrasQuerySchema.safeParse({ status: 'EM_OBRA' }).success,
+    ).toBe(false);
   });
 });
 
 describe('criarEtapaSchema', () => {
   it('exige nome e etapaId do catálogo', () => {
-    expect(criarEtapaSchema.safeParse({ nome: 'Fundação', etapaId: 1 }).success).toBe(true);
-    expect(criarEtapaSchema.safeParse({ nome: '', etapaId: 1 }).success).toBe(false);
-    expect(criarEtapaSchema.safeParse({ nome: 'Fundação' }).success).toBe(false);
+    expect(
+      criarEtapaSchema.safeParse({ nome: 'Fundação', etapaId: 1 }).success,
+    ).toBe(true);
+    expect(criarEtapaSchema.safeParse({ nome: '', etapaId: 1 }).success).toBe(
+      false,
+    );
+    expect(criarEtapaSchema.safeParse({ nome: 'Fundação' }).success).toBe(
+      false,
+    );
   });
 });
 
 describe('atualizarEtapaSchema', () => {
   it('aceita atualização parcial e rejeita corpo vazio', () => {
-    expect(atualizarEtapaSchema.safeParse({ inativo: true }).success).toBe(true);
+    expect(atualizarEtapaSchema.safeParse({ inativo: true }).success).toBe(
+      true,
+    );
     expect(atualizarEtapaSchema.safeParse({}).success).toBe(false);
   });
 });
@@ -43,7 +55,8 @@ describe('criarAtividadeSchema', () => {
   it('aceita payload mínimo e valida quantidade de material', () => {
     expect(criarAtividadeSchema.safeParse(atividadeValida).success).toBe(true);
     expect(
-      criarAtividadeSchema.safeParse({ ...atividadeValida, materiais: [] }).success,
+      criarAtividadeSchema.safeParse({ ...atividadeValida, materiais: [] })
+        .success,
     ).toBe(true);
     expect(
       criarAtividadeSchema.safeParse({
@@ -62,9 +75,13 @@ describe('atualizarAtividadeObraSchema', () => {
         updatedAt: '2026-10-04T10:00:00.000Z',
       }).success,
     ).toBe(true);
-    expect(atualizarAtividadeObraSchema.safeParse({ quantidade: 4 }).success).toBe(false);
     expect(
-      atualizarAtividadeObraSchema.safeParse({ updatedAt: '2026-10-04T10:00:00.000Z' }).success,
+      atualizarAtividadeObraSchema.safeParse({ quantidade: 4 }).success,
+    ).toBe(false);
+    expect(
+      atualizarAtividadeObraSchema.safeParse({
+        updatedAt: '2026-10-04T10:00:00.000Z',
+      }).success,
     ).toBe(false);
   });
 });
@@ -78,7 +95,9 @@ describe('criarAditivoSchema', () => {
         itens: [{ acrescimo: 'novaEtapa', nome: 'Hidráulica', etapaId: 3 }],
       }).success,
     ).toBe(true);
-    expect(criarAditivoSchema.safeParse({ ...base, itens: [] }).success).toBe(false);
+    expect(criarAditivoSchema.safeParse({ ...base, itens: [] }).success).toBe(
+      false,
+    );
     expect(
       criarAditivoSchema.safeParse({
         ...base,
@@ -90,8 +109,12 @@ describe('criarAditivoSchema', () => {
 
 describe('atualizarObraSchema', () => {
   it('valida urgência/status e exige ao menos um campo', () => {
-    expect(atualizarObraSchema.safeParse({ urgencia: 'URGENTE' }).success).toBe(true);
-    expect(atualizarObraSchema.safeParse({ urgencia: 'ALTA' }).success).toBe(false);
+    expect(atualizarObraSchema.safeParse({ urgencia: 'URGENTE' }).success).toBe(
+      true,
+    );
+    expect(atualizarObraSchema.safeParse({ urgencia: 'ALTA' }).success).toBe(
+      false,
+    );
     expect(atualizarObraSchema.safeParse({}).success).toBe(false);
   });
 });

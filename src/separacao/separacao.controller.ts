@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { SeparacaoService } from './separacao.service.js';
@@ -36,6 +37,7 @@ export class SeparacaoController {
   }
 
   @Put(':id/confirmar')
+  @Permissions('separar_item')
   async confirmarSeparacao(
     @Param('id') id: string,
     @CurrentUser() user: UsuarioReq,
@@ -44,16 +46,19 @@ export class SeparacaoController {
   }
 
   @Put(':id/retirada')
+  @Permissions('separar_item')
   async registrarRetirada(@Param('id') id: string) {
     return this.service.registrarRetirada(Number(id));
   }
 
   @Put(':id/devolucao')
+  @Permissions('separar_item')
   async registrarDevolucao(@Param('id') id: string) {
     return this.service.registrarDevolucao(Number(id));
   }
 
   @Put(':id/itens/:itemId/retirar')
+  @Permissions('separar_item')
   async registrarRetiradaItem(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
@@ -67,6 +72,7 @@ export class SeparacaoController {
   }
 
   @Put(':id/itens/:itemId/devolver')
+  @Permissions('separar_item')
   async registrarDevolucaoItem(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
@@ -80,6 +86,7 @@ export class SeparacaoController {
   }
 
   @Delete(':id')
+  @Permissions('gerenciar_estoque')
   async excluir(@Param('id') id: string) {
     return this.service.excluir(Number(id));
   }

@@ -8,27 +8,27 @@ const PERMISSOES = [
   {
     chave: 'ver_obras',
     descricao: 'Ver obras, painel e comparação',
-    categoria: 'ordens_servico',
+    categoria: 'obras',
   },
   {
     chave: 'editar_obra',
     descricao: 'Editar mestre da obra (etapas, atividades e sync)',
-    categoria: 'ordens_servico',
+    categoria: 'obras',
   },
   {
     chave: 'criar_aditivo',
     descricao: 'Criar aditivo de obra',
-    categoria: 'ordens_servico',
+    categoria: 'obras',
   },
   {
     chave: 'aprovar_aditivo',
     descricao: 'Aprovar ou recusar aditivo de obra',
-    categoria: 'ordens_servico',
+    categoria: 'obras',
   },
   {
-    chave: 'criar_os',
-    descricao: 'Criar ordem de serviço a partir de uma obra',
-    categoria: 'ordens_servico',
+    chave: 'criar_execucao',
+    descricao: 'Criar execução de atividades a partir de uma obra',
+    categoria: 'execucao',
   },
 ];
 
@@ -38,7 +38,7 @@ const VINCULOS: Record<string, string[]> = {
   editar_obra: ['ADMIN', 'SUPERVISOR'],
   criar_aditivo: ['ADMIN', 'SUPERVISOR'],
   aprovar_aditivo: ['ADMIN'],
-  criar_os: ['ADMIN', 'SUPERVISOR'],
+  criar_execucao: ['ADMIN', 'SUPERVISOR'],
 };
 
 async function main() {

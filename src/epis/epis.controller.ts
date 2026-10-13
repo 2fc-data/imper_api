@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { EpisService } from './epis.service.js';
 
@@ -79,11 +80,13 @@ export class EpisController {
   }
 
   @Post('lookups/categorias')
+  @Permissions('gerenciar_catalogo')
   async criarCategoria(@Body() body: { nome: string; descricao?: string }) {
     return this.episService.criarCategoria(body);
   }
 
   @Put('lookups/categorias/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarCategoria(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -92,11 +95,13 @@ export class EpisController {
   }
 
   @Delete('lookups/categorias/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarCategoria(@Param('id') id: string) {
     return this.episService.desativarCategoria(Number(id));
   }
 
   @Post('lookups/subcategorias')
+  @Permissions('gerenciar_catalogo')
   async criarSubcategoria(
     @Body() body: { nome: string; descricao?: string; categoriaId: number },
   ) {
@@ -104,6 +109,7 @@ export class EpisController {
   }
 
   @Put('lookups/subcategorias/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarSubcategoria(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -112,16 +118,19 @@ export class EpisController {
   }
 
   @Delete('lookups/subcategorias/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarSubcategoria(@Param('id') id: string) {
     return this.episService.desativarSubcategoria(Number(id));
   }
 
   @Post('lookups/marcas')
+  @Permissions('gerenciar_catalogo')
   async criarMarca(@Body() body: { nome: string }) {
     return this.episService.criarMarca(body);
   }
 
   @Put('lookups/marcas/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarMarca(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -130,16 +139,19 @@ export class EpisController {
   }
 
   @Delete('lookups/marcas/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarMarca(@Param('id') id: string) {
     return this.episService.desativarMarca(Number(id));
   }
 
   @Post('lookups/cores')
+  @Permissions('gerenciar_catalogo')
   async criarCor(@Body() body: { nome: string }) {
     return this.episService.criarCor(body);
   }
 
   @Put('lookups/cores/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarCor(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -148,16 +160,19 @@ export class EpisController {
   }
 
   @Delete('lookups/cores/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarCor(@Param('id') id: string) {
     return this.episService.desativarCor(Number(id));
   }
 
   @Post('lookups/tamanhos')
+  @Permissions('gerenciar_catalogo')
   async criarTamanho(@Body() body: { nome: string }) {
     return this.episService.criarTamanho(body);
   }
 
   @Put('lookups/tamanhos/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarTamanho(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -166,16 +181,19 @@ export class EpisController {
   }
 
   @Delete('lookups/tamanhos/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarTamanho(@Param('id') id: string) {
     return this.episService.desativarTamanho(Number(id));
   }
 
   @Post('lookups/localizacoes')
+  @Permissions('gerenciar_catalogo')
   async criarLocalizacao(@Body() body: { nome: string; descricao?: string }) {
     return this.episService.criarLocalizacao(body);
   }
 
   @Put('lookups/localizacoes/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarLocalizacao(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -184,16 +202,19 @@ export class EpisController {
   }
 
   @Delete('lookups/localizacoes/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarLocalizacao(@Param('id') id: string) {
     return this.episService.desativarLocalizacao(Number(id));
   }
 
   @Post('lookups/fornecedores')
+  @Permissions('gerenciar_catalogo')
   async criarFornecedor(@Body() body: { nome: string; cnpj?: string }) {
     return this.episService.criarFornecedor(body);
   }
 
   @Put('lookups/fornecedores/:id')
+  @Permissions('gerenciar_catalogo')
   async atualizarFornecedor(
     @Param('id') id: string,
     @Body() body: { nome?: string; ativo?: boolean },
@@ -202,6 +223,7 @@ export class EpisController {
   }
 
   @Delete('lookups/fornecedores/:id')
+  @Permissions('gerenciar_catalogo')
   async desativarFornecedor(@Param('id') id: string) {
     return this.episService.desativarFornecedor(Number(id));
   }
@@ -212,16 +234,19 @@ export class EpisController {
   }
 
   @Post()
+  @Permissions('gerenciar_epis')
   async criar(@Body() dto: any) {
     return this.episService.criar(dto);
   }
 
   @Put(':id')
+  @Permissions('gerenciar_epis')
   async atualizar(@Param('id') id: string, @Body() dto: any) {
     return this.episService.atualizar(Number(id), dto);
   }
 
   @Delete(':id')
+  @Permissions('gerenciar_epis')
   async excluir(@Param('id') id: string) {
     return this.episService.excluir(Number(id));
   }

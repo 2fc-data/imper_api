@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import type { AtualizarVisitaDto, CriarVisitaDto } from './dto/visitas.dto.js';
@@ -20,6 +21,7 @@ export class VisitasController {
   constructor(private readonly visitasService: VisitasService) {}
 
   @Post()
+  @Permissions('criar_atendimento')
   async criar(
     @Body(new ZodValidationPipe(criarVisitaSchema)) dto: CriarVisitaDto,
   ) {
@@ -36,6 +38,7 @@ export class VisitasController {
   }
 
   @Patch(':id')
+  @Permissions('editar_atendimento')
   async atualizar(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(atualizarVisitaSchema)) dto: AtualizarVisitaDto,

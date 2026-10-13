@@ -41,7 +41,7 @@ describe('AuthService.login — múltiplos papéis', () => {
       {
         papel: {
           nome: 'TECNICO',
-          permissoes: [{ permissao: { chave: 'editar_os' } }],
+          permissoes: [{ permissao: { chave: 'editar_execucao' } }],
         },
       },
     ]);
@@ -55,7 +55,7 @@ describe('AuthService.login — múltiplos papéis', () => {
       expect.objectContaining({
         papel: 'TECNICO',
         papeis: ['CLIENTE', 'TECNICO'],
-        permissoes: ['editar_os'],
+        permissoes: ['editar_execucao'],
       }),
     );
     expect(r.user).toEqual(

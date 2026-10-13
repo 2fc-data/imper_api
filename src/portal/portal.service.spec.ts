@@ -66,7 +66,12 @@ describe('PortalService', () => {
       await criarService().listarObras(7);
       expect(mockPrisma.obra.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { OR: [{ userId: 7 }, { acessos: { some: { userId: 7, ativo: true } } }] },
+          where: {
+            OR: [
+              { userId: 7 },
+              { acessos: { some: { userId: 7, ativo: true } } },
+            ],
+          },
         }),
       );
     });
@@ -78,7 +83,10 @@ describe('PortalService', () => {
         expect.objectContaining({
           where: {
             id: 10,
-            OR: [{ userId: 7 }, { acessos: { some: { userId: 7, ativo: true } } }],
+            OR: [
+              { userId: 7 },
+              { acessos: { some: { userId: 7, ativo: true } } },
+            ],
           },
         }),
       );

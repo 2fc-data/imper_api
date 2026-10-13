@@ -35,8 +35,8 @@ export class VeiculosController {
   @Permissions('visualizar_frota', 'gerenciar_frota')
   analises(@Query('mes') mes?: string, @Query('ano') ano?: string) {
     return this.veiculosService.analises(
-      mes ? parseInt(mes) : undefined,
-      ano ? parseInt(ano) : undefined,
+      mes ? parseInt(mes, 10) : undefined,
+      ano ? parseInt(ano, 10) : undefined,
     );
   }
 
@@ -61,8 +61,8 @@ export class VeiculosController {
   ) {
     return this.veiculosService.listarRegistrosKm(
       Number(id),
-      mes ? parseInt(mes) : undefined,
-      ano ? parseInt(ano) : undefined,
+      mes ? parseInt(mes, 10) : undefined,
+      ano ? parseInt(ano, 10) : undefined,
     );
   }
 

@@ -44,6 +44,7 @@ export class OrcamentosController {
   }
 
   @Post()
+  @Permissions('ver_financeiro')
   async criar(
     @Body(new ZodValidationPipe(criarOrcamentoSchema)) dto: CriarOrcamentoDto,
     @Req() req: Request,
@@ -52,6 +53,7 @@ export class OrcamentosController {
   }
 
   @Patch(':id')
+  @Permissions('ver_financeiro')
   async atualizar(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(criarOrcamentoSchema)) dto: CriarOrcamentoDto,
@@ -60,23 +62,25 @@ export class OrcamentosController {
   }
 
   @Delete(':id')
+  @Permissions('ver_financeiro')
   async remover(@Param('id') id: string) {
     return this.orcamentosService.remover(Number(id));
   }
 
   @Post(':id/enviar')
+  @Permissions('ver_financeiro')
   async enviar(@Param('id') id: string) {
     return this.orcamentosService.enviar(Number(id));
   }
 
   @Post(':id/aprovar')
-  @Permissions('aprovar_os')
+  @Permissions('aprovar_orcamento')
   async aprovar(@Param('id') id: string, @Req() req: Request) {
     return this.orcamentosService.aprovar(Number(id), (req as any).user.id);
   }
 
   @Post(':id/recusar')
-  @Permissions('aprovar_os')
+  @Permissions('aprovar_orcamento')
   async recusar(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(recusarSchema)) dto: RecusarDto,

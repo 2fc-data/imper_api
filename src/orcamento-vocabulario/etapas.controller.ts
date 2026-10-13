@@ -15,8 +15,8 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { AppError } from '../lib/errors.js';
 import {
   type AtualizarEtapaDto,
-  type CriarEtapaDto,
   atualizarEtapaSchema,
+  type CriarEtapaDto,
   criarEtapaSchema,
 } from './dto/vocabulario.dto.js';
 import { VocabularioService } from './vocabulario.service.js';

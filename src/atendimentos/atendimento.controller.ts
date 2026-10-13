@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type {
   CanalAtendimento,
@@ -58,6 +59,7 @@ export class AtendimentoController {
   }
 
   @Post(':id/atendimentos')
+  @Permissions('editar_atendimento')
   async criarLog(
     @Param('id') id: string,
     @Body() dto: {
@@ -72,6 +74,7 @@ export class AtendimentoController {
   }
 
   @Post()
+  @Permissions('criar_atendimento')
   async criar(
     @Body() dto: {
       canal: CanalAtendimento;
@@ -90,6 +93,7 @@ export class AtendimentoController {
   }
 
   @Patch(':id/status')
+  @Permissions('editar_atendimento')
   async atualizarStatus(
     @Param('id') id: string,
     @Body('status') status: StatusAtendimento,
@@ -103,6 +107,7 @@ export class AtendimentoController {
   }
 
   @Patch(':id')
+  @Permissions('editar_atendimento')
   async atualizar(
     @Param('id') id: string,
     @Body() dto: { visitaSolicitada?: boolean },
@@ -111,6 +116,7 @@ export class AtendimentoController {
   }
 
   @Post(':id/encaminhar-orcamento')
+  @Permissions('editar_atendimento')
   async encaminharParaOrcamento(
     @Param('id') id: string,
     @Req() req: RequestWithUser,

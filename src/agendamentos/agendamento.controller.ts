@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { StatusAgendamento, TipoAgendamento } from '../schemas/enums.js';
 import {
@@ -59,11 +60,13 @@ export class AgendamentoController {
   }
 
   @Post()
+  @Permissions('criar_atendimento')
   async criar(@Body() dto: CriarAgendamentoDto, @Req() req: RequestWithUser) {
     return this.agendamentoService.criar(dto, req.user?.id);
   }
 
   @Patch(':id')
+  @Permissions('editar_atendimento')
   async atualizar(
     @Param('id') id: string,
     @Body() dto: AtualizarAgendamentoDto,
@@ -72,6 +75,7 @@ export class AgendamentoController {
   }
 
   @Patch(':id/status')
+  @Permissions('editar_atendimento')
   async atualizarStatus(
     @Param('id') id: string,
     @Body() body: { status: StatusAgendamento; dataRealizada?: string | null },

@@ -83,19 +83,19 @@ describe('OrcamentosController', () => {
   });
 
   describe('decorator @Permissions', () => {
-    it('exige aprovar_os na rota aprovar', () => {
+    it('exige aprovar_orcamento na rota aprovar', () => {
       const perms = Reflect.getMetadata(PERMISSIONS_KEY, controller.aprovar);
-      expect(perms).toEqual(['aprovar_os']);
+      expect(perms).toEqual(['aprovar_orcamento']);
     });
 
-    it('exige aprovar_os na rota recusar', () => {
+    it('exige aprovar_orcamento na rota recusar', () => {
       const perms = Reflect.getMetadata(PERMISSIONS_KEY, controller.recusar);
-      expect(perms).toEqual(['aprovar_os']);
+      expect(perms).toEqual(['aprovar_orcamento']);
     });
 
-    it('enviar não exige permissão extra (apenas JWT)', () => {
+    it('enviar exige ver_financeiro', () => {
       const perms = Reflect.getMetadata(PERMISSIONS_KEY, controller.enviar);
-      expect(perms).toBeUndefined();
+      expect(perms).toEqual(['ver_financeiro']);
     });
   });
 });

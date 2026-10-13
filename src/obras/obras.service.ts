@@ -166,7 +166,9 @@ export class ObrasService {
 
     const baseline = obra.orcamento?.atividades ?? [];
     const mestre = obra.etapas.flatMap((e) => e.atividades);
-    const aditivosAprovados = obra.aditivos.filter((a) => a.status === 'APROVADO');
+    const aditivosAprovados = obra.aditivos.filter(
+      (a) => a.status === 'APROVADO',
+    );
 
     return {
       obraId: obra.id,
@@ -200,7 +202,11 @@ export class ObrasService {
     return { etapa };
   }
 
-  async atualizarEtapa(obraId: number, etapaId: number, dto: AtualizarEtapaInput) {
+  async atualizarEtapa(
+    obraId: number,
+    etapaId: number,
+    dto: AtualizarEtapaInput,
+  ) {
     const etapa = await this.prisma.obraEtapa.findFirst({
       where: { id: etapaId, obraId },
     });
@@ -227,7 +233,10 @@ export class ObrasService {
 
     const comExecucao = etapa.atividades.some((a) => a.execucoes.length > 0);
     if (comExecucao) {
-      throw new AppError(409, 'Etapa possui execuções vinculadas e não pode ser excluída');
+      throw new AppError(
+        409,
+        'Etapa possui execuções vinculadas e não pode ser excluída',
+      );
     }
 
     await this.prisma.obraEtapa.delete({ where: { id: etapaId } });
@@ -297,7 +306,10 @@ export class ObrasService {
     if (!atividade) throw new AppError(404, 'Atividade da obra não encontrada');
 
     if (atividade.updatedAt.toISOString() !== dto.updatedAt) {
-      throw new AppError(409, 'CONFLITO_EDICAO: a atividade foi modificada por outro usuário');
+      throw new AppError(
+        409,
+        'CONFLITO_EDICAO: a atividade foi modificada por outro usuário',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -337,7 +349,10 @@ export class ObrasService {
     const obra = await this.prisma.obra.findUnique({ where: { id: obraId } });
     if (!obra) throw new AppError(404, 'Obra não encontrada');
     if (obra.status === 'CONCLUIDA' || obra.status === 'CANCELADA') {
-      throw new AppError(409, 'Não é possível adicionar aditivos a uma obra encerrada');
+      throw new AppError(
+        409,
+        'Não é possível adicionar aditivos a uma obra encerrada',
+      );
     }
 
     const aditivo = await this.prisma.aditivoObra.create({

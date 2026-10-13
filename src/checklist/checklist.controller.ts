@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ChecklistService } from './checklist.service.js';
 
@@ -24,11 +25,13 @@ export class ChecklistController {
   }
 
   @Put(':id/concluir')
+  @Permissions('concluir_execucao')
   async concluir(@Param('id') id: string, @Req() req: Request) {
     return this.service.concluir(id, (req as any).user.id);
   }
 
   @Put(':id/bloquear')
+  @Permissions('editar_execucao')
   async bloquear(@Param('id') id: string, @Body('motivo') motivo: string) {
     return this.service.bloquear(id, motivo);
   }

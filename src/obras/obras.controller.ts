@@ -41,7 +41,10 @@ export class ObrasController {
 
   @Get()
   @Permissions('ver_obras')
-  async listar(@Query(new ZodValidationPipe(listarObrasQuerySchema)) query: ListarObrasQueryInput) {
+  async listar(
+    @Query(new ZodValidationPipe(listarObrasQuerySchema))
+    query: ListarObrasQueryInput,
+  ) {
     return this.obrasService.listar(query);
   }
 
@@ -93,7 +96,10 @@ export class ObrasController {
 
   @Delete(':id/etapas/:etapaId')
   @Permissions('editar_obra')
-  async excluirEtapa(@Param('id') id: string, @Param('etapaId') etapaId: string) {
+  async excluirEtapa(
+    @Param('id') id: string,
+    @Param('etapaId') etapaId: string,
+  ) {
     return this.obrasService.excluirEtapa(Number(id), Number(etapaId));
   }
 
@@ -111,7 +117,8 @@ export class ObrasController {
   async syncAtividadeObra(
     @Param('id') id: string,
     @Param('aid') aid: string,
-    @Body(new ZodValidationPipe(atualizarAtividadeObraSchema)) dto: AtualizarAtividadeObraInput,
+    @Body(new ZodValidationPipe(atualizarAtividadeObraSchema))
+    dto: AtualizarAtividadeObraInput,
   ) {
     return this.obrasService.syncAtividadeObra(Number(id), aid, dto);
   }

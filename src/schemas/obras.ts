@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-export const StatusObraEnum = z.enum(['EM_PREPARACAO', 'EM_EXECUCAO', 'CONCLUIDA', 'CANCELADA']);
+export const StatusObraEnum = z.enum([
+  'EM_PREPARACAO',
+  'EM_EXECUCAO',
+  'CONCLUIDA',
+  'CANCELADA',
+]);
 export const UrgenciaEnum = z.enum(['NORMAL', 'URGENTE', 'URGENTISSIMO']);
 
 export const listarObrasQuerySchema = z.object({
@@ -65,7 +70,9 @@ export const criarAtividadeSchema = z.object({
 
 export const atualizarAtividadeObraSchema = z
   .object({
-    updatedAt: z.string().datetime({ message: 'updatedAt deve ser uma data ISO válida' }),
+    updatedAt: z
+      .string()
+      .datetime({ message: 'updatedAt deve ser uma data ISO válida' }),
     descricao: z.string().min(1).optional(),
     quantidade: z.number().positive().optional(),
     areaM2: z.number().positive().optional(),

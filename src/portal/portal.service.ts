@@ -44,7 +44,9 @@ export class PortalService {
 
   listarObras(userId: number) {
     return this.prisma.obra.findMany({
-      where: { OR: [{ userId }, { acessos: { some: { userId, ativo: true } } }] },
+      where: {
+        OR: [{ userId }, { acessos: { some: { userId, ativo: true } } }],
+      },
       include: {
         endereco: true,
         etapas: {
@@ -69,7 +71,9 @@ export class PortalService {
         etapas: {
           include: {
             atividades: {
-              include: { execucoes: { include: { checklist: true, separacoes: true } } },
+              include: {
+                execucoes: { include: { checklist: true, separacoes: true } },
+              },
             },
           },
         },

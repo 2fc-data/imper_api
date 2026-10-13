@@ -8,18 +8,19 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Permissions } from '../auth/decorators/permissions.decorator.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { ExecucaoService } from './execucao.service.js';
-import {
-  planificarAtividadeSchema,
-  statusExecucaoSchema,
-} from './dto/execucao.dto.js';
 import type {
   PlanificarAtividadeDto,
   StatusExecucaoDto,
 } from './dto/execucao.dto.js';
+import {
+  planificarAtividadeSchema,
+  statusExecucaoSchema,
+} from './dto/execucao.dto.js';
+import { ExecucaoService } from './execucao.service.js';
 
 type UsuarioReq = { id: number };
 
@@ -39,6 +40,7 @@ export class ExecucaoController {
   }
 
   @Post('planificar')
+  @Permissions('criar_execucao')
   planificar(
     @Body(new ZodValidationPipe(planificarAtividadeSchema))
     dto: PlanificarAtividadeDto,
@@ -48,6 +50,7 @@ export class ExecucaoController {
   }
 
   @Patch(':id/status')
+  @Permissions('editar_execucao')
   mudarStatus(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(statusExecucaoSchema)) dto: StatusExecucaoDto,

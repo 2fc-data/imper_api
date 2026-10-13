@@ -86,7 +86,7 @@ export class UsuariosController {
   }
 
   @Patch(':id/perfil')
-  @Permissions('editar_usuario')
+  @Permissions('definir_perfil')
   async definirPerfil(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(definirPerfisSchema))

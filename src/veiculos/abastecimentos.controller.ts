@@ -23,7 +23,7 @@ export class AbastecimentosController {
   @Permissions('visualizar_frota', 'gerenciar_frota')
   listar(@Query('veiculoId') veiculoId?: string) {
     return this.veiculosService.listarAbastecimentos(
-      veiculoId ? parseInt(veiculoId) : undefined,
+      veiculoId ? parseInt(veiculoId, 10) : undefined,
     );
   }
 

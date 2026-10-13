@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { VeiculosService } from './veiculos.service.js';
 import { AppError } from '../lib/errors.js';
+import { VeiculosService } from './veiculos.service.js';
 
 const mockPrisma = {
   veiculo: {
@@ -277,9 +277,9 @@ describe('VeiculosService', () => {
     it('deve lançar 409 se codigo/placa duplicado em outro registro', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue({ id: 1 });
       mockPrisma.veiculo.findFirst.mockResolvedValue({ id: 2 });
-      await expect(
-        servico().atualizar(1, { codigo: 'V002' }),
-      ).rejects.toThrow(AppError);
+      await expect(servico().atualizar(1, { codigo: 'V002' })).rejects.toThrow(
+        AppError,
+      );
     });
   });
 
@@ -312,8 +312,8 @@ describe('VeiculosService', () => {
 
   describe('registrarKm', () => {
     beforeEach(() => {
-      mockPrisma.$transaction.mockImplementation(
-        async (fn: any) => fn(mockPrisma),
+      mockPrisma.$transaction.mockImplementation(async (fn: any) =>
+        fn(mockPrisma),
       );
     });
 
@@ -362,11 +362,7 @@ describe('VeiculosService', () => {
         odometroAtual: 1000,
       });
       await expect(
-        servico().registrarKm(
-          1,
-          { data: '2026-10-01', kmPercorrido: 0 },
-          1,
-        ),
+        servico().registrarKm(1, { data: '2026-10-01', kmPercorrido: 0 }, 1),
       ).rejects.toThrow('kmPercorrido deve ser maior que zero');
     });
 
@@ -390,8 +386,8 @@ describe('VeiculosService', () => {
 
   describe('excluirRegistroKm', () => {
     beforeEach(() => {
-      mockPrisma.$transaction.mockImplementation(
-        async (fn: any) => fn(mockPrisma),
+      mockPrisma.$transaction.mockImplementation(async (fn: any) =>
+        fn(mockPrisma),
       );
     });
 
@@ -428,8 +424,8 @@ describe('VeiculosService', () => {
 
   describe('abastecimentos', () => {
     beforeEach(() => {
-      mockPrisma.$transaction.mockImplementation(
-        async (fn: any) => fn(mockPrisma),
+      mockPrisma.$transaction.mockImplementation(async (fn: any) =>
+        fn(mockPrisma),
       );
     });
 
