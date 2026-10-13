@@ -18,8 +18,10 @@ import {
   type AtualizarTermoDto,
   atualizarSubServicoSchema,
   atualizarTermoSchema,
+  type CriarComboDto,
   type CriarSubServicoDto,
   type CriarTermoDto,
+  criarComboSchema,
   criarSubServicoSchema,
   criarTermoSchema,
 } from './dto/vocabulario.dto.js';
@@ -82,6 +84,12 @@ export class VocabularioController {
     return this.service.atualizarTermo('verbos', parseId(id, 'Verbo'), dto);
   }
 
+  @Permissions('gerenciar_catalogo')
+  @Delete('verbos/:id')
+  removerVerbo(@Param('id') id: string) {
+    return this.service.removerTermo('verbos', parseId(id, 'Verbo'));
+  }
+
   @Get('objetos')
   listarObjetos(@Query('q') q?: string, @Query('ativo') ativo?: string) {
     return this.service.listarTermos('objetos', {
@@ -107,6 +115,12 @@ export class VocabularioController {
     return this.service.atualizarTermo('objetos', parseId(id, 'Objeto'), dto);
   }
 
+  @Permissions('gerenciar_catalogo')
+  @Delete('objetos/:id')
+  removerObjeto(@Param('id') id: string) {
+    return this.service.removerTermo('objetos', parseId(id, 'Objeto'));
+  }
+
   @Get('locais')
   listarLocais(@Query('q') q?: string, @Query('ativo') ativo?: string) {
     return this.service.listarTermos('locais', {
@@ -130,6 +144,12 @@ export class VocabularioController {
     @Body(new ZodValidationPipe(atualizarTermoSchema)) dto: AtualizarTermoDto,
   ) {
     return this.service.atualizarTermo('locais', parseId(id, 'Local'), dto);
+  }
+
+  @Permissions('gerenciar_catalogo')
+  @Delete('locais/:id')
+  removerLocal(@Param('id') id: string) {
+    return this.service.removerTermo('locais', parseId(id, 'Local'));
   }
 
   @Get('caracteristicas')
@@ -161,6 +181,15 @@ export class VocabularioController {
       'caracteristicas',
       parseId(id, 'Característica'),
       dto,
+    );
+  }
+
+  @Permissions('gerenciar_catalogo')
+  @Delete('caracteristicas/:id')
+  removerCaracteristica(@Param('id') id: string) {
+    return this.service.removerTermo(
+      'caracteristicas',
+      parseId(id, 'Característica'),
     );
   }
 
@@ -215,5 +244,24 @@ export class VocabularioController {
   @Delete('sub-servicos/:id')
   removerSubServico(@Param('id') id: string) {
     return this.service.removerSubServico(parseId(id, 'Sub-serviço'));
+  }
+
+  @Get('sub-servicos/:id/combos')
+  listarCombos(@Param('id') id: string) {
+    return this.service.listarCombos(parseId(id, 'Sub-serviço'));
+  }
+
+  @Permissions('gerenciar_catalogo')
+  @Post('combos')
+  criarCombo(
+    @Body(new ZodValidationPipe(criarComboSchema)) dto: CriarComboDto,
+  ) {
+    return this.service.criarCombo(dto);
+  }
+
+  @Permissions('gerenciar_catalogo')
+  @Delete('combos/:id')
+  removerCombo(@Param('id') id: string) {
+    return this.service.removerCombo(parseId(id, 'Combo'));
   }
 }

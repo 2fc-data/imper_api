@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AtualizarEtapaDto,
   AtualizarSubServicoDto,
   AtualizarTermoDto,
+  CriarComboDto,
   CriarEtapaDto,
   CriarSubServicoDto,
   CriarTermoDto,
@@ -70,7 +71,7 @@ export class VocabularioService {
     if (!existente) throw new AppError(404, 'Etapa não encontrada');
     if (dto.nome !== undefined && dto.nome !== existente.nome) {
       const duplicado = await this.prisma.etapa.findFirst({
-        where: { nome: dto.nome },
+        where: { nome: dto.nome, id: { not: id } },
       });
       if (duplicado) throw new AppError(409, 'Etapa já cadastrada');
     }
@@ -123,10 +124,81 @@ export class VocabularioService {
     const existente = await t.findUnique({ where: { id } });
     if (!existente) throw new AppError(404, 'Registro não encontrado');
     if (dto.nome !== undefined && dto.nome !== existente.nome) {
-      const duplicado = await t.findFirst({ where: { nome: dto.nome } });
+      const duplicado = await t.findFirst({
+        where: { nome: dto.nome, id: { not: id } },
+      });
       if (duplicado) throw new AppError(409, 'Nome já cadastrado');
     }
     return t.update({ where: { id }, data: { ...dto } });
+  }
+
+  async removerTermo(dim: Dimensao, id: number) {
+    const t = this.delegate(dim);
+    if (!Number.isInteger(id)) {
+      throw new AppError(404, 'Registro não encontrado');
+    }
+    const existente = await t.findUnique({ where: { id } });
+    if (!existente) throw new AppError(404, 'Registro não encontrado');
+
+    // Combos desativados (ativo=false) não contam como uso — são resíduo de
+    // soft-delete e serão apagados abaixo. FKs para verbos/objetos são
+    // RESTRICT; para locais/características são SET NULL — em ambos os casos
+    // apagar o termo com referências ativas corromperia catálogo ou histórico.
+    const fk: Record<
+      Dimensao,
+      'verboId' | 'objetoId' | 'localId' | 'caracteristicaId'
+    > = {
+      verbos: 'verboId',
+      objetos: 'objetoId',
+      locais: 'localId',
+      caracteristicas: 'caracteristicaId',
+    };
+    const campo = fk[dim];
+    const [combos, orcamentos, obras] = await Promise.all([
+      this.prisma.subServicoAtividade.count({
+        where: { [campo]: id, ativo: true },
+      }),
+      this.prisma.orcamentoAtividade.count({ where: { [campo]: id } }),
+      this.prisma.obraAtividade.count({ where: { [campo]: id } }),
+    ]);
+    if (combos > 0 || orcamentos > 0 || obras > 0) {
+      const partes = [
+        combos > 0
+          ? `${combos} combo${combos > 1 ? 's' : ''} de sub-serviço`
+          : null,
+        orcamentos > 0
+          ? `${orcamentos} orçamento${orcamentos > 1 ? 's' : ''}`
+          : null,
+        obras > 0 ? `${obras} obra${obras > 1 ? 's' : ''}` : null,
+      ].filter(Boolean);
+      const emUso = partes.join(', ');
+      throw new AppError(
+        409,
+        `Termo em uso em ${emUso} — remova as referências antes de excluir`,
+      );
+    }
+
+    // Purge de combos inativos que ainda referenciam o termo (soft-delete
+    // residual). Sem isso o hard delete estouraria FK RESTRICT.
+    await this.prisma.subServicoAtividade.deleteMany({
+      where: { [campo]: id, ativo: false },
+    });
+
+    try {
+      return await t.delete({ where: { id } });
+    } catch (error) {
+      // Rede de segurança: corrida entre o count acima e o delete.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new AppError(
+          409,
+          'Termo em uso por combos, orçamentos ou obras — remova as referências antes de excluir',
+        );
+      }
+      throw error;
+    }
   }
 
   async listarSubServicos(etapaId?: number, ativo?: boolean) {
@@ -173,7 +245,7 @@ export class VocabularioService {
     if (dto.nome !== undefined && dto.nome !== existente.nome) {
       const etapaIdAlvo = dto.etapaId ?? existente.etapaId;
       const duplicado = await this.prisma.subServico.findFirst({
-        where: { etapaId: etapaIdAlvo, nome: dto.nome },
+        where: { etapaId: etapaIdAlvo, nome: dto.nome, id: { not: id } },
       });
       if (duplicado)
         throw new AppError(409, 'Sub-serviço já existe nesta etapa');
@@ -193,10 +265,43 @@ export class VocabularioService {
       where: { id },
     });
     if (!existente) throw new AppError(404, 'Sub-serviço não encontrado');
-    return this.prisma.subServico.update({
-      where: { id },
-      data: { ativo: false },
-    });
+
+    // FKs de orçamento/obras são RESTRICT: sem essa checagem o delete real
+    // estouraria como erro 400 genérico. Conta as referências (ativas e
+    // inativas — o RESTRICT vale para todas) para dar um 409 explicativo.
+    const [orcamentos, obras] = await Promise.all([
+      this.prisma.orcamentoAtividade.count({ where: { subServicoId: id } }),
+      this.prisma.obraAtividade.count({ where: { subServicoId: id } }),
+    ]);
+    if (orcamentos > 0 || obras > 0) {
+      const emOrcamentos =
+        orcamentos > 0
+          ? `${orcamentos} orçamento${orcamentos > 1 ? 's' : ''}`
+          : null;
+      const emObras = obras > 0 ? `${obras} obra${obras > 1 ? 's' : ''}` : null;
+      const emUso = [emOrcamentos, emObras].filter(Boolean).join(' e ');
+      throw new AppError(
+        409,
+        `Sub-serviço em uso em ${emUso} — desative-o em vez de excluir`,
+      );
+    }
+
+    try {
+      // sub_servico_atividades (combos) é apagado em cascata pelo banco.
+      return await this.prisma.subServico.delete({ where: { id } });
+    } catch (error) {
+      // Rede de segurança: corrida entre o count acima e o delete.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new AppError(
+          409,
+          'Sub-serviço em uso por orçamentos ou obras — desative-o em vez de excluir',
+        );
+      }
+      throw error;
+    }
   }
 
   async cascata(subServicoId: number, filtros: FiltrosCascata) {
@@ -246,5 +351,90 @@ export class VocabularioService {
       local: dim('localId', (l) => l.local),
       caracteristica: dim('caracteristicaId', (l) => l.caracteristica),
     };
+  }
+
+  private includeCombo() {
+    return {
+      verbo: { select: { id: true, nome: true } },
+      objeto: { select: { id: true, nome: true } },
+      local: { select: { id: true, nome: true } },
+      caracteristica: { select: { id: true, nome: true } },
+    } as const;
+  }
+
+  async listarCombos(subServicoId: number) {
+    return this.prisma.subServicoAtividade.findMany({
+      where: { subServicoId },
+      include: this.includeCombo(),
+      orderBy: [{ verbo: { nome: 'asc' } }, { objeto: { nome: 'asc' } }],
+    });
+  }
+
+  async criarCombo(dto: CriarComboDto) {
+    const subServico = await this.prisma.subServico.findUnique({
+      where: { id: dto.subServicoId },
+    });
+    if (!subServico) throw new AppError(404, 'Sub-serviço não encontrado');
+
+    // O unique do MySQL não compara NULLs, então o check duplicado é feito
+    // aqui com null explícito.
+    const localId = dto.localId ?? null;
+    const caracteristicaId = dto.caracteristicaId ?? null;
+    const existente = await this.prisma.subServicoAtividade.findFirst({
+      where: {
+        subServicoId: dto.subServicoId,
+        verboId: dto.verboId,
+        objetoId: dto.objetoId,
+        localId,
+        caracteristicaId,
+      },
+    });
+    if (existente) {
+      throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
+    }
+
+    try {
+      return await this.prisma.subServicoAtividade.create({
+        data: {
+          subServicoId: dto.subServicoId,
+          verboId: dto.verboId,
+          objetoId: dto.objetoId,
+          localId,
+          caracteristicaId,
+        },
+        include: this.includeCombo(),
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new AppError(
+          404,
+          'Verbo, objeto, local ou característica não encontrado',
+        );
+      }
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
+      }
+      throw error;
+    }
+  }
+
+  async removerCombo(id: number) {
+    if (!Number.isInteger(id)) {
+      throw new AppError(404, 'Combo não encontrado');
+    }
+    const existente = await this.prisma.subServicoAtividade.findUnique({
+      where: { id },
+    });
+    if (!existente) throw new AppError(404, 'Combo não encontrado');
+    return this.prisma.subServicoAtividade.delete({
+      where: { id },
+      include: this.includeCombo(),
+    });
   }
 }

@@ -63,9 +63,18 @@ export const atualizarEtapaSchema = z.object({
   ativo: z.boolean().optional(),
 });
 
+export const criarComboSchema = z.object({
+  subServicoId: z.number().int('Sub-serviço inválido'),
+  verboId: z.number().int('Verbo inválido'),
+  objetoId: z.number().int('Objeto inválido'),
+  localId: z.number().int('Local inválido').nullish(),
+  caracteristicaId: z.number().int('Característica inválida').nullish(),
+});
+
 export type CriarTermoDto = z.infer<typeof criarTermoSchema>;
 export type AtualizarTermoDto = z.infer<typeof atualizarTermoSchema>;
 export type CriarSubServicoDto = z.infer<typeof criarSubServicoSchema>;
 export type AtualizarSubServicoDto = z.infer<typeof atualizarSubServicoSchema>;
 export type CriarEtapaDto = z.infer<typeof criarEtapaSchema>;
 export type AtualizarEtapaDto = z.infer<typeof atualizarEtapaSchema>;
+export type CriarComboDto = z.infer<typeof criarComboSchema>;

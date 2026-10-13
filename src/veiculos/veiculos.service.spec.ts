@@ -41,17 +41,8 @@ const mockPrisma = {
   $transaction: vi.fn(),
 };
 
-const mockLookup = {
-  criarCrud: vi.fn(() => ({
-    listar: vi.fn(),
-    criar: vi.fn(),
-    atualizar: vi.fn(),
-    desativar: vi.fn(),
-  })),
-};
-
 function servico() {
-  return new VeiculosService(mockPrisma as any, mockLookup as any);
+  return new VeiculosService(mockPrisma as any);
 }
 
 beforeEach(() => {
