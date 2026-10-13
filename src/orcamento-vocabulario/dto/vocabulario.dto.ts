@@ -71,6 +71,11 @@ export const criarComboSchema = z.object({
   caracteristicaId: z.number().int('Característica inválida').nullish(),
 });
 
+export const atualizarComboSchema = z.object({
+  verboId: z.number().int('Verbo inválido').optional(),
+  objetoId: z.number().int('Objeto inválido').optional(),
+});
+
 export type CriarTermoDto = z.infer<typeof criarTermoSchema>;
 export type AtualizarTermoDto = z.infer<typeof atualizarTermoSchema>;
 export type CriarSubServicoDto = z.infer<typeof criarSubServicoSchema>;
@@ -78,3 +83,4 @@ export type AtualizarSubServicoDto = z.infer<typeof atualizarSubServicoSchema>;
 export type CriarEtapaDto = z.infer<typeof criarEtapaSchema>;
 export type AtualizarEtapaDto = z.infer<typeof atualizarEtapaSchema>;
 export type CriarComboDto = z.infer<typeof criarComboSchema>;
+export type AtualizarComboDto = z.infer<typeof atualizarComboSchema>;

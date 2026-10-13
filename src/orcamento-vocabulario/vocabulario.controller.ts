@@ -14,8 +14,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { AppError } from '../lib/errors.js';
 import {
+  type AtualizarComboDto,
   type AtualizarSubServicoDto,
   type AtualizarTermoDto,
+  atualizarComboSchema,
   atualizarSubServicoSchema,
   atualizarTermoSchema,
   type CriarComboDto,
@@ -260,8 +262,18 @@ export class VocabularioController {
   }
 
   @Permissions('gerenciar_catalogo')
+  @Patch('combos/:id')
+  atualizarCombo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(atualizarComboSchema)) dto: AtualizarComboDto,
+  ) {
+    return this.service.atualizarCombo(parseId(id, 'Combo'), dto);
+  }
+
+  @Permissions('gerenciar_catalogo')
   @Delete('combos/:id')
   removerCombo(@Param('id') id: string) {
     return this.service.removerCombo(parseId(id, 'Combo'));
   }
 }
+

@@ -583,8 +583,6 @@ describe('VocabularioService', () => {
             subServicoId: 1,
             verboId: 2,
             objetoId: 30,
-            localId: null,
-            caracteristicaId: null,
           },
         });
         expect(mockPrisma.subServicoAtividade.create).not.toHaveBeenCalled();

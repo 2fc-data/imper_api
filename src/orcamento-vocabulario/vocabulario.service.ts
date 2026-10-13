@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
+  AtualizarComboDto,
   AtualizarEtapaDto,
   AtualizarSubServicoDto,
   AtualizarTermoDto,
@@ -376,17 +377,13 @@ export class VocabularioService {
     });
     if (!subServico) throw new AppError(404, 'Sub-serviço não encontrado');
 
-    // O unique do MySQL não compara NULLs, então o check duplicado é feito
-    // aqui com null explícito.
-    const localId = dto.localId ?? null;
-    const caracteristicaId = dto.caracteristicaId ?? null;
+    // Combos de detalhe da atividade são restritos a Verbo + Objeto por sub-serviço.
+    // Local e Característica ficam nulos no combo e são selecionados livremente no orçamento.
     const existente = await this.prisma.subServicoAtividade.findFirst({
       where: {
         subServicoId: dto.subServicoId,
         verboId: dto.verboId,
         objetoId: dto.objetoId,
-        localId,
-        caracteristicaId,
       },
     });
     if (existente) {
@@ -399,8 +396,8 @@ export class VocabularioService {
           subServicoId: dto.subServicoId,
           verboId: dto.verboId,
           objetoId: dto.objetoId,
-          localId,
-          caracteristicaId,
+          localId: null,
+          caracteristicaId: null,
         },
         include: this.includeCombo(),
       });
@@ -413,6 +410,61 @@ export class VocabularioService {
           404,
           'Verbo, objeto, local ou característica não encontrado',
         );
+      }
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
+      }
+      throw error;
+    }
+  }
+
+  async atualizarCombo(id: number, dto: AtualizarComboDto) {
+    if (!Number.isInteger(id)) {
+      throw new AppError(404, 'Combo não encontrado');
+    }
+    const existente = await this.prisma.subServicoAtividade.findUnique({
+      where: { id },
+    });
+    if (!existente) throw new AppError(404, 'Combo não encontrado');
+
+    const novoVerboId = dto.verboId ?? existente.verboId;
+    const novoObjetoId = dto.objetoId ?? existente.objetoId;
+
+    if (
+      novoVerboId !== existente.verboId ||
+      novoObjetoId !== existente.objetoId
+    ) {
+      const duplicado = await this.prisma.subServicoAtividade.findFirst({
+        where: {
+          subServicoId: existente.subServicoId,
+          verboId: novoVerboId,
+          objetoId: novoObjetoId,
+          id: { not: id },
+        },
+      });
+      if (duplicado) {
+        throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
+      }
+    }
+
+    try {
+      return await this.prisma.subServicoAtividade.update({
+        where: { id },
+        data: {
+          ...(dto.verboId !== undefined && { verboId: dto.verboId }),
+          ...(dto.objetoId !== undefined && { objetoId: dto.objetoId }),
+        },
+        include: this.includeCombo(),
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new AppError(404, 'Verbo ou objeto não encontrado');
       }
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -438,3 +490,4 @@ export class VocabularioService {
     });
   }
 }
+
