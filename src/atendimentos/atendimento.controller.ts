@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -81,6 +82,7 @@ export class AtendimentoController {
       urgencia?: Urgencia;
       descricao?: string;
       visitaSolicitada?: boolean;
+      servicoMarketingId?: number | null;
       userId?: number;
       atendenteId?: number;
       userName?: string;
@@ -125,5 +127,23 @@ export class AtendimentoController {
       Number(id),
       req.user?.id,
     );
+  }
+
+  @Post(':id/itens')
+  @Permissions('editar_atendimento')
+  async adicionarItem(
+    @Param('id') id: string,
+    @Body() dto: import('./dto/atendimento-itens.dto.js').CriarAtendimentoItemDto,
+  ) {
+    return this.atendimentoService.adicionarItem(Number(id), dto);
+  }
+
+  @Delete(':id/itens/:itemId')
+  @Permissions('editar_atendimento')
+  async removerItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.atendimentoService.removerItem(Number(id), Number(itemId));
   }
 }

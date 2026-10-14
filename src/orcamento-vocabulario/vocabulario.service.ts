@@ -202,14 +202,33 @@ export class VocabularioService {
     }
   }
 
-  async listarSubServicos(etapaId?: number, ativo?: boolean) {
+  async listarSubServicos(
+    etapaId?: number,
+    ativo?: boolean,
+    servicoMarketingId?: number | null,
+  ) {
     return this.prisma.subServico.findMany({
       where: {
         ...(etapaId !== undefined && { etapaId }),
         ...(ativo !== undefined && { ativo }),
+        ...(servicoMarketingId !== undefined &&
+          (servicoMarketingId === null
+            ? { servicoMarketingId: null }
+            : {
+                OR: [
+                  { servicoMarketingId },
+                  { servicoMarketingId: null }, // sub-serviços gerais também ficam disponíveis
+                ],
+              })),
       },
       orderBy: [{ etapa: { ordem: 'asc' } }, { nome: 'asc' }],
-      select: { id: true, etapaId: true, nome: true, ativo: true },
+      select: {
+        id: true,
+        etapaId: true,
+        servicoMarketingId: true,
+        nome: true,
+        ativo: true,
+      },
     });
   }
 

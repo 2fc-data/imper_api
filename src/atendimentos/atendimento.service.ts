@@ -19,6 +19,7 @@ import {
 
 const includeCtx = {
   user: { select: { id: true, nome: true, telefone: true } },
+  servicoMarketing: { select: { id: true, titulo: true, icone: true } },
   agendamentos: {
     where: { tipo: 'VISITA', status: { not: 'CANCELADO' } },
     orderBy: { createdAt: 'desc' },
@@ -44,6 +45,17 @@ const includeCtx = {
       observacoes: true,
       ficha: { select: { id: true } },
       _count: { select: { atividades: true } },
+    },
+  },
+  itens: {
+    orderBy: { createdAt: 'asc' },
+    include: {
+      etapa: { select: { id: true, nome: true, ordem: true } },
+      subServico: { select: { id: true, nome: true } },
+      verbo: { select: { id: true, nome: true } },
+      objeto: { select: { id: true, nome: true } },
+      local: { select: { id: true, nome: true } },
+      caracteristica: { select: { id: true, nome: true } },
     },
   },
 } satisfies Prisma.AtendimentoInclude;
@@ -135,6 +147,7 @@ export class AtendimentoService {
     urgencia?: Urgencia;
     descricao?: string;
     visitaSolicitada?: boolean;
+    servicoMarketingId?: number | null;
     userId?: number;
     atendenteId?: number;
     userName?: string;
@@ -199,10 +212,14 @@ export class AtendimentoService {
           status: 'NOVO',
           descricao: data.descricao ?? null,
           visitaSolicitada: data.visitaSolicitada ?? false,
+          servicoMarketingId: data.servicoMarketingId ?? null,
           userId,
           atendenteId: data.atendenteId ?? null,
         },
-        include: { user: { select: { id: true, nome: true, telefone: true } } },
+        include: {
+          user: { select: { id: true, nome: true, telefone: true } },
+          servicoMarketing: { select: { id: true, titulo: true, icone: true } },
+        },
       });
     });
   }
@@ -374,4 +391,51 @@ export class AtendimentoService {
       include: { atendente: { select: { id: true, nome: true } } },
     });
   }
+
+  async adicionarItem(atendimentoId: number, dto: import('./dto/atendimento-itens.dto.js').CriarAtendimentoItemDto) {
+    const atendimento = await this.prisma.atendimento.findUnique({
+      where: { id: atendimentoId },
+      select: { status: true },
+    });
+    if (!atendimento) {
+      throw new AppError(404, 'Atendimento não encontrado');
+    }
+    assertAtendimentoAberto(atendimento.status as StatusCascata);
+
+    if (!dto.etapaId || !dto.subServicoId || !dto.verboId || !dto.objetoId) {
+      throw new AppError(400, 'etapaId, subServicoId, verboId e objetoId são obrigatórios');
+    }
+
+    await this.prisma.atendimentoItem.create({
+      data: {
+        atendimentoId,
+        etapaId: Number(dto.etapaId),
+        subServicoId: Number(dto.subServicoId),
+        verboId: Number(dto.verboId),
+        objetoId: Number(dto.objetoId),
+        localId: dto.localId ? Number(dto.localId) : null,
+        caracteristicaId: dto.caracteristicaId ? Number(dto.caracteristicaId) : null,
+        observacoes: dto.observacoes?.trim() || null,
+      },
+    });
+
+    return this.detalhar(atendimentoId);
+  }
+
+  async removerItem(atendimentoId: number, itemId: number) {
+    const item = await this.prisma.atendimentoItem.findFirst({
+      where: { id: itemId, atendimentoId },
+      select: { id: true },
+    });
+    if (!item) {
+      throw new AppError(404, 'Item não encontrado no atendimento');
+    }
+
+    await this.prisma.atendimentoItem.delete({
+      where: { id: itemId },
+    });
+
+    return this.detalhar(atendimentoId);
+  }
 }
+

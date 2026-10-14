@@ -110,6 +110,74 @@ export class VisitasService {
       });
     }
 
-    return updated;
+    return this.detalhar(id);
+  }
+
+  async detalhar(id: number) {
+    const visita = await this.prisma.visitaTecnica.findUnique({
+      where: { id },
+      include: {
+        itens: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            etapa: { select: { id: true, nome: true, ordem: true } },
+            subServico: { select: { id: true, nome: true } },
+            verbo: { select: { id: true, nome: true } },
+            objeto: { select: { id: true, nome: true } },
+            local: { select: { id: true, nome: true } },
+            caracteristica: { select: { id: true, nome: true } },
+            unidade: { select: { id: true, nome: true } },
+          },
+        },
+      },
+    });
+    if (!visita) {
+      throw new AppError(404, 'Visita não encontrada');
+    }
+    return visita;
+  }
+
+  async adicionarItem(visitaId: number, dto: import('./dto/visita-itens.dto.js').CriarVisitaItemDto) {
+    const visita = await this.prisma.visitaTecnica.findUnique({
+      where: { id: visitaId },
+      select: { id: true, status: true },
+    });
+    if (!visita) {
+      throw new AppError(404, 'Visita não encontrada');
+    }
+
+    await this.prisma.visitaItem.create({
+      data: {
+        visitaId,
+        etapaId: Number(dto.etapaId),
+        subServicoId: Number(dto.subServicoId),
+        verboId: Number(dto.verboId),
+        objetoId: Number(dto.objetoId),
+        localId: dto.localId ? Number(dto.localId) : null,
+        caracteristicaId: dto.caracteristicaId ? Number(dto.caracteristicaId) : null,
+        unidadeId: dto.unidadeId ? Number(dto.unidadeId) : null,
+        quantidade: dto.quantidade != null ? dto.quantidade : null,
+        areaM2: dto.areaM2 != null ? dto.areaM2 : null,
+        observacoes: dto.observacoes?.trim() || null,
+      },
+    });
+
+    return this.detalhar(visitaId);
+  }
+
+  async removerItem(visitaId: number, itemId: number) {
+    const item = await this.prisma.visitaItem.findFirst({
+      where: { id: itemId, visitaId },
+      select: { id: true },
+    });
+    if (!item) {
+      throw new AppError(404, 'Item não encontrado na visita');
+    }
+
+    await this.prisma.visitaItem.delete({
+      where: { id: itemId },
+    });
+
+    return this.detalhar(visitaId);
   }
 }

@@ -199,10 +199,14 @@ export class VocabularioController {
   listarSubServicos(
     @Query('etapaId') etapaId?: string,
     @Query('ativo') ativo?: string,
+    @Query('servicoMarketingId') servicoMarketingId?: string,
   ) {
     return this.service.listarSubServicos(
       etapaId !== undefined ? parseId(etapaId, 'etapaId') : undefined,
       parseAtivo(ativo),
+      servicoMarketingId !== undefined
+        ? parseId(servicoMarketingId, 'servicoMarketingId')
+        : undefined,
     );
   }
 

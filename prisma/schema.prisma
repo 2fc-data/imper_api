@@ -19,6 +19,7 @@ model UnidadeMedida {
   equipamentos     Equipamento[]
   materiais        Material[]
   servicoItens     ServicoItem[]
+  visitaItens      VisitaItem[]
 
   @@map("unidade_medida")
 }
@@ -110,6 +111,7 @@ model Atendimento {
   status           StatusAtendimento @default(NOVO)
   visitaSolicitada Boolean           @default(false)
   descricao        String?           @db.VarChar(1000)
+  servicoMarketingId Int?
   userId           Int?
   atendenteId      Int?
   createdAt        DateTime          @default(now())
@@ -118,12 +120,15 @@ model Atendimento {
   logs             AtendimentoLog[]
   atendente        User?             @relation("AtendimentoAtendente", fields: [atendenteId], references: [id])
   user             User?             @relation("AtendimentoUser", fields: [userId], references: [id])
+  servicoMarketing ServicoMarketing?   @relation(fields: [servicoMarketingId], references: [id])
   orcamentos       Orcamento[]
   visitas          VisitaTecnica[]
   obras            Obra[]
+  itens            AtendimentoItem[]
 
   @@index([atendenteId], map: "atendimentos_atendenteId_fkey")
   @@index([userId], map: "atendimentos_clienteId_fkey")
+  @@index([servicoMarketingId], map: "atendimentos_servicoMarketingId_fkey")
   @@map("atendimentos")
 }
 
@@ -169,15 +174,17 @@ model Endereco {
 }
 
 model ServicoMarketing {
-  id         Int         @id @default(autoincrement())
-  titulo     String      @unique @db.VarChar(200)
-  descricao  String      @db.VarChar(500)
-  icone      String      @db.VarChar(500)
-  ativo      Boolean     @default(true)
-  ordem      Int         @default(0)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  orcamentos Orcamento[]
+  id          Int          @id @default(autoincrement())
+  titulo      String       @unique @db.VarChar(200)
+  descricao   String       @db.VarChar(500)
+  icone       String       @db.VarChar(500)
+  ativo       Boolean      @default(true)
+  ordem       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  atendimentos Atendimento[]
+  orcamentos  Orcamento[]
+  subServicos SubServico[]
 
   @@map("servicos_marketing")
 }
@@ -216,6 +223,7 @@ model VisitaTecnica {
   fotos              FotosVisita[]
   orcamentos         Orcamento[]
   obras              Obra[]
+  itens              VisitaItem[]
   atendimento        Atendimento      @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
   agendamento        Agendamento?     @relation(fields: [agendamentoId], references: [id], onDelete: Restrict)
   endereco           Endereco?        @relation(fields: [enderecoId], references: [id])
@@ -313,6 +321,8 @@ model Etapa {
   itensServico        ServicoItem[]
   subServicos         SubServico[]
   orcamentoAtividades OrcamentoAtividade[]
+  atendimentoItens    AtendimentoItem[]
+  visitaItens         VisitaItem[]
 
   @@map("etapas")
 }
@@ -1177,6 +1187,8 @@ model Verbo {
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
   combinacoes         SubServicoAtividade[]
+  atendimentoItens    AtendimentoItem[]
+  visitaItens         VisitaItem[]
 
   @@map("verbos")
 }
@@ -1190,6 +1202,8 @@ model Objeto {
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
   combinacoes         SubServicoAtividade[]
+  atendimentoItens    AtendimentoItem[]
+  visitaItens         VisitaItem[]
 
   @@map("objetos")
 }
@@ -1203,6 +1217,8 @@ model LocalObra {
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
   combinacoes         SubServicoAtividade[]
+  atendimentoItens    AtendimentoItem[]
+  visitaItens         VisitaItem[]
 
   @@map("locais_obra")
 }
@@ -1216,6 +1232,8 @@ model Caracteristica {
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
   combinacoes         SubServicoAtividade[]
+  atendimentoItens    AtendimentoItem[]
+  visitaItens         VisitaItem[]
 
   @@map("caracteristicas")
 }
@@ -1224,16 +1242,21 @@ model Caracteristica {
 model SubServico {
   id                  Int                   @id @default(autoincrement())
   etapaId             Int
+  servicoMarketingId  Int?
   nome                String                @db.VarChar(120)
   ativo               Boolean               @default(true)
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   etapa               Etapa                 @relation(fields: [etapaId], references: [id])
+  servicoMarketing    ServicoMarketing?     @relation(fields: [servicoMarketingId], references: [id])
   combinacoes         SubServicoAtividade[]
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
+  atendimentoItens    AtendimentoItem[]
+  visitaItens         VisitaItem[]
 
-  @@unique([etapaId, nome])
+  @@unique([etapaId, nome, servicoMarketingId])
+  @@index([servicoMarketingId], map: "sub_servicos_servicoMarketingId_fkey")
   @@map("sub_servicos")
 }
 
@@ -1255,6 +1278,59 @@ model SubServicoAtividade {
 
   @@unique([subServicoId, verboId, objetoId, localId, caracteristicaId])
   @@map("sub_servico_atividades")
+}
+
+// ---------- Itens de Vocabulário em Atendimento e Visita ----------
+model AtendimentoItem {
+  id               Int             @id @default(autoincrement())
+  atendimentoId    Int
+  etapaId          Int
+  subServicoId     Int
+  verboId          Int
+  objetoId         Int
+  localId          Int?
+  caracteristicaId Int?
+  observacoes      String?         @db.VarChar(500)
+  createdAt        DateTime        @default(now())
+
+  atendimento      Atendimento     @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+  etapa            Etapa           @relation(fields: [etapaId], references: [id])
+  subServico       SubServico      @relation(fields: [subServicoId], references: [id])
+  verbo            Verbo           @relation(fields: [verboId], references: [id])
+  objeto           Objeto          @relation(fields: [objetoId], references: [id])
+  local            LocalObra?      @relation(fields: [localId], references: [id])
+  caracteristica   Caracteristica? @relation(fields: [caracteristicaId], references: [id])
+
+  @@index([atendimentoId])
+  @@map("atendimento_itens")
+}
+
+model VisitaItem {
+  id               Int             @id @default(autoincrement())
+  visitaId         Int
+  etapaId          Int
+  subServicoId     Int
+  verboId          Int
+  objetoId         Int
+  localId          Int?
+  caracteristicaId Int?
+  unidadeId        Int?
+  quantidade       Decimal?        @db.Decimal(10, 3)
+  areaM2           Decimal?        @db.Decimal(10, 2)
+  observacoes      String?         @db.VarChar(500)
+  createdAt        DateTime        @default(now())
+
+  visita           VisitaTecnica   @relation(fields: [visitaId], references: [id], onDelete: Cascade)
+  etapa            Etapa           @relation(fields: [etapaId], references: [id])
+  subServico       SubServico      @relation(fields: [subServicoId], references: [id])
+  verbo            Verbo           @relation(fields: [verboId], references: [id])
+  objeto           Objeto          @relation(fields: [objetoId], references: [id])
+  local            LocalObra?      @relation(fields: [localId], references: [id])
+  caracteristica   Caracteristica? @relation(fields: [caracteristicaId], references: [id])
+  unidade          UnidadeMedida?  @relation(fields: [unidadeId], references: [id])
+
+  @@index([visitaId])
+  @@map("visita_itens")
 }
 
 // ---------- Ficha da obra (1:1) ----------

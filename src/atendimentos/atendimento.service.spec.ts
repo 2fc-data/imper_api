@@ -16,6 +16,11 @@ const mockPrisma = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  atendimentoItem: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    delete: vi.fn(),
+  },
   atendimentoLog: { create: vi.fn() },
   visitaTecnica: { findFirst: vi.fn() },
   $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) => fn(mockTx)),
@@ -390,6 +395,88 @@ describe('AtendimentoService', () => {
       const res = await service.detalharParaUsuario(7, 10);
       expect(spy).toHaveBeenCalledWith(10);
       expect(res).toEqual({ id: 10 });
+    });
+  });
+
+  describe('itens de vocabulário', () => {
+    it('adicionarItem: falha 404 se atendimento não existe', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue(null);
+      await expect(
+        service.adicionarItem(999, {
+          etapaId: 1,
+          subServicoId: 2,
+          verboId: 3,
+          objetoId: 4,
+        }),
+      ).rejects.toThrow('Atendimento não encontrado');
+    });
+
+    it('adicionarItem: falha 400 se atendimento estiver encerrado', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'CONCLUIDO',
+      });
+      await expect(
+        service.adicionarItem(1, {
+          etapaId: 1,
+          subServicoId: 2,
+          verboId: 3,
+          objetoId: 4,
+        }),
+      ).rejects.toThrow('Atendimento encerrado');
+    });
+
+    it('adicionarItem: cria item e retorna detalhar', async () => {
+      mockPrisma.atendimento.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'EM_ANDAMENTO',
+      });
+      const spyDetalhar = vi.spyOn(service, 'detalhar').mockResolvedValue(item({ id: 1 }) as any);
+
+      const res = await service.adicionarItem(1, {
+        etapaId: 1,
+        subServicoId: 2,
+        verboId: 3,
+        objetoId: 4,
+        localId: 5,
+        caracteristicaId: 6,
+        observacoes: 'Teste item',
+      });
+
+      expect(mockPrisma.atendimentoItem.create).toHaveBeenCalledWith({
+        data: {
+          atendimentoId: 1,
+          etapaId: 1,
+          subServicoId: 2,
+          verboId: 3,
+          objetoId: 4,
+          localId: 5,
+          caracteristicaId: 6,
+          observacoes: 'Teste item',
+        },
+      });
+      expect(spyDetalhar).toHaveBeenCalledWith(1);
+      expect(res.id).toBe(1);
+    });
+
+    it('removerItem: falha 404 se item não pertence ao atendimento', async () => {
+      mockPrisma.atendimentoItem.findFirst.mockResolvedValue(null);
+      await expect(service.removerItem(1, 999)).rejects.toThrow(
+        'Item não encontrado no atendimento',
+      );
+    });
+
+    it('removerItem: deleta item e retorna detalhar', async () => {
+      mockPrisma.atendimentoItem.findFirst.mockResolvedValue({ id: 50 });
+      const spyDetalhar = vi.spyOn(service, 'detalhar').mockResolvedValue(item({ id: 1 }) as any);
+
+      const res = await service.removerItem(1, 50);
+
+      expect(mockPrisma.atendimentoItem.delete).toHaveBeenCalledWith({
+        where: { id: 50 },
+      });
+      expect(spyDetalhar).toHaveBeenCalledWith(1);
+      expect(res.id).toBe(1);
     });
   });
 });

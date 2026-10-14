@@ -23,7 +23,7 @@ function dto(parcial: Record<string, unknown>) {
   return {
     userId: 1,
     atendimentoId: 10,
-    dataPrevista: '2026-10-15T10:00:00.000Z',
+    dataPrevista: '2026-11-01T10:00:00.000Z',
     ...parcial,
   } as any;
 }
