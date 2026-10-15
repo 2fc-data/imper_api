@@ -25,6 +25,7 @@ const mockPrisma = {
   atendimento: { findUnique: vi.fn() },
   visitaTecnica: { findFirst: vi.fn(), findUnique: vi.fn() },
   material: { findMany: vi.fn() },
+  epi: { findMany: vi.fn() },
   orcamento: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -65,6 +66,7 @@ function dtoBase(): CriarOrcamentoDto {
             moHoras: 3.5,
             moValorHora: 50,
             materiais: [{ materialId: 1, quantidade: 2 }],
+            epis: [],
           },
           {
             descricao: 'Segunda linha sem MO',
@@ -72,6 +74,7 @@ function dtoBase(): CriarOrcamentoDto {
             objetoId: 3,
             localId: 5,
             materiais: [{ materialId: 2, quantidade: 1 }],
+            epis: [],
           },
         ],
       },
@@ -149,6 +152,48 @@ describe('OrcamentosService', () => {
         acabamentoPiso: 'CERAMICA',
         risco1: 'Queda de objetos',
       });
+    });
+
+    it('snapshota epis: cadastro > enviado > 0 e recalcula totais', async () => {
+      mockPrisma.epi.findMany.mockResolvedValue([
+        { id: 10, custoUnitario: 12.5 }, // cadastro vence o enviado (99)
+        { id: 11, custoUnitario: null }, // sem preço no cadastro → enviado (0.80)
+        { id: 12, custoUnitario: null }, // sem preço em lugar nenhum → 0
+      ]);
+      const dto = dtoBase();
+      dto.atividades[0].linhas[0].epis = [
+        { epiId: 10, quantidade: 2, custoUnitario: 99 },
+        { epiId: 11, quantidade: 3, custoUnitario: 0.8 },
+        { epiId: 12, quantidade: 1 },
+      ];
+
+      const result: any = await service.criar(dto, 1);
+
+      const linhas = result.atividades.create;
+      // linha 1: MO 350 + mats 21 + epis (2×12.5 + 3×0.8 + 0) = 350 + 21 + 27.4 = 398.4
+      expect(linhas[0]).toMatchObject({
+        episValor: 27.4,
+        linhaValorTotal: 398.4,
+      });
+      expect(linhas[0].epis.create).toEqual([
+        { epiId: 10, quantidade: 2, custoUnitario: 12.5 },
+        { epiId: 11, quantidade: 3, custoUnitario: 0.8 },
+        { epiId: 12, quantidade: 1, custoUnitario: 0 },
+      ]);
+      expect(mockPrisma.epi.findMany).toHaveBeenCalledWith({
+        where: { id: { in: [10, 11, 12] } },
+        select: { id: true, custoUnitario: true },
+      });
+      // linha 2 sem epis permanece com episValor 0
+      expect(linhas[1].episValor).toBe(0);
+      expect(linhas[1].epis.create).toEqual([]);
+      // 2550 + 398.4 + 3 = 2951.4
+      expect(result.valorTotal).toBe(2951.4);
+    });
+
+    it('não consulta prisma.epi quando nenhuma linha tem epis', async () => {
+      await service.criar(dtoBase(), 1);
+      expect(mockPrisma.epi.findMany).not.toHaveBeenCalled();
     });
 
     it('usa validade padrão de 30 dias quando ausente', async () => {

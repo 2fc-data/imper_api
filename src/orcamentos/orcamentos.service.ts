@@ -4,6 +4,7 @@ import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CriarOrcamentoDto } from './dto/orcamentos.dto.js';
 import {
+  episValor,
   materiaisValor,
   moValorTotal,
   round2,
@@ -33,7 +34,10 @@ const includeDetalhe = {
   user: true,
   atividades: {
     orderBy: { ordem: 'asc' as const },
-    include: { materiais: true },
+    include: {
+      materiais: true,
+      epis: { include: { epi: { select: { id: true, nome: true, codigo: true } } } },
+    },
   },
   _count: { select: { atividades: true } },
 } satisfies Prisma.OrcamentoInclude;
@@ -306,6 +310,26 @@ export class OrcamentosService {
       return m?.custoUnitario != null ? Number(m.custoUnitario) : 0;
     };
 
+    const epiIds = [
+      ...new Set(
+        dto.atividades.flatMap((a) =>
+          a.linhas.flatMap((l) => l.epis.map((e) => e.epiId)),
+        ),
+      ),
+    ];
+    const epis = epiIds.length
+      ? await this.prisma.epi.findMany({
+          where: { id: { in: epiIds } },
+          select: { id: true, custoUnitario: true },
+        })
+      : [];
+    // precedência: preço do cadastro > preço enviado no dto > 0
+    const custoEpi = (epiId: number, enviado?: number | null): number => {
+      const e = epis.find((x) => x.id === epiId);
+      if (e?.custoUnitario != null) return Number(e.custoUnitario);
+      return enviado ?? 0;
+    };
+
     let ordem = 0;
     const linhasTotais: number[] = [];
     const linhas = dto.atividades.flatMap((a) =>
@@ -316,8 +340,14 @@ export class OrcamentosService {
           quantidade: m.quantidade,
           custoUnitario: custo(m.materialId),
         }));
+        const episComCusto = l.epis.map((e) => ({
+          epiId: e.epiId,
+          quantidade: e.quantidade,
+          custoUnitario: custoEpi(e.epiId, e.custoUnitario),
+        }));
         const matsValor = materiaisValor(matsComCusto);
-        const totalLinha = round2(mo + matsValor);
+        const episVal = episValor(episComCusto);
+        const totalLinha = round2(mo + matsValor + episVal);
         linhasTotais.push(totalLinha);
         return {
           etapaId: a.etapaId,
@@ -335,9 +365,11 @@ export class OrcamentosService {
           moHoras: l.moHoras ?? null,
           moValorTotal: mo,
           materiaisValor: matsValor,
+          episValor: episVal,
           linhaValorTotal: totalLinha,
           ordem: ordem++,
           materiais: { create: matsComCusto },
+          epis: { create: episComCusto },
         };
       }),
     );

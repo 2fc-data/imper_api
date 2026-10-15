@@ -1026,6 +1026,7 @@ model Epi {
   dataValidade     DateTime?
   quantidade       Decimal             @default(0.000) @db.Decimal(12, 3)
   quantidadeMinima Decimal?            @db.Decimal(12, 3)
+  custoUnitario    Decimal?            @db.Decimal(12, 2) // preço unitário p/ precificação de orçamento (espelho de Material.custoUnitario)
   ativo            Boolean             @default(true)
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
@@ -1041,6 +1042,7 @@ model Epi {
   numeroPatrimonio String?             @db.VarChar(50)
   entregas         EntregaEpi[]
   separacaoItens   SeparacaoItem[]
+  orcamentoAtividades OrcamentoAtividadeEpi[]
   categoria        CategoriaEpi?       @relation(fields: [categoriaId], references: [id])
   cor              Cor?                @relation(fields: [corId], references: [id])
   fornecedor       Fornecedor?         @relation(fields: [fornecedorId], references: [id])
@@ -1358,6 +1360,7 @@ model OrcamentoAtividade {
   moHoras             Decimal?                     @db.Decimal(10, 2)
   moValorTotal        Decimal                      @default(0) @db.Decimal(12, 2)
   materiaisValor      Decimal                      @default(0) @db.Decimal(12, 2)
+  episValor           Decimal                      @default(0) @db.Decimal(12, 2)
   linhaValorTotal     Decimal                      @default(0) @db.Decimal(12, 2)
   ordem               Int
   createdAt           DateTime                     @default(now())
@@ -1370,6 +1373,7 @@ model OrcamentoAtividade {
   local               LocalObra?                   @relation(fields: [localId], references: [id])
   caracteristica      Caracteristica?              @relation(fields: [caracteristicaId], references: [id])
   materiais           OrcamentoAtividadeMaterial[]
+  epis                OrcamentoAtividadeEpi[]
 
   @@index([orcamentoId])
   @@map("orcamento_atividades")
@@ -1387,6 +1391,20 @@ model OrcamentoAtividadeMaterial {
 
   @@index([orcamentoAtividadeId])
   @@map("orcamento_atividade_materiais")
+}
+
+model OrcamentoAtividadeEpi {
+  id                   Int                @id @default(autoincrement())
+  orcamentoAtividadeId String
+  epiId                Int
+  quantidade           Decimal            @db.Decimal(10, 3)
+  custoUnitario        Decimal            @db.Decimal(10, 2) // SNAPSHOT no create
+  createdAt            DateTime           @default(now())
+  orcamentoAtividade   OrcamentoAtividade @relation(fields: [orcamentoAtividadeId], references: [id], onDelete: Cascade)
+  epi                  Epi                @relation(fields: [epiId], references: [id])
+
+  @@index([orcamentoAtividadeId])
+  @@map("orcamento_atividade_epis")
 }
 
 model Obra {
