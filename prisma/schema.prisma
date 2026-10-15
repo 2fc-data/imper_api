@@ -1186,7 +1186,6 @@ model Verbo {
   updatedAt           DateTime              @updatedAt
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
-  combinacoes         SubServicoAtividade[]
   atendimentoItens    AtendimentoItem[]
   visitaItens         VisitaItem[]
 
@@ -1201,7 +1200,6 @@ model Objeto {
   updatedAt           DateTime              @updatedAt
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
-  combinacoes         SubServicoAtividade[]
   atendimentoItens    AtendimentoItem[]
   visitaItens         VisitaItem[]
 
@@ -1216,7 +1214,6 @@ model LocalObra {
   updatedAt           DateTime              @updatedAt
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
-  combinacoes         SubServicoAtividade[]
   atendimentoItens    AtendimentoItem[]
   visitaItens         VisitaItem[]
 
@@ -1231,7 +1228,6 @@ model Caracteristica {
   updatedAt           DateTime              @updatedAt
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
-  combinacoes         SubServicoAtividade[]
   atendimentoItens    AtendimentoItem[]
   visitaItens         VisitaItem[]
 
@@ -1249,7 +1245,6 @@ model SubServico {
   updatedAt           DateTime              @updatedAt
   etapa               Etapa                 @relation(fields: [etapaId], references: [id])
   servicoMarketing    ServicoMarketing?     @relation(fields: [servicoMarketingId], references: [id])
-  combinacoes         SubServicoAtividade[]
   orcamentoAtividades OrcamentoAtividade[]
   obrasAtividades     ObraAtividade[]
   atendimentoItens    AtendimentoItem[]
@@ -1258,26 +1253,6 @@ model SubServico {
   @@unique([etapaId, nome, servicoMarketingId])
   @@index([servicoMarketingId], map: "sub_servicos_servicoMarketingId_fkey")
   @@map("sub_servicos")
-}
-
-// Combos vocabulário PERMITIDOS por sub-serviço (combo único por sub-serviço)
-model SubServicoAtividade {
-  id               Int             @id @default(autoincrement())
-  subServicoId     Int
-  verboId          Int
-  objetoId         Int
-  localId          Int?
-  caracteristicaId Int?
-  ativo            Boolean         @default(true)
-  createdAt        DateTime        @default(now())
-  subServico       SubServico      @relation(fields: [subServicoId], references: [id], onDelete: Cascade)
-  verbo            Verbo           @relation(fields: [verboId], references: [id])
-  objeto           Objeto          @relation(fields: [objetoId], references: [id])
-  local            LocalObra?      @relation(fields: [localId], references: [id])
-  caracteristica   Caracteristica? @relation(fields: [caracteristicaId], references: [id])
-
-  @@unique([subServicoId, verboId, objetoId, localId, caracteristicaId])
-  @@map("sub_servico_atividades")
 }
 
 // ---------- Itens de Vocabulário em Atendimento e Visita ----------

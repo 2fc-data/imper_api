@@ -3,24 +3,15 @@ import { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
-  AtualizarComboDto,
   AtualizarEtapaDto,
   AtualizarSubServicoDto,
   AtualizarTermoDto,
-  CriarComboDto,
   CriarEtapaDto,
   CriarSubServicoDto,
   CriarTermoDto,
 } from './dto/vocabulario.dto.js';
 
 export type Dimensao = 'verbos' | 'objetos' | 'locais' | 'caracteristicas';
-
-export type FiltrosCascata = {
-  verboId?: number | null;
-  objetoId?: number | null;
-  localId?: number | null;
-  caracteristicaId?: number | null;
-};
 
 type TermoDelegate = Prisma.VerboDelegate;
 
@@ -141,10 +132,9 @@ export class VocabularioService {
     const existente = await t.findUnique({ where: { id } });
     if (!existente) throw new AppError(404, 'Registro não encontrado');
 
-    // Combos desativados (ativo=false) não contam como uso — são resíduo de
-    // soft-delete e serão apagados abaixo. FKs para verbos/objetos são
-    // RESTRICT; para locais/características são SET NULL — em ambos os casos
-    // apagar o termo com referências ativas corromperia catálogo ou histórico.
+    // FKs para verbos/objetos são RESTRICT; para locais/características são
+    // SET NULL — em ambos os casos apagar o termo com referências ativas
+    // corromperia catálogo ou histórico.
     const fk: Record<
       Dimensao,
       'verboId' | 'objetoId' | 'localId' | 'caracteristicaId'
@@ -155,18 +145,12 @@ export class VocabularioService {
       caracteristicas: 'caracteristicaId',
     };
     const campo = fk[dim];
-    const [combos, orcamentos, obras] = await Promise.all([
-      this.prisma.subServicoAtividade.count({
-        where: { [campo]: id, ativo: true },
-      }),
+    const [orcamentos, obras] = await Promise.all([
       this.prisma.orcamentoAtividade.count({ where: { [campo]: id } }),
       this.prisma.obraAtividade.count({ where: { [campo]: id } }),
     ]);
-    if (combos > 0 || orcamentos > 0 || obras > 0) {
+    if (orcamentos > 0 || obras > 0) {
       const partes = [
-        combos > 0
-          ? `${combos} combo${combos > 1 ? 's' : ''} de sub-serviço`
-          : null,
         orcamentos > 0
           ? `${orcamentos} orçamento${orcamentos > 1 ? 's' : ''}`
           : null,
@@ -179,12 +163,6 @@ export class VocabularioService {
       );
     }
 
-    // Purge de combos inativos que ainda referenciam o termo (soft-delete
-    // residual). Sem isso o hard delete estouraria FK RESTRICT.
-    await this.prisma.subServicoAtividade.deleteMany({
-      where: { [campo]: id, ativo: false },
-    });
-
     try {
       return await t.delete({ where: { id } });
     } catch (error) {
@@ -195,7 +173,7 @@ export class VocabularioService {
       ) {
         throw new AppError(
           409,
-          'Termo em uso por combos, orçamentos ou obras — remova as referências antes de excluir',
+          'Termo em uso por orçamentos ou obras — remova as referências antes de excluir',
         );
       }
       throw error;
@@ -307,7 +285,6 @@ export class VocabularioService {
     }
 
     try {
-      // sub_servico_atividades (combos) é apagado em cascata pelo banco.
       return await this.prisma.subServico.delete({ where: { id } });
     } catch (error) {
       // Rede de segurança: corrida entre o count acima e o delete.
@@ -322,191 +299,6 @@ export class VocabularioService {
       }
       throw error;
     }
-  }
-
-  async cascata(subServicoId: number, filtros: FiltrosCascata) {
-    const linhas = await this.prisma.subServicoAtividade.findMany({
-      where: { subServicoId, ativo: true },
-      include: {
-        verbo: { select: { id: true, nome: true } },
-        objeto: { select: { id: true, nome: true } },
-        local: { select: { id: true, nome: true } },
-        caracteristica: { select: { id: true, nome: true } },
-      },
-    });
-
-    const dimensoes = [
-      'verboId',
-      'objetoId',
-      'localId',
-      'caracteristicaId',
-    ] as const;
-
-    const satisfaz = (linha: (typeof linhas)[number], exceto: string) =>
-      dimensoes
-        .filter((d) => d !== exceto)
-        .every((d) =>
-          filtros[d] === undefined || filtros[d] === null
-            ? true
-            : linha[d] === filtros[d],
-        );
-
-    const dim = <T extends { id: number; nome: string }>(
-      d: (typeof dimensoes)[number],
-      extrair: (linha: (typeof linhas)[number]) => T | null,
-    ): (T | null)[] => {
-      const mapa = new Map<number | null, T | null>();
-      for (const linha of linhas) {
-        if (!satisfaz(linha, d)) continue;
-        const valor = extrair(linha);
-        const chave = valor ? valor.id : null;
-        if (!mapa.has(chave)) mapa.set(chave, valor);
-      }
-      return [...mapa.values()];
-    };
-
-    return {
-      verbo: dim('verboId', (l) => l.verbo),
-      objeto: dim('objetoId', (l) => l.objeto),
-      local: dim('localId', (l) => l.local),
-      caracteristica: dim('caracteristicaId', (l) => l.caracteristica),
-    };
-  }
-
-  private includeCombo() {
-    return {
-      verbo: { select: { id: true, nome: true } },
-      objeto: { select: { id: true, nome: true } },
-      local: { select: { id: true, nome: true } },
-      caracteristica: { select: { id: true, nome: true } },
-    } as const;
-  }
-
-  async listarCombos(subServicoId: number) {
-    return this.prisma.subServicoAtividade.findMany({
-      where: { subServicoId },
-      include: this.includeCombo(),
-      orderBy: [{ verbo: { nome: 'asc' } }, { objeto: { nome: 'asc' } }],
-    });
-  }
-
-  async criarCombo(dto: CriarComboDto) {
-    const subServico = await this.prisma.subServico.findUnique({
-      where: { id: dto.subServicoId },
-    });
-    if (!subServico) throw new AppError(404, 'Sub-serviço não encontrado');
-
-    // Combos de detalhe da atividade são restritos a Verbo + Objeto por sub-serviço.
-    // Local e Característica ficam nulos no combo e são selecionados livremente no orçamento.
-    const existente = await this.prisma.subServicoAtividade.findFirst({
-      where: {
-        subServicoId: dto.subServicoId,
-        verboId: dto.verboId,
-        objetoId: dto.objetoId,
-      },
-    });
-    if (existente) {
-      throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
-    }
-
-    try {
-      return await this.prisma.subServicoAtividade.create({
-        data: {
-          subServicoId: dto.subServicoId,
-          verboId: dto.verboId,
-          objetoId: dto.objetoId,
-          localId: null,
-          caracteristicaId: null,
-        },
-        include: this.includeCombo(),
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2003'
-      ) {
-        throw new AppError(
-          404,
-          'Verbo, objeto, local ou característica não encontrado',
-        );
-      }
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
-      }
-      throw error;
-    }
-  }
-
-  async atualizarCombo(id: number, dto: AtualizarComboDto) {
-    if (!Number.isInteger(id)) {
-      throw new AppError(404, 'Combo não encontrado');
-    }
-    const existente = await this.prisma.subServicoAtividade.findUnique({
-      where: { id },
-    });
-    if (!existente) throw new AppError(404, 'Combo não encontrado');
-
-    const novoVerboId = dto.verboId ?? existente.verboId;
-    const novoObjetoId = dto.objetoId ?? existente.objetoId;
-
-    if (
-      novoVerboId !== existente.verboId ||
-      novoObjetoId !== existente.objetoId
-    ) {
-      const duplicado = await this.prisma.subServicoAtividade.findFirst({
-        where: {
-          subServicoId: existente.subServicoId,
-          verboId: novoVerboId,
-          objetoId: novoObjetoId,
-          id: { not: id },
-        },
-      });
-      if (duplicado) {
-        throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
-      }
-    }
-
-    try {
-      return await this.prisma.subServicoAtividade.update({
-        where: { id },
-        data: {
-          ...(dto.verboId !== undefined && { verboId: dto.verboId }),
-          ...(dto.objetoId !== undefined && { objetoId: dto.objetoId }),
-        },
-        include: this.includeCombo(),
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2003'
-      ) {
-        throw new AppError(404, 'Verbo ou objeto não encontrado');
-      }
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new AppError(409, 'Combo já cadastrado para este sub-serviço');
-      }
-      throw error;
-    }
-  }
-
-  async removerCombo(id: number) {
-    if (!Number.isInteger(id)) {
-      throw new AppError(404, 'Combo não encontrado');
-    }
-    const existente = await this.prisma.subServicoAtividade.findUnique({
-      where: { id },
-    });
-    if (!existente) throw new AppError(404, 'Combo não encontrado');
-    return this.prisma.subServicoAtividade.delete({
-      where: { id },
-      include: this.includeCombo(),
-    });
   }
 }
 
