@@ -12,6 +12,13 @@ const materialLinha = z.object({
   quantidade: z.number().positive('Quantidade deve ser positiva'),
 });
 
+const epiLinha = z.object({
+  epiId: z.number().int(),
+  quantidade: z.number().positive('Quantidade deve ser positiva'),
+  // preço enviado pelo cliente; o server decide a precedência (cadastro > enviado > 0)
+  custoUnitario: z.number().min(0).nullable().optional(),
+});
+
 const linhaSchema = cascataIds.extend({
   descricao: z.string().trim().max(1000).default(''),
   unidadeId: z.number().int().nullable().optional(),
@@ -21,6 +28,7 @@ const linhaSchema = cascataIds.extend({
   moPessoas: z.number().int().min(1).nullable().optional(),
   moHoras: z.number().min(0).nullable().optional(),
   materiais: z.array(materialLinha).default([]),
+  epis: z.array(epiLinha).default([]),
 });
 
 const atividadeSchema = z.object({

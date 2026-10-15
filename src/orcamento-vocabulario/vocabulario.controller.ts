@@ -14,16 +14,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { AppError } from '../lib/errors.js';
 import {
-  type AtualizarComboDto,
   type AtualizarSubServicoDto,
   type AtualizarTermoDto,
-  atualizarComboSchema,
   atualizarSubServicoSchema,
   atualizarTermoSchema,
-  type CriarComboDto,
   type CriarSubServicoDto,
   type CriarTermoDto,
-  criarComboSchema,
   criarSubServicoSchema,
   criarTermoSchema,
 } from './dto/vocabulario.dto.js';
@@ -33,19 +29,6 @@ function parseAtivo(ativo?: string): boolean | undefined {
   if (ativo === 'true') return true;
   if (ativo === 'false') return false;
   return undefined;
-}
-
-function parseFiltro(
-  valor: string | undefined,
-  campo: string,
-): number | null | undefined {
-  if (valor === undefined) return undefined;
-  if (valor === '' || valor === 'null') return null;
-  const numero = Number(valor);
-  if (!Number.isInteger(numero)) {
-    throw new AppError(400, `Filtro ${campo} inválido`);
-  }
-  return numero;
 }
 
 function parseId(valor: string, campo: string): number {
@@ -219,23 +202,6 @@ export class VocabularioController {
     return this.service.criarSubServico(dto);
   }
 
-  @Get('sub-servicos/:id/cascata')
-  cascata(
-    @Param('id') id: string,
-    @Query('verboId') verboId?: string,
-    @Query('objetoId') objetoId?: string,
-    @Query('localId') localId?: string,
-    @Query('caracteristicaId') caracteristicaId?: string,
-  ) {
-    const subServicoId = parseId(id, 'Sub-serviço');
-    return this.service.cascata(subServicoId, {
-      verboId: parseFiltro(verboId, 'verboId'),
-      objetoId: parseFiltro(objetoId, 'objetoId'),
-      localId: parseFiltro(localId, 'localId'),
-      caracteristicaId: parseFiltro(caracteristicaId, 'caracteristicaId'),
-    });
-  }
-
   @Permissions('gerenciar_catalogo')
   @Patch('sub-servicos/:id')
   atualizarSubServico(
@@ -250,34 +216,6 @@ export class VocabularioController {
   @Delete('sub-servicos/:id')
   removerSubServico(@Param('id') id: string) {
     return this.service.removerSubServico(parseId(id, 'Sub-serviço'));
-  }
-
-  @Get('sub-servicos/:id/combos')
-  listarCombos(@Param('id') id: string) {
-    return this.service.listarCombos(parseId(id, 'Sub-serviço'));
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Post('combos')
-  criarCombo(
-    @Body(new ZodValidationPipe(criarComboSchema)) dto: CriarComboDto,
-  ) {
-    return this.service.criarCombo(dto);
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Patch('combos/:id')
-  atualizarCombo(
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(atualizarComboSchema)) dto: AtualizarComboDto,
-  ) {
-    return this.service.atualizarCombo(parseId(id, 'Combo'), dto);
-  }
-
-  @Permissions('gerenciar_catalogo')
-  @Delete('combos/:id')
-  removerCombo(@Param('id') id: string) {
-    return this.service.removerCombo(parseId(id, 'Combo'));
   }
 }
 

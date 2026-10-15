@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  episValor,
   linhaValorTotal,
   materiaisValor,
   moValorTotal,
@@ -60,6 +61,21 @@ describe('materiaisValor', () => {
   });
 });
 
+describe('episValor', () => {
+  it('soma quantidade × custoUnitario com round2', () => {
+    expect(
+      episValor([
+        { quantidade: 3, custoUnitario: 12.34 },
+        { quantidade: 1.5, custoUnitario: 0.07 },
+      ]),
+    ).toBe(37.12);
+  });
+
+  it('retorna 0 para lista vazia', () => {
+    expect(episValor([])).toBe(0);
+  });
+});
+
 describe('linhaValorTotal', () => {
   it('soma mo + materiais', () => {
     const mo = { moPessoas: 2, moHoras: 3.5, moValorHora: 50 };
@@ -69,6 +85,19 @@ describe('linhaValorTotal', () => {
 
   it('funciona com MO e materiais vazios', () => {
     expect(linhaValorTotal({}, [])).toBe(0);
+  });
+
+  it('inclui EPIs quando o 3º parâmetro é informado', () => {
+    const mo = { moPessoas: 1, moHoras: 2, moValorHora: 50 };
+    const mats = [{ quantidade: 1, custoUnitario: 20 }];
+    const epis = [{ quantidade: 4, custoUnitario: 3.5 }];
+    expect(linhaValorTotal(mo, mats, epis)).toBe(round2(100 + 20 + 14));
+  });
+
+  it('3º parâmetro opcional: padrão [] mantém mo + materiais', () => {
+    const mo = { moPessoas: 1, moHoras: 1, moValorHora: 30 };
+    expect(linhaValorTotal(mo, [{ quantidade: 2, custoUnitario: 5 }])).toBe(40);
+    expect(linhaValorTotal(mo, [], [])).toBe(30);
   });
 });
 

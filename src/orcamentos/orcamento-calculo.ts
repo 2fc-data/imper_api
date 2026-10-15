@@ -19,6 +19,12 @@ export function materiaisValor(
   return round2(m.reduce((acc, x) => acc + x.quantidade * x.custoUnitario, 0));
 }
 
+export function episValor(
+  e: { quantidade: number; custoUnitario: number }[],
+): number {
+  return round2(e.reduce((acc, x) => acc + x.quantidade * x.custoUnitario, 0));
+}
+
 export function linhaValorTotal(
   l: {
     moPessoas?: number | null;
@@ -26,8 +32,9 @@ export function linhaValorTotal(
     moValorHora?: number | null;
   },
   mats: { quantidade: number; custoUnitario: number }[],
+  epis: { quantidade: number; custoUnitario: number }[] = [],
 ): number {
-  return round2(moValorTotal(l) + materiaisValor(mats));
+  return round2(moValorTotal(l) + materiaisValor(mats) + episValor(epis));
 }
 
 export function valorTotalOrcamento(p: {
