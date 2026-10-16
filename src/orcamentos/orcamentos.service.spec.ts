@@ -738,26 +738,6 @@ describe('OrcamentosService', () => {
       };
     }
 
-    it('bloqueia com ANALISE_CRITICA quando a ficha está ausente', async () => {
-      mockPrisma.orcamento.findUnique.mockResolvedValue({
-        ...orcamentoAprovavel(),
-        ficha: null,
-      });
-
-      try {
-        await service.aprovar(1, 99);
-        expect.unreachable('deveria lançar HttpException');
-      } catch (e) {
-        expect(e).toBeInstanceOf(HttpException);
-        expect((e as HttpException).getStatus()).toBe(409);
-        expect((e as HttpException).getResponse()).toEqual({
-          codigo: 'ANALISE_CRITICA',
-          pendencias: ['ficha-ausente'],
-        });
-      }
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-    });
-
     it('bloqueia com ANALISE_CRITICA quando risco1 não tem acao1', async () => {
       const orcamento = orcamentoAprovavel();
       orcamento.ficha.risco1 = 'Queda de objetos';
@@ -771,23 +751,6 @@ describe('OrcamentosService', () => {
         expect((e as HttpException).getResponse()).toEqual({
           codigo: 'ANALISE_CRITICA',
           pendencias: ['analise-critica-incompleta'],
-        });
-      }
-    });
-
-    it('bloqueia com ANALISE_CRITICA quando areaM2 está nula', async () => {
-      mockPrisma.orcamento.findUnique.mockResolvedValue({
-        ...orcamentoAprovavel(),
-        areaM2: null,
-      });
-
-      try {
-        await service.aprovar(1, 99);
-        expect.unreachable('deveria lançar HttpException');
-      } catch (e) {
-        expect((e as HttpException).getResponse()).toEqual({
-          codigo: 'ANALISE_CRITICA',
-          pendencias: ['medicao-ausentes'],
         });
       }
     });

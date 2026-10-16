@@ -435,20 +435,19 @@ export class OrcamentosService {
       throw new AppError(409, 'Orçamento não está pendente de aprovação');
 
     const pendencias: string[] = [];
-    if (!orcamento.ficha) {
-      pendencias.push('ficha-ausente');
-    } else {
+    if (orcamento.ficha) {
       const f = orcamento.ficha;
       if (
         (f.risco1 && !f.acao1) ||
         (f.risco2 && !f.acao2) ||
-        (f.risco3 && !f.acao3)
+        (f.risco3 && !f.acao3) ||
+        (!f.risco1 && f.acao1) ||
+        (!f.risco2 && f.acao2) ||
+        (!f.risco3 && f.acao3)
       ) {
         pendencias.push('analise-critica-incompleta');
       }
     }
-    if (orcamento.areaM2 == null || orcamento.valorM2 == null)
-      pendencias.push('medicao-ausentes');
     if (pendencias.length > 0)
       throw new HttpException(
         { codigo: 'ANALISE_CRITICA', pendencias },
