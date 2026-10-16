@@ -18,7 +18,7 @@ import {
 } from './cascata.js';
 
 const includeCtx = {
-  user: { select: { id: true, nome: true, telefone: true } },
+  user: { select: { id: true, nome: true, telefone: true, email: true } },
   servicoMarketing: { select: { id: true, titulo: true, icone: true } },
   agendamentos: {
     where: { tipo: 'VISITA', status: { not: 'CANCELADO' } },
@@ -217,7 +217,7 @@ export class AtendimentoService {
           atendenteId: data.atendenteId ?? null,
         },
         include: {
-          user: { select: { id: true, nome: true, telefone: true } },
+          user: { select: { id: true, nome: true, telefone: true, email: true } },
           servicoMarketing: { select: { id: true, titulo: true, icone: true } },
         },
       });
