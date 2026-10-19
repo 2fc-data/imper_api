@@ -16,6 +16,11 @@ export const cadastrarSchema = z.object({
       'Telefone inválido. Formato: (00) 00000-0000',
     ),
   email: z.string().trim().email('E-mail inválido').optional(),
+  rg: z
+    .string()
+    .trim()
+    .max(20, 'RG deve ter no máximo 20 caracteres')
+    .optional(),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   turnstileToken: z.string().optional(),
 });

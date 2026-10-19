@@ -167,8 +167,24 @@ export class EpisService {
   }
 
   async listarColaboradores() {
+    const clientes = await this.prisma.papelRbac.findMany({
+      where: { nome: 'CLIENTE' },
+      select: { id: true },
+    });
+    const clienteIds = clientes.map((c) => c.id);
+
     return this.prisma.user.findMany({
-      where: { ativo: true },
+      where: {
+        ativo: true,
+        OR: [
+          { papeis: { none: {} } },
+          {
+            papeis: {
+              some: { papelId: { notIn: clienteIds } },
+            },
+          },
+        ],
+      },
       select: { id: true, nome: true },
       orderBy: { nome: 'asc' },
     });

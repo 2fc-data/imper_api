@@ -1,10 +1,10 @@
 /** Mapeamento de compatibilidade: enum values antigos → nomes de papel na tabela */
 export const PAPEL_ENUM_COMPAT: Record<string, string> = {
-  ADMIN: 'ADMIN',
-  SUPERVISOR: 'SUPERVISOR',
-  TECNICO: 'TECNICO',
+  ADMIN: 'ADMINISTRATIVO',
+  SUPERVISOR: 'VENDAS',
+  TECNICO: 'COLABORADOR',
   ALMOXARIFE: 'ALMOXARIFE',
-  CONTABILIDADE: 'CONTABILIDADE',
-  ATENDENTE: 'ATENDENTE',
+  CONTABILIDADE: 'CONTABIL',
+  ATENDENTE: 'ATENDIMENTO',
   CLIENTE: 'CLIENTE',
 };

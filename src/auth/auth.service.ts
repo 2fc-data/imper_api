@@ -54,6 +54,11 @@ export class AuthService {
     if (!senhaValida)
       throw new UnauthorizedException('E-mail ou senha inválidos');
 
+    if (!user.ativo)
+      throw new UnauthorizedException(
+        'Usuário inativo. Contate o administrador para ativar sua conta.',
+      );
+
     const userPapeis = await this.prisma.usuarioPapel.findMany({
       where: { userId: user.id },
       include: {
@@ -72,7 +77,7 @@ export class AuthService {
       }
     }
 
-    const papelNome = papelPrincipal(userPapeis) ?? 'ATENDENTE';
+    const papelNome = papelPrincipal(userPapeis) ?? 'ATENDIMENTO';
     const permissoesArr = Array.from(permissoes);
 
     const payload = {
@@ -144,6 +149,7 @@ export class AuthService {
           nome: dto.nome,
           email: dto.email || null,
           telefone: dto.telefone,
+          rg: dto.rg?.trim() || null,
           senhaHash,
         },
       });
@@ -157,11 +163,26 @@ export class AuthService {
       link: '/login',
     });
 
+    const userResponse = {
+      id: user.id,
+      nome: user.nome,
+      email: user.email,
+      papel: 'ATENDIMENTO' as const,
+      papeis: ['CLIENTE'],
+      permissoes: [] as string[],
+    };
+
+    // Cadastro nasce inativo (ativo = false): liberar acesso exige ativação
+    // manual do administrador. Nesse caso não emitimos token.
+    if (!user.ativo) {
+      return { pendenteAtivacao: true, user: userResponse };
+    }
+
     const payload = {
       id: user.id,
       nome: user.nome,
       email: user.email,
-      papel: 'ATENDENTE',
+      papel: 'ATENDIMENTO',
       papeis: ['CLIENTE'],
       permissoes: [],
     };
@@ -170,14 +191,7 @@ export class AuthService {
 
     return {
       token,
-      user: {
-        id: user.id,
-        nome: user.nome,
-        email: user.email,
-        papel: 'ATENDENTE',
-        papeis: ['CLIENTE'],
-        permissoes: [],
-      },
+      user: userResponse,
     };
   }
 

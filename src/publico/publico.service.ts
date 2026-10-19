@@ -35,7 +35,7 @@ export class PublicoService {
         titulo: 'Impermeabilização de Piscinas',
         descricao:
           'Sistemas flexíveis e argamassas poliméricas para piscinas enterradas ou elevadas.',
-        icone: 'waves',
+        icone: 'M19 9l-7 12-7-12a7 7 0 1114 0z',
         ativo: true,
         ordem: 1,
         createdAt: new Date().toISOString(),
@@ -46,7 +46,7 @@ export class PublicoService {
         titulo: 'Impermeabilização de Lajes',
         descricao:
           'Proteção contra infiltrações com mantas asfálticas e membranas líquidas.',
-        icone: 'home',
+        icone: 'M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6',
         ativo: true,
         ordem: 2,
         createdAt: new Date().toISOString(),
@@ -57,7 +57,7 @@ export class PublicoService {
         titulo: 'Injeção de Poliuretano & Resinas',
         descricao:
           'Tratamento de trincas, fissuras e vazamentos com injeção de alta pressão.',
-        icone: 'shield',
+        icone: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5l8-3z',
         ativo: true,
         ordem: 3,
         createdAt: new Date().toISOString(),
@@ -68,7 +68,7 @@ export class PublicoService {
         titulo: 'Impermeabilização de Reservatórios',
         descricao:
           "Soluções atóxicas e certificadas para água potável e caixas d'água.",
-        icone: 'droplet',
+        icone: "M12 2.5c3.5 4 6.5 7.4 6.5 11a6.5 6.5 0 11-13 0c0-3.6 3-7 6.5-11z",
         ativo: true,
         ordem: 4,
         createdAt: new Date().toISOString(),

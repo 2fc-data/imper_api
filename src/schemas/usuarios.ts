@@ -68,7 +68,13 @@ export const criarUsuarioSchema = z.object({
     ),
   papelIds: z.array(z.number().int()).min(1, 'Informe ao menos um perfil'),
   cargoId: z.number().nullable().optional(),
+  ativo: z.boolean().optional(),
   cpfCnpj: cpfCnpjValidator,
+  rg: z
+    .string()
+    .trim()
+    .max(20, 'RG deve ter no máximo 20 caracteres')
+    .optional(),
   cep: z.string().optional(),
   endereco: z.string().optional(),
   bairro: z.string().optional(),
@@ -102,6 +108,11 @@ export const atualizarUsuarioSchema = z.object({
   cargoId: z.number().nullable().optional(),
   ativo: z.boolean().optional(),
   cpfCnpj: cpfCnpjValidator,
+  rg: z
+    .string()
+    .trim()
+    .max(20, 'RG deve ter no máximo 20 caracteres')
+    .optional(),
   cep: z.string().optional(),
   endereco: z.string().optional(),
   bairro: z.string().optional(),

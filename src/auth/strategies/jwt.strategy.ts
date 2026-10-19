@@ -29,6 +29,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
+    if (!user.ativo) {
+      throw new UnauthorizedException(
+        'Usuário inativo. Contate o administrador para ativar sua conta.',
+      );
+    }
 
     const userPapeis = await this.prisma.usuarioPapel.findMany({
       where: { userId: user.id },
@@ -50,7 +55,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       nome: user.nome,
       email: user.email,
-      papel: papelPrincipal(userPapeis) ?? 'ATENDENTE',
+      papel: papelPrincipal(userPapeis) ?? 'ATENDIMENTO',
       papeis: userPapeis.map((up) => up.papel.nome),
       permissoes: Array.from(permissoes),
     };

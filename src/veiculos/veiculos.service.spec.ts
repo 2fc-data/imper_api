@@ -65,7 +65,7 @@ describe('VeiculosService', () => {
       expect(result).toEqual(veiculos);
     });
 
-    it('deve filtrar por q (código, placa ou modelo)', async () => {
+    it('deve filtrar por q (código, placa ou nome)', async () => {
       mockPrisma.veiculo.findMany.mockResolvedValue([]);
       await servico().listar({ q: 'ABC' });
       expect(mockPrisma.veiculo.findMany).toHaveBeenCalledWith(
@@ -74,7 +74,7 @@ describe('VeiculosService', () => {
             OR: [
               { codigo: { contains: 'ABC' } },
               { placa: { contains: 'ABC' } },
-              { modelo: { contains: 'ABC' } },
+              { nome: { contains: 'ABC' } },
             ],
           }),
         }),
@@ -134,11 +134,11 @@ describe('VeiculosService', () => {
   });
 
   describe('criar', () => {
-    it('deve criar veículo com descricao e lookups', async () => {
+    it('deve criar veículo com nome e lookups', async () => {
       const data = {
         codigo: 'VCL-01',
         placa: 'abc-1234',
-        descricao: 'FIESTA PRATA',
+        nome: 'FIESTA PRATA',
         tipoId: 1,
         statusId: 1,
       };
@@ -158,7 +158,7 @@ describe('VeiculosService', () => {
           data: expect.objectContaining({
             codigo: 'VCL-01',
             placa: 'ABC-1234',
-            descricao: 'FIESTA PRATA',
+            nome: 'FIESTA PRATA',
             tipoId: 1,
             statusId: 1,
           }),
@@ -177,12 +177,12 @@ describe('VeiculosService', () => {
         id: 1,
         codigo: 'VCL-04',
         placa: 'ABC-1234',
-        descricao: 'FIESTA',
+        nome: 'FIESTA',
       });
 
       await servico().criar({
         placa: 'abc-1234',
-        descricao: 'FIESTA',
+        nome: 'FIESTA',
         tipoId: 1,
         statusId: 1,
       });
@@ -202,7 +202,7 @@ describe('VeiculosService', () => {
         servico().criar({
           codigo: 'VCL-01',
           placa: 'ABC-1234',
-          descricao: 'FIESTA',
+          nome: 'FIESTA',
           tipoId: 1,
           statusId: 1,
         }),
@@ -215,7 +215,7 @@ describe('VeiculosService', () => {
         servico().criar({
           codigo: 'V001',
           placa: 'ABC-1234',
-          descricao: 'FIESTA',
+          nome: 'FIESTA',
           tipoId: 99,
           statusId: 1,
         }),
@@ -229,40 +229,40 @@ describe('VeiculosService', () => {
         servico().criar({
           codigo: 'V001',
           placa: 'ABC-1234',
-          descricao: 'FIESTA',
+          nome: 'FIESTA',
           tipoId: 1,
           statusId: 99,
         }),
       ).rejects.toThrow('Status de veículo inválido');
     });
 
-    it('deve lançar 422 se descricao for vazia', async () => {
+    it('deve lançar 422 se nome for vazio', async () => {
       await expect(
         servico().criar({
           codigo: 'V001',
           placa: 'ABC-1234',
-          descricao: '   ',
+          nome: '   ',
           tipoId: 1,
           statusId: 1,
         }),
-      ).rejects.toThrow('Descrição é obrigatória');
+      ).rejects.toThrow('Nome é obrigatório');
     });
   });
 
   describe('atualizar', () => {
-    it('deve atualizar campos permitidos e ignorar odometroAtual', async () => {
+    it('deve atualizar campos permitidos incluindo odometroAtual', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue({ id: 1 });
       mockPrisma.veiculo.findFirst.mockResolvedValue(null);
       mockPrisma.veiculo.update.mockResolvedValue({ id: 1 });
 
       await servico().atualizar(1, {
-        descricao: 'FIESTA AZUL',
+        nome: 'FIESTA AZUL',
         odometroAtual: 9999,
       });
 
       const payload = mockPrisma.veiculo.update.mock.calls[0][0].data;
-      expect(payload.descricao).toBe('FIESTA AZUL');
-      expect(payload).not.toHaveProperty('odometroAtual');
+      expect(payload.nome).toBe('FIESTA AZUL');
+      expect(payload.odometroAtual).toBe(9999);
     });
 
     it('deve lançar 409 se codigo/placa duplicado em outro registro', async () => {
@@ -308,7 +308,7 @@ describe('VeiculosService', () => {
       );
     });
 
-    it('deve registrar km e atualizar odômetro', async () => {
+    it('deve registrar km com odômetro e calcular kmPercorrido', async () => {
       const veiculo = { id: 1, odometroAtual: 1000 };
       mockPrisma.veiculo.findUnique.mockResolvedValue(veiculo);
       mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(null);
@@ -317,7 +317,7 @@ describe('VeiculosService', () => {
 
       const result = await servico().registrarKm(
         1,
-        { data: '2026-10-01', kmPercorrido: 50, observacao: 'Teste' },
+        { data: '2026-10-01', odometro: 1050, observacao: 'Teste' },
         1,
       );
 
@@ -336,6 +336,27 @@ describe('VeiculosService', () => {
       });
     });
 
+    it('deve registrar km com colaborador informado', async () => {
+      const veiculo = { id: 1, odometroAtual: 1000 };
+      mockPrisma.veiculo.findUnique.mockResolvedValue(veiculo);
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(null);
+      mockPrisma.registroKmVeiculo.create.mockResolvedValue({ id: 1 });
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      await servico().registrarKm(
+        1,
+        { data: '2026-10-01', odometro: 1050, colaboradorId: 42 },
+        1,
+      );
+
+      expect(mockPrisma.registroKmVeiculo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          veiculoId: 1,
+          colaboradorId: 42,
+        }),
+      });
+    });
+
     it('deve lançar AppError 409 se já existe registro no mesmo dia', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue({
         id: 1,
@@ -343,24 +364,169 @@ describe('VeiculosService', () => {
       });
       mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue({ id: 5 });
       await expect(
-        servico().registrarKm(1, { data: '2026-10-01', kmPercorrido: 10 }, 1),
+        servico().registrarKm(1, { data: '2026-10-01', odometro: 1010 }, 1),
       ).rejects.toThrow('Já existe registro de km');
     });
 
-    it('deve lançar AppError 422 se kmPercorrido <= 0', async () => {
+    it('deve lançar AppError 422 se odômetro <= odômetro atual', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue({
         id: 1,
         odometroAtual: 1000,
       });
       await expect(
-        servico().registrarKm(1, { data: '2026-10-01', kmPercorrido: 0 }, 1),
-      ).rejects.toThrow('kmPercorrido deve ser maior que zero');
+        servico().registrarKm(1, { data: '2026-10-01', odometro: 1000 }, 1),
+      ).rejects.toThrow('Odômetro informado deve ser maior');
     });
 
     it('deve lançar NotFoundException se veículo não existe', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue(null);
       await expect(
-        servico().registrarKm(999, { data: '2026-10-01', kmPercorrido: 10 }, 1),
+        servico().registrarKm(999, { data: '2026-10-01', odometro: 1010 }, 1),
+      ).rejects.toThrow('não encontrado');
+    });
+  });
+
+  describe('atualizarRegistroKm', () => {
+    beforeEach(() => {
+      mockPrisma.$transaction.mockImplementation(async (fn: any) =>
+        fn(mockPrisma),
+      );
+    });
+
+    it('deve atualizar último registro com odômetro e recalcular kmPercorrido', async () => {
+      const registro = {
+        id: 1,
+        veiculoId: 1,
+        data: new Date('2026-10-05'),
+        odometro: 1050,
+        kmPercorrido: 50,
+      };
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(registro);
+      mockPrisma.veiculo.findUnique.mockResolvedValue({
+        id: 1,
+        odometroAtual: 1050,
+      });
+      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
+        id: 9,
+        odometro: 1000,
+      });
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([]);
+      mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      const result = await servico().atualizarRegistroKm(1, { odometro: 1060 });
+
+      expect(result).toEqual(registro);
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: expect.objectContaining({ odometro: 1060, kmPercorrido: 60 }),
+      });
+      expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { odometroAtual: 1060 },
+      });
+    });
+
+    it('deve recalcular em cascata registros posteriores', async () => {
+      const registro = {
+        id: 1,
+        veiculoId: 1,
+        data: new Date('2026-10-05'),
+        odometro: 1050,
+        kmPercorrido: 50,
+      };
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(registro);
+      mockPrisma.veiculo.findUnique.mockResolvedValue({
+        id: 1,
+        odometroAtual: 1130,
+      });
+      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
+        id: 9,
+        odometro: 1000,
+      });
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
+        { id: 2, data: new Date('2026-10-06'), odometro: 1080, kmPercorrido: 30 },
+        { id: 3, data: new Date('2026-10-07'), odometro: 1130, kmPercorrido: 50 },
+      ]);
+      mockPrisma.registroKmVeiculo.update.mockResolvedValue({});
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      await servico().atualizarRegistroKm(1, { odometro: 1060 });
+
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: expect.objectContaining({ odometro: 1060, kmPercorrido: 60 }),
+      });
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 2 },
+        data: { kmPercorrido: 20 },
+      });
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 3 },
+        data: { kmPercorrido: 50 },
+      });
+      expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { odometroAtual: 1130 },
+      });
+    });
+
+    it('deve lançar AppError 422 se odômetro <= odômetro anterior', async () => {
+      const registro = {
+        id: 1,
+        veiculoId: 1,
+        data: new Date('2026-10-05'),
+        odometro: 1050,
+        kmPercorrido: 50,
+      };
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(registro);
+      mockPrisma.veiculo.findUnique.mockResolvedValue({
+        id: 1,
+        odometroAtual: 1050,
+      });
+      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
+        id: 9,
+        odometro: 1000,
+      });
+
+      await expect(
+        servico().atualizarRegistroKm(1, { odometro: 1000 }),
+      ).rejects.toThrow('Odômetro informado deve ser maior');
+    });
+
+    it('deve atualizar colaborador do registro', async () => {
+      const registro = {
+        id: 1,
+        veiculoId: 1,
+        data: new Date('2026-10-05'),
+        odometro: 1050,
+        kmPercorrido: 50,
+      };
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(registro);
+      mockPrisma.veiculo.findUnique.mockResolvedValue({
+        id: 1,
+        odometroAtual: 1050,
+      });
+      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
+        id: 9,
+        odometro: 1000,
+      });
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([]);
+      mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      await servico().atualizarRegistroKm(1, { odometro: 1050, colaboradorId: 42 });
+
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: expect.objectContaining({ colaboradorId: 42 }),
+      });
+    });
+
+    it('deve lançar NotFoundException se registro não existe', async () => {
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(null);
+      await expect(
+        servico().atualizarRegistroKm(999, { odometro: 1010 }),
       ).rejects.toThrow('não encontrado');
     });
   });

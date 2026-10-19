@@ -13,7 +13,7 @@ export class VeiculosService {
       where.OR = [
         { codigo: { contains: params.q } },
         { placa: { contains: params.q } },
-        { modelo: { contains: params.q } },
+        { nome: { contains: params.q } },
       ];
     }
     if (params?.statusId) where.statusId = params.statusId;
@@ -27,6 +27,7 @@ export class VeiculosService {
         tipo: true,
         status: true,
         responsavel: { select: { id: true, nome: true } },
+        fabricante: true,
       },
       orderBy: { codigo: 'asc' },
     });
@@ -62,7 +63,7 @@ export class VeiculosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
-        where: { ativo: true },
+        where: { ativo: true, papeis: { none: { papel: { nome: 'CLIENTE' } } } },
         select: { id: true, nome: true },
       }),
     ]);
@@ -86,6 +87,7 @@ export class VeiculosService {
         tipo: true,
         status: true,
         responsavel: { select: { id: true, nome: true } },
+        fabricante: true,
       },
     });
     if (!veiculo) {
@@ -110,9 +112,9 @@ export class VeiculosService {
   }
 
   async criar(data: any) {
-    const descricao = (data.descricao ?? '').trim();
-    if (!descricao) {
-      throw new AppError(422, 'Descrição é obrigatória');
+    const nome = (data.nome ?? '').trim();
+    if (!nome) {
+      throw new AppError(422, 'Nome é obrigatório');
     }
     await this.validarLookups(data);
 
@@ -129,7 +131,8 @@ export class VeiculosService {
       data: {
         codigo,
         placa: (data.placa ?? '').toUpperCase(),
-        descricao: normalize(descricao),
+        nome: normalize(nome),
+        fabricanteId: data.fabricanteId || null,
         modelo: data.modelo || null,
         ano: data.ano || null,
         combustivel: data.combustivel || 'GASOLINA',
@@ -154,12 +157,12 @@ export class VeiculosService {
   async atualizar(id: number, data: any) {
     await this.detalhar(id);
 
-    if (data.descricao !== undefined) {
-      const descricao = (data.descricao ?? '').trim();
-      if (!descricao) {
-        throw new AppError(422, 'Descrição é obrigatória');
+    if (data.nome !== undefined) {
+      const nome = (data.nome ?? '').trim();
+      if (!nome) {
+        throw new AppError(422, 'Nome é obrigatório');
       }
-      data.descricao = normalize(descricao);
+      data.nome = normalize(nome);
     }
     if (data.placa !== undefined) {
       data.placa = (data.placa ?? '').toUpperCase();
@@ -184,11 +187,15 @@ export class VeiculosService {
       data: {
         ...(data.codigo !== undefined && { codigo: data.codigo }),
         ...(data.placa !== undefined && { placa: data.placa }),
-        ...(data.descricao !== undefined && { descricao: data.descricao }),
+        ...(data.nome !== undefined && { nome: data.nome }),
+        ...(data.fabricanteId !== undefined && { fabricanteId: data.fabricanteId }),
         ...(data.modelo !== undefined && { modelo: data.modelo }),
         ...(data.ano !== undefined && { ano: data.ano }),
         ...(data.combustivel !== undefined && {
           combustivel: data.combustivel,
+        }),
+        ...(data.odometroAtual !== undefined && {
+          odometroAtual: data.odometroAtual,
         }),
         ...(data.observacoes !== undefined && {
           observacoes: data.observacoes,
@@ -233,9 +240,13 @@ export class VeiculosService {
       throw new NotFoundException(`Veículo com ID ${veiculoId} não encontrado`);
     }
 
-    const kmPercorrido = Number(data.kmPercorrido);
-    if (Number.isNaN(kmPercorrido) || kmPercorrido <= 0) {
-      throw new AppError(422, 'kmPercorrido deve ser maior que zero');
+    const odometroInformado = Number(data.odometro);
+    const odometroAnterior = Number(veiculo.odometroAtual);
+    if (Number.isNaN(odometroInformado) || odometroInformado <= odometroAnterior) {
+      throw new AppError(
+        422,
+        `Odômetro informado deve ser maior que o odômetro atual (${odometroAnterior} km)`,
+      );
     }
 
     const dataRegistro = data.data ? new Date(data.data) : this.dataPadraoKm();
@@ -250,8 +261,7 @@ export class VeiculosService {
       );
     }
 
-    const odometroAnterior = Number(veiculo.odometroAtual);
-    const odometro = odometroAnterior + kmPercorrido;
+    const kmPercorrido = odometroInformado - odometroAnterior;
 
     return this.prisma.$transaction(async (tx) => {
       const registro = await tx.registroKmVeiculo.create({
@@ -259,14 +269,15 @@ export class VeiculosService {
           veiculoId,
           data: dataRegistro,
           kmPercorrido,
-          odometro,
+          odometro: odometroInformado,
           observacao: data.observacao || null,
           registradoPorId: registradoPorId || null,
+          colaboradorId: data.colaboradorId || null,
         },
       });
       await tx.veiculo.update({
         where: { id: veiculoId },
-        data: { odometroAtual: odometro },
+        data: { odometroAtual: odometroInformado },
       });
       return registro;
     });
@@ -283,6 +294,7 @@ export class VeiculosService {
       where,
       include: {
         registradoPor: { select: { id: true, nome: true } },
+        colaborador: { select: { id: true, nome: true } },
       },
       orderBy: { data: 'desc' },
     });
@@ -305,14 +317,6 @@ export class VeiculosService {
       );
     }
 
-    const kmPercorrido =
-      data.kmPercorrido !== undefined
-        ? Number(data.kmPercorrido)
-        : Number(registro.kmPercorrido);
-    if (Number.isNaN(kmPercorrido) || kmPercorrido <= 0) {
-      throw new AppError(422, 'kmPercorrido deve ser maior que zero');
-    }
-
     if (data.data !== undefined) {
       const novaData = new Date(data.data);
       const outro = await this.prisma.registroKmVeiculo.findUnique({
@@ -325,24 +329,71 @@ export class VeiculosService {
       }
     }
 
-    const odometroAnterior = Number(veiculo.odometroAtual);
-    const odometro =
-      odometroAnterior + kmPercorrido - Number(registro.kmPercorrido);
+    const odometroNovo = Number(data.odometro);
+
+    // Registro imediatamente anterior (mesmo veículo, data < esta, mais recente)
+    const anterior = await this.prisma.registroKmVeiculo.findFirst({
+      where: {
+        veiculoId: registro.veiculoId,
+        data: { lt: registro.data },
+      },
+      orderBy: { data: 'desc' },
+    });
+    const odometroAnterior = anterior
+      ? Number(anterior.odometro)
+      : Number(registro.odometro) - Number(registro.kmPercorrido);
+
+    if (Number.isNaN(odometroNovo) || odometroNovo <= odometroAnterior) {
+      throw new AppError(
+        422,
+        `Odômetro informado deve ser maior que o odômetro anterior (${odometroAnterior} km)`,
+      );
+    }
+
+    const kmPercorridoNovo = odometroNovo - odometroAnterior;
+
+    // Registros posteriores (mesmo veículo, data > esta, em ordem)
+    const posteriores = await this.prisma.registroKmVeiculo.findMany({
+      where: {
+        veiculoId: registro.veiculoId,
+        data: { gt: registro.data },
+      },
+      orderBy: { data: 'asc' },
+    });
 
     return this.prisma.$transaction(async (tx) => {
       const atualizado = await tx.registroKmVeiculo.update({
         where: { id },
         data: {
           ...(data.data !== undefined && { data: new Date(data.data) }),
-          ...(data.kmPercorrido !== undefined && { kmPercorrido }),
           ...(data.observacao !== undefined && { observacao: data.observacao }),
-          odometro,
+          ...(data.colaboradorId !== undefined && { colaboradorId: data.colaboradorId }),
+          odometro: odometroNovo,
+          kmPercorrido: kmPercorridoNovo,
         },
       });
+
+      // Recalcular em cascata os registros posteriores
+      let odometroBase = odometroNovo;
+      for (const p of posteriores) {
+        const pOdometro = Number(p.odometro);
+        const pKmNovo = pOdometro - odometroBase;
+        await tx.registroKmVeiculo.update({
+          where: { id: p.id },
+          data: { kmPercorrido: pKmNovo },
+        });
+        odometroBase = pOdometro;
+      }
+
+      // Atualizar odômetro atual do veículo para o último registro
+      const ultimo = posteriores.length > 0
+        ? Number(posteriores[posteriores.length - 1].odometro)
+        : odometroNovo;
       await tx.veiculo.update({
         where: { id: registro.veiculoId },
-        data: { odometroAtual: odometro },
+        data: { odometroAtual: ultimo },
       });
+
       return atualizado;
     });
   }
@@ -384,6 +435,21 @@ export class VeiculosService {
     if (ontem.getDay() === 6) ontem.setDate(ontem.getDate() - 1);
     if (ontem.getDay() === 0) ontem.setDate(ontem.getDate() - 2);
     return ontem;
+  }
+
+  private serializarAbastecimento<T extends Record<string, any>>(a: T): T {
+    const out: Record<string, any> = { ...a };
+    for (const campo of [
+      'odometro',
+      'litros',
+      'valorTotal',
+      'precoLitro',
+      'kmDesdeUltimo',
+      'kmPorLitro',
+    ]) {
+      if (out[campo] != null) out[campo] = Number(out[campo]);
+    }
+    return out as T;
   }
 
   async criarAbastecimento(
@@ -443,22 +509,23 @@ export class VeiculosService {
           data: { odometroAtual: odometro },
         });
       }
-      return abastecimento;
+      return this.serializarAbastecimento(abastecimento);
     });
   }
 
   async listarAbastecimentos(veiculoId?: number) {
     const where: Record<string, unknown> = {};
     if (veiculoId) where.veiculoId = veiculoId;
-    return this.prisma.abastecimentoVeiculo.findMany({
+    const abastecimentos = await this.prisma.abastecimentoVeiculo.findMany({
       where,
       include: {
-        veiculo: { select: { id: true, codigo: true, placa: true } },
+        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
         fornecedor: true,
         registradoPor: { select: { id: true, nome: true } },
       },
       orderBy: { data: 'desc' },
     });
+    return abastecimentos.map((a) => this.serializarAbastecimento(a));
   }
 
   async atualizarAbastecimento(id: number, data: any) {
@@ -490,19 +557,21 @@ export class VeiculosService {
         ? Number(data.odometro)
         : Number(abastecimento.odometro);
 
-    return this.prisma.abastecimentoVeiculo.update({
-      where: { id },
-      data: {
-        ...(data.data !== undefined && { data: new Date(data.data) }),
-        ...(data.litros !== undefined && { litros }),
-        ...(data.valorTotal !== undefined && { valorTotal }),
-        ...(data.fornecedorId !== undefined && {
-          fornecedorId: data.fornecedorId,
-        }),
-        precoLitro,
-        odometro,
-      },
-    });
+    return this.serializarAbastecimento(
+      await this.prisma.abastecimentoVeiculo.update({
+        where: { id },
+        data: {
+          ...(data.data !== undefined && { data: new Date(data.data) }),
+          ...(data.litros !== undefined && { litros }),
+          ...(data.valorTotal !== undefined && { valorTotal }),
+          ...(data.fornecedorId !== undefined && {
+            fornecedorId: data.fornecedorId,
+          }),
+          precoLitro,
+          odometro,
+        },
+      }),
+    );
   }
 
   async excluirAbastecimento(id: number) {
@@ -512,7 +581,9 @@ export class VeiculosService {
     if (!abastecimento) {
       throw new NotFoundException(`Abastecimento com ID ${id} não encontrado`);
     }
-    return this.prisma.abastecimentoVeiculo.delete({ where: { id } });
+    return this.serializarAbastecimento(
+      await this.prisma.abastecimentoVeiculo.delete({ where: { id } }),
+    );
   }
 
   async analises(mes?: number, ano?: number) {
@@ -541,7 +612,7 @@ export class VeiculosService {
         }),
         this.prisma.veiculo.findMany({
           where: { ativo: true, status: { nome: 'ATIVO' } },
-          select: { id: true, codigo: true, placa: true },
+          select: { id: true, codigo: true, nome: true, placa: true },
         }),
       ]);
 
@@ -622,23 +693,29 @@ export class VeiculosService {
       });
       if (!status) throw new AppError(422, 'Status de veículo inválido');
     }
-    if (data.marcaId) {
+    if (data.marcaId !== undefined) {
       const marca = await this.prisma.marca.findFirst({
         where: { id: data.marcaId, ativo: true },
       });
       if (!marca) throw new AppError(422, 'Marca inválida');
     }
-    if (data.corId) {
+    if (data.corId !== undefined) {
       const cor = await this.prisma.cor.findFirst({
         where: { id: data.corId, ativo: true },
       });
       if (!cor) throw new AppError(422, 'Cor inválida');
     }
-    if (data.responsavelId) {
-      const user = await this.prisma.user.findFirst({
-        where: { id: data.responsavelId, ativo: true },
+    if (data.fabricanteId !== undefined) {
+      const marca = await this.prisma.marca.findFirst({
+        where: { id: data.fabricanteId, ativo: true },
       });
-      if (!user) throw new AppError(422, 'Responsável inválido');
+      if (!marca) throw new AppError(422, 'Fabricante inválido');
+    }
+    if (data.responsavelId !== undefined) {
+      const user = await this.prisma.user.findFirst({
+        where: { id: data.responsavelId, ativo: true, papeis: { none: { papel: { nome: 'CLIENTE' } } } },
+      });
+      if (!user) throw new AppError(422, 'Motorista inválido');
     }
   }
 }
