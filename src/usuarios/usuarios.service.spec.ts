@@ -131,3 +131,144 @@ describe('UsuariosService — múltiplos papéis', () => {
     expect(mockPrisma.usuarioPapel.createMany).not.toHaveBeenCalled();
   });
 });
+
+describe('UsuariosService — ativo / ativar_usuario', () => {
+  const sessaoComPermissao = { permissoes: ['ativar_usuario'] };
+  const sessaoSemPermissao = { permissoes: ['criar_usuario'] };
+
+  beforeEach(() => {
+    mockPrisma.user.findFirst.mockResolvedValue(null);
+    mockPrisma.user.create.mockResolvedValue({ id: 9 });
+    mockPrisma.user.update.mockResolvedValue({ id: 9 });
+    mockPrisma.papelRbac.findMany.mockResolvedValue([]);
+    mockPrisma.usuarioPapel.findMany.mockResolvedValue([]);
+  });
+
+  it('criar: sem ativo grava ativo=false (default)', async () => {
+    const resultado = await servico().criar({
+      nome: 'Ana Silva',
+      senha: 'senha123',
+      papelIds: [],
+    });
+
+    expect(mockPrisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ativo: false }),
+      }),
+    );
+    expect(resultado).toBeDefined();
+  });
+
+  it('criar: ativo=true sem sessão lança AppError 403', async () => {
+    const erro = await servico()
+      .criar({
+        nome: 'Ana Silva',
+        senha: 'senha123',
+        papelIds: [],
+        ativo: true,
+      })
+      .catch((e: unknown) => e);
+
+    expect(erro).toBeInstanceOf(AppError);
+    expect((erro as AppError).getStatus()).toBe(403);
+    expect(mockPrisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('criar: ativo=true sem ativar_usuario lança AppError 403', async () => {
+    await expect(
+      servico().criar(
+        {
+          nome: 'Ana Silva',
+          senha: 'senha123',
+          papelIds: [],
+          ativo: true,
+        },
+        sessaoSemPermissao,
+      ),
+    ).rejects.toThrow('Seu perfil não pode ativar usuários');
+    expect(mockPrisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('criar: ativo=true com ativar_usuario grava ativo=true', async () => {
+    await servico().criar(
+      {
+        nome: 'Ana Silva',
+        senha: 'senha123',
+        papelIds: [],
+        ativo: true,
+      },
+      sessaoComPermissao,
+    );
+
+    expect(mockPrisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ativo: true }),
+      }),
+    );
+  });
+
+  it('atualizar: ativar (false→true) sem permissão lança AppError 403', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 9,
+      nome: 'Ana',
+      ativo: false,
+      enderecos: [],
+    });
+
+    await expect(
+      servico().atualizar(9, { ativo: true }, sessaoSemPermissao),
+    ).rejects.toThrow('Seu perfil não pode ativar usuários');
+    expect(mockPrisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('atualizar: ativar (false→true) com ativar_usuario grava ativo=true', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 9,
+      nome: 'Ana',
+      ativo: false,
+      enderecos: [],
+    });
+
+    await servico().atualizar(9, { ativo: true }, sessaoComPermissao);
+
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ativo: true }),
+      }),
+    );
+  });
+
+  it('atualizar: reenviar ativo=true para usuário já ativo não exige permissão', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 9,
+      nome: 'Ana',
+      ativo: true,
+      enderecos: [],
+    });
+
+    await servico().atualizar(9, { ativo: true }, sessaoSemPermissao);
+
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ativo: true }),
+      }),
+    );
+  });
+
+  it('atualizar: desativar (true→false) não exige ativar_usuario', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 9,
+      nome: 'Ana',
+      ativo: true,
+      enderecos: [],
+    });
+
+    await servico().atualizar(9, { ativo: false }, sessaoSemPermissao);
+
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ ativo: false }),
+      }),
+    );
+  });
+});

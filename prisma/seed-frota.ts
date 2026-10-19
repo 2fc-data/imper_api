@@ -10,7 +10,7 @@ const p = new PrismaClient();
 
 const STATUS_VEICULO = [
   { nome: 'ATIVO', ativo: true, ordem: 1 },
-  { nome: 'EM_MANUTENCAO', ativo: true, ordem: 2 },
+  { nome: 'MANUTENCAO', ativo: true, ordem: 2 },
   { nome: 'INATIVO', ativo: false, ordem: 3 },
   { nome: 'DESATIVADO', ativo: false, ordem: 4 },
 ];

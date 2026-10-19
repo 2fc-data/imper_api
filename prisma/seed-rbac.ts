@@ -11,77 +11,210 @@ const p = new PrismaClient();
 // ── Permissões do sistema ───────────────────────────────────────────────────
 const PERMISSOES = [
   // Atendimento
-  { chave: 'criar_atendimento',    descricao: 'Criar atendimento',              categoria: 'atendimento' },
-  { chave: 'editar_atendimento',   descricao: 'Editar atendimento',             categoria: 'atendimento' },
+  {
+    chave: 'criar_atendimento',
+    descricao: 'Criar atendimento',
+    categoria: 'atendimento',
+  },
+  {
+    chave: 'editar_atendimento',
+    descricao: 'Editar atendimento',
+    categoria: 'atendimento',
+  },
   // Orçamentos / financeiro
-  { chave: 'ver_financeiro',       descricao: 'Ver dados financeiros',          categoria: 'financeiro' },
-  { chave: 'aprovar_compra',       descricao: 'Aprovar compras',                categoria: 'financeiro' },
-  { chave: 'aprovar_orcamento',    descricao: 'Aprovar/recusar orçamento',      categoria: 'financeiro' },
+  {
+    chave: 'ver_financeiro',
+    descricao: 'Ver dados financeiros',
+    categoria: 'financeiro',
+  },
+  {
+    chave: 'aprovar_compra',
+    descricao: 'Aprovar compras',
+    categoria: 'financeiro',
+  },
+  {
+    chave: 'aprovar_orcamento',
+    descricao: 'Aprovar/recusar orçamento',
+    categoria: 'financeiro',
+  },
   // Serviços
-  { chave: 'criar_servico',        descricao: 'Criar serviço',                  categoria: 'configuracoes' },
-  { chave: 'editar_servico',       descricao: 'Editar serviço',                 categoria: 'configuracoes' },
+  {
+    chave: 'criar_servico',
+    descricao: 'Criar serviço',
+    categoria: 'configuracoes',
+  },
+  {
+    chave: 'editar_servico',
+    descricao: 'Editar serviço',
+    categoria: 'configuracoes',
+  },
   // Execução de atividades (substitui a antiga camada de Ordens de Serviço)
-  { chave: 'criar_execucao',       descricao: 'Criar execução de atividades',   categoria: 'execucao' },
-  { chave: 'editar_execucao',      descricao: 'Editar execução de atividades',  categoria: 'execucao' },
-  { chave: 'iniciar_execucao',     descricao: 'Iniciar execução',               categoria: 'execucao' },
-  { chave: 'concluir_execucao',    descricao: 'Concluir execução',              categoria: 'execucao' },
-  { chave: 'gerenciar_execucao',   descricao: 'Gerenciar execuções (visão completa)', categoria: 'execucao' },
+  {
+    chave: 'criar_execucao',
+    descricao: 'Criar execução de atividades',
+    categoria: 'execucao',
+  },
+  {
+    chave: 'editar_execucao',
+    descricao: 'Editar execução de atividades',
+    categoria: 'execucao',
+  },
+  {
+    chave: 'iniciar_execucao',
+    descricao: 'Iniciar execução',
+    categoria: 'execucao',
+  },
+  {
+    chave: 'concluir_execucao',
+    descricao: 'Concluir execução',
+    categoria: 'execucao',
+  },
+  {
+    chave: 'gerenciar_execucao',
+    descricao: 'Gerenciar execuções (visão completa)',
+    categoria: 'execucao',
+  },
   // Obras
-  { chave: 'ver_obras',            descricao: 'Ver obras e painel',             categoria: 'obras' },
-  { chave: 'editar_obra',          descricao: 'Editar mestre da obra',          categoria: 'obras' },
-  { chave: 'criar_aditivo',        descricao: 'Criar aditivo de obra',          categoria: 'obras' },
-  { chave: 'aprovar_aditivo',      descricao: 'Aprovar/recusar aditivo',        categoria: 'obras' },
+  { chave: 'ver_obras', descricao: 'Ver obras e painel', categoria: 'obras' },
+  {
+    chave: 'editar_obra',
+    descricao: 'Editar mestre da obra',
+    categoria: 'obras',
+  },
+  {
+    chave: 'criar_aditivo',
+    descricao: 'Criar aditivo de obra',
+    categoria: 'obras',
+  },
+  {
+    chave: 'aprovar_aditivo',
+    descricao: 'Aprovar/recusar aditivo',
+    categoria: 'obras',
+  },
   // Estoque / insumos
-  { chave: 'gerenciar_estoque',    descricao: 'Gerenciar estoque e materiais',  categoria: 'estoque' },
-  { chave: 'entrada_estoque',      descricao: 'Registrar entradas de estoque',  categoria: 'estoque' },
-  { chave: 'criar_material',       descricao: 'Criar material',                 categoria: 'estoque' },
-  { chave: 'separar_item',         descricao: 'Separar itens para execução',    categoria: 'estoque' },
-  { chave: 'gerenciar_equipamentos', descricao: 'Gerenciar equipamentos',       categoria: 'estoque' },
-  { chave: 'gerenciar_epis',       descricao: 'Gerenciar EPIs',                 categoria: 'estoque' },
+  {
+    chave: 'gerenciar_estoque',
+    descricao: 'Gerenciar estoque e materiais',
+    categoria: 'estoque',
+  },
+  {
+    chave: 'entrada_estoque',
+    descricao: 'Registrar entradas de estoque',
+    categoria: 'estoque',
+  },
+  {
+    chave: 'criar_material',
+    descricao: 'Criar material',
+    categoria: 'estoque',
+  },
+  {
+    chave: 'separar_item',
+    descricao: 'Separar itens para execução',
+    categoria: 'estoque',
+  },
+  {
+    chave: 'gerenciar_equipamentos',
+    descricao: 'Gerenciar equipamentos',
+    categoria: 'estoque',
+  },
+  {
+    chave: 'gerenciar_epis',
+    descricao: 'Gerenciar EPIs',
+    categoria: 'estoque',
+  },
   // Usuários / RBAC
-  { chave: 'criar_usuario',        descricao: 'Criar usuário',                  categoria: 'usuarios' },
-  { chave: 'editar_usuario',       descricao: 'Editar usuário',                 categoria: 'usuarios' },
-  { chave: 'definir_perfil',       descricao: 'Definir perfil/papel do usuário',categoria: 'usuarios' },
-  { chave: 'resetar_senha_usuario',descricao: 'Resetar senha de usuário',       categoria: 'usuarios' },
-  { chave: 'gerenciar_papeis',     descricao: 'Gerenciar papéis e permissões',  categoria: 'usuarios' },
+  { chave: 'criar_usuario', descricao: 'Criar usuário', categoria: 'usuarios' },
+  {
+    chave: 'editar_usuario',
+    descricao: 'Editar usuário',
+    categoria: 'usuarios',
+  },
+  {
+    chave: 'ativar_usuario',
+    descricao: 'Ativar usuário (definir ativo = true)',
+    categoria: 'usuarios',
+  },
+  {
+    chave: 'definir_perfil',
+    descricao: 'Definir perfil/papel do usuário',
+    categoria: 'usuarios',
+  },
+  {
+    chave: 'resetar_senha_usuario',
+    descricao: 'Resetar senha de usuário',
+    categoria: 'usuarios',
+  },
+  {
+    chave: 'gerenciar_papeis',
+    descricao: 'Gerenciar papéis e permissões',
+    categoria: 'usuarios',
+  },
   // Catálogo
-  { chave: 'gerenciar_catalogo',   descricao: 'Gerenciar catálogos e vocabulários', categoria: 'configuracoes' },
+  {
+    chave: 'gerenciar_catalogo',
+    descricao: 'Gerenciar catálogos e vocabulários',
+    categoria: 'configuracoes',
+  },
   // Frota
-  { chave: 'visualizar_frota',     descricao: 'Visualizar veículos e relatórios da frota', categoria: 'frota' },
-  { chave: 'registrar_km_frota',   descricao: 'Registrar quilometragem diária',            categoria: 'frota' },
-  { chave: 'gerenciar_frota',      descricao: 'Gerenciar veículos, abastecimentos e manutenções', categoria: 'frota' },
+  {
+    chave: 'visualizar_frota',
+    descricao: 'Visualizar veículos e relatórios da frota',
+    categoria: 'frota',
+  },
+  {
+    chave: 'registrar_km_frota',
+    descricao: 'Registrar quilometragem diária',
+    categoria: 'frota',
+  },
+  {
+    chave: 'gerenciar_frota',
+    descricao: 'Gerenciar veículos, abastecimentos e manutenções',
+    categoria: 'frota',
+  },
 ];
 
 // ── Mapeamento papel → permissões concedidas ────────────────────────────────
 const PAPEL_PERMISSOES: Record<string, string[]> = {
-  ADMIN: PERMISSOES.map((p) => p.chave), // ADMIN tem tudo
+  ADMINISTRATIVO: PERMISSOES.map((p) => p.chave), // ADMINISTRATIVO tem tudo
 
-  SUPERVISOR: [
-    'criar_atendimento', 'editar_atendimento',
-    'ver_financeiro', 'aprovar_compra', 'aprovar_orcamento',
-    'criar_servico', 'editar_servico',
-    'criar_execucao', 'editar_execucao', 'iniciar_execucao', 'concluir_execucao', 'gerenciar_execucao',
-    'ver_obras', 'editar_obra', 'criar_aditivo',
-    'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'separar_item', 'gerenciar_equipamentos', 'gerenciar_epis',
-    'criar_usuario', 'editar_usuario', 'definir_perfil',
-    'gerenciar_catalogo',
-    'visualizar_frota', 'registrar_km_frota', 'gerenciar_frota',
+  FINANCEIRO: [
+    'ver_financeiro',
+    'aprovar_compra',
+    'aprovar_orcamento',
+    'ativar_usuario',
   ],
 
-  TECNICO: [
-    'editar_execucao', 'iniciar_execucao', 'concluir_execucao', 'gerenciar_execucao',
+  CONTABIL: ['ver_financeiro', 'ativar_usuario'],
+
+  VENDAS: ['criar_atendimento', 'editar_atendimento', 'ver_obras'],
+
+  ATENDIMENTO: [
+    'criar_atendimento',
+    'editar_atendimento',
+    'criar_execucao',
+    'editar_execucao',
     'ver_obras',
+    'ativar_usuario',
   ],
 
   ALMOXARIFE: [
-    'gerenciar_estoque', 'entrada_estoque', 'criar_material', 'separar_item', 'gerenciar_equipamentos', 'gerenciar_epis',
+    'gerenciar_estoque',
+    'entrada_estoque',
+    'criar_material',
+    'separar_item',
+    'gerenciar_equipamentos',
+    'gerenciar_epis',
     'ver_obras',
-    'visualizar_frota', 'registrar_km_frota', 'gerenciar_frota',
+    'visualizar_frota',
+    'registrar_km_frota',
+    'gerenciar_frota',
   ],
 
-  ATENDENTE: [
-    'criar_atendimento', 'editar_atendimento',
-    'criar_execucao', 'editar_execucao',
+  COLABORADOR: [
+    'editar_execucao',
+    'iniciar_execucao',
+    'concluir_execucao',
+    'gerenciar_execucao',
     'ver_obras',
   ],
 
@@ -90,11 +223,23 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
 
 // ── Usuários dev e seus papéis ──────────────────────────────────────────────
 const DEV_USERS: Record<string, string> = {
-  'admin@imper.local':      'ADMIN',
-  'supervisor@imper.local': 'SUPERVISOR',
-  'tecnico@imper.local':    'TECNICO',
+  'admin@imper.local': 'ADMINISTRATIVO',
+  'supervisor@imper.local': 'VENDAS',
+  'tecnico@imper.local': 'COLABORADOR',
   'almoxarife@imper.local': 'ALMOXARIFE',
-  'atendente@imper.local':  'ATENDENTE',
+  'atendente@imper.local': 'ATENDIMENTO',
+};
+
+// Rótulo exibido na descrição do papel (mantém "Perfil X" em todos)
+const ROTULO_PAPEL: Record<string, string> = {
+  ADMINISTRATIVO: 'Administrativo',
+  FINANCEIRO: 'Financeiro',
+  CONTABIL: 'Contábil',
+  VENDAS: 'Vendas',
+  ATENDIMENTO: 'Atendimento',
+  ALMOXARIFE: 'Almoxarife',
+  COLABORADOR: 'Colaborador',
+  CLIENTE: 'Cliente',
 };
 
 async function main() {
@@ -120,8 +265,11 @@ async function main() {
   for (const [nomePapel, permChaves] of Object.entries(PAPEL_PERMISSOES)) {
     const papel = await p.papelRbac.upsert({
       where: { nome: nomePapel },
-      update: {},
-      create: { nome: nomePapel, descricao: `Papel ${nomePapel}` },
+      update: { descricao: `Perfil ${ROTULO_PAPEL[nomePapel] ?? nomePapel}` },
+      create: {
+        nome: nomePapel,
+        descricao: `Perfil ${ROTULO_PAPEL[nomePapel] ?? nomePapel}`,
+      },
     });
     papelMap[nomePapel] = papel.id;
 
@@ -159,7 +307,9 @@ async function main() {
     atribuidos++;
   }
 
-  console.log(`\n=== Concluído: ${PERMISSOES.length} permissões, ${Object.keys(PAPEL_PERMISSOES).length} papéis, ${atribuidos} usuários configurados ===`);
+  console.log(
+    `\n=== Concluído: ${PERMISSOES.length} permissões, ${Object.keys(PAPEL_PERMISSOES).length} papéis, ${atribuidos} usuários configurados ===`,
+  );
 }
 
 main()

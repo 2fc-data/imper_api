@@ -75,74 +75,48 @@ async function main() {
   // Re-habilita checagem de chave estrangeira
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
 
-  console.log('\n🌱 Recriando usuários padrão de sistema (Admin, Supervisor, Técnico, etc)...');
+  console.log('\n🌱 Recriando usuários padrão de sistema (Administrativo, Vendas, Colaborador, Almoxarife, Atendimento)...');
 
   const defaultPasswordHash = await bcrypt.hash('senha123', 10);
 
-  // Busca ID do cargo de Admin/Supervisor se existir
-  const adminCargo = await prisma.cargo.findFirst({ where: { nome: 'Administrador' } });
-  const supervisorCargo = await prisma.cargo.findFirst({ where: { nome: 'Supervisor' } });
-  const tecnicoCargo = await prisma.cargo.findFirst({ where: { nome: 'Técnico' } });
-  const almoxarifeCargo = await prisma.cargo.findFirst({ where: { nome: 'Almoxarife' } });
-  const atendenteCargo = await prisma.cargo.findFirst({ where: { nome: 'Atendente' } });
+  // Cargos da lista oficial (migração 20261017111500_replace_cargos_options)
+  // e papéis oficiais (migração 20261017120000_replace_papeis_options).
+  const DEV_PERFIS = [
+    { id: 1, nome: 'Admin Sistema', email: 'admin@imper.local',      cargo: 'Gestão',            papel: 'ADMINISTRATIVO' },
+    { id: 2, nome: 'Supervisor A',  email: 'supervisor@imper.local', cargo: 'Comercial',         papel: 'VENDAS' },
+    { id: 3, nome: 'Técnico 1',     email: 'tecnico@imper.local',    cargo: 'Colaboradores',     papel: 'COLABORADOR' },
+    { id: 4, nome: 'Almoxarife A',  email: 'almoxarife@imper.local', cargo: 'Compras e estoque', papel: 'ALMOXARIFE' },
+    { id: 6, nome: 'Atendente A',   email: 'atendente@imper.local',  cargo: 'Comercial',         papel: 'ATENDIMENTO' },
+  ] as const;
 
-  const admin = await prisma.user.create({
-    data: {
-      id: 1,
-      nome: 'Admin Sistema',
-      email: 'admin@imper.local',
-      senhaHash: defaultPasswordHash,
-      ativo: true,
-      cargoId: adminCargo?.id,
-    },
-  });
+  const cargoCache = new Map<string, number | null>();
 
-  await prisma.user.createMany({
-    data: [
-      {
-        id: 2,
-        nome: 'Supervisor A',
-        email: 'supervisor@imper.local',
-        senhaHash: defaultPasswordHash,
-        ativo: true,
-        cargoId: supervisorCargo?.id,
-      },
-      {
-        id: 3,
-        nome: 'Técnico 1',
-        email: 'tecnico@imper.local',
-        senhaHash: defaultPasswordHash,
-        ativo: true,
-        cargoId: tecnicoCargo?.id,
-      },
-      {
-        id: 4,
-        nome: 'Almoxarife A',
-        email: 'almoxarife@imper.local',
-        senhaHash: defaultPasswordHash,
-        ativo: true,
-        cargoId: almoxarifeCargo?.id,
-      },
-      {
-        id: 6,
-        nome: 'Atendente A',
-        email: 'atendente@imper.local',
-        senhaHash: defaultPasswordHash,
-        ativo: true,
-        cargoId: atendenteCargo?.id,
-      },
-    ],
-  });
+  for (const perfil of DEV_PERFIS) {
+    if (!cargoCache.has(perfil.cargo)) {
+      const cargo = await prisma.cargo.findFirst({ where: { nome: perfil.cargo } });
+      cargoCache.set(perfil.cargo, cargo?.id ?? null);
+      if (!cargo) console.warn(`  ⚠ Cargo não encontrado: ${perfil.cargo}`);
+    }
 
-  // Atribui papel de ADMIN ao usuário 1
-  const adminPapel = await prisma.papelRbac.findFirst({ where: { nome: 'Administrador' } });
-  if (adminPapel) {
-    await prisma.usuarioPapel.create({
+    const user = await prisma.user.create({
       data: {
-        userId: admin.id,
-        papelId: adminPapel.id,
+        id: perfil.id,
+        nome: perfil.nome,
+        email: perfil.email,
+        senhaHash: defaultPasswordHash,
+        ativo: true,
+        cargoId: cargoCache.get(perfil.cargo) ?? undefined,
       },
     });
+
+    const papel = await prisma.papelRbac.findFirst({ where: { nome: perfil.papel } });
+    if (papel) {
+      await prisma.usuarioPapel.create({
+        data: { userId: user.id, papelId: papel.id },
+      });
+    } else {
+      console.warn(`  ⚠ Papel não encontrado: ${perfil.papel} (rode o seed-rbac antes)`);
+    }
   }
 
   console.log('✅ Tabela `users`, `enderecos` e dados relacionados limpos com sucesso!');

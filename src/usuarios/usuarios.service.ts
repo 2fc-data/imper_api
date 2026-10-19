@@ -4,11 +4,21 @@ import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+/** Permissão necessária para marcar um usuário como ativo (ativo = true). */
+const PERMISSAO_ATIVAR_USUARIO = 'ativar_usuario';
+
+type SessaoUsuario = { permissoes?: string[] };
+
+function podeAtivar(sessao?: SessaoUsuario): boolean {
+  return !!sessao?.permissoes?.includes(PERMISSAO_ATIVAR_USUARIO);
+}
+
 const selectPublico = {
   id: true,
   nome: true,
   email: true,
   cpfCnpj: true,
+  rg: true,
   telefone: true,
   ativo: true,
   createdAt: true,
@@ -64,6 +74,7 @@ export class UsuariosService {
         { email: { contains: q } },
         { telefone: { contains: q } },
         { cpfCnpj: { contains: q } },
+        { rg: { contains: q } },
       ],
     };
     return this.prisma.user.findMany({
@@ -74,28 +85,38 @@ export class UsuariosService {
         email: true,
         telefone: true,
         cpfCnpj: true,
+        rg: true,
       },
       orderBy: { nome: 'asc' },
       take: 20,
     });
   }
 
-  async criar(data: {
-    nome: string;
-    email?: string;
-    senha: string;
-    telefone?: string;
-    papelIds: number[];
-    cargoId?: number | null;
-    cpfCnpj?: string;
-    cep?: string;
-    endereco?: string;
-    bairro?: string;
-    cidade?: string;
-    estado?: string;
-    numero?: string;
-    complemento?: string;
-  }) {
+  async criar(
+    data: {
+      nome: string;
+      email?: string;
+      senha: string;
+      telefone?: string;
+      papelIds: number[];
+      cargoId?: number | null;
+      ativo?: boolean;
+      cpfCnpj?: string;
+      rg?: string;
+      cep?: string;
+      endereco?: string;
+      bairro?: string;
+      cidade?: string;
+      estado?: string;
+      numero?: string;
+      complemento?: string;
+    },
+    sessao?: SessaoUsuario,
+  ) {
+    if (data.ativo === true && !podeAtivar(sessao)) {
+      throw new AppError(403, 'Seu perfil não pode ativar usuários');
+    }
+
     if (data.nome) {
       const nomeTrimmed = data.nome.trim();
       const existenteNome = await this.prisma.user.findFirst({
@@ -156,7 +177,9 @@ export class UsuariosService {
           telefone: data.telefone,
           cargoId: data.cargoId ?? null,
           cpfCnpj: data.cpfCnpj?.replace(/\D/g, '') ?? null,
+          rg: data.rg?.trim() || null,
           senhaHash,
+          ativo: data.ativo ?? false,
         },
         select: selectPublico,
       });
@@ -198,6 +221,7 @@ export class UsuariosService {
       cargoId?: number | null;
       ativo?: boolean;
       cpfCnpj?: string;
+      rg?: string;
       cep?: string;
       endereco?: string;
       bairro?: string;
@@ -206,6 +230,7 @@ export class UsuariosService {
       numero?: string;
       complemento?: string;
     },
+    sessao?: SessaoUsuario,
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -213,8 +238,13 @@ export class UsuariosService {
     });
     if (!user) throw new AppError(404, 'Usuário não encontrado');
 
+    if (data.ativo === true && user.ativo !== true && !podeAtivar(sessao)) {
+      throw new AppError(403, 'Seu perfil não pode ativar usuários');
+    }
+
     const {
       cpfCnpj,
+      rg,
       cep,
       endereco,
       bairro,
@@ -294,6 +324,11 @@ export class UsuariosService {
         cpfCnpjFinal = cpfLimpo || null;
       }
 
+      let rgFinal: string | null | undefined;
+      if (rg !== undefined) {
+        rgFinal = rg?.trim() || null;
+      }
+
       if (endereco !== undefined && endereco) {
         const atual = user.enderecos?.[0];
         if (atual) {
@@ -338,6 +373,7 @@ export class UsuariosService {
         data: {
           ...userData,
           ...(cpfCnpjFinal !== undefined && { cpfCnpj: cpfCnpjFinal }),
+          ...(rgFinal !== undefined && { rg: rgFinal }),
         },
         select: selectPublico,
       });

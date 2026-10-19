@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
@@ -51,8 +52,9 @@ export class UsuariosController {
   @Permissions('criar_usuario')
   async criar(
     @Body(new ZodValidationPipe(criarUsuarioSchema)) dto: CriarUsuarioDto,
+    @Req() req: { user: { permissoes: string[] } },
   ) {
-    return this.usuariosService.criar(dto);
+    return this.usuariosService.criar(dto, req.user);
   }
 
   @Put(':id')
@@ -61,8 +63,9 @@ export class UsuariosController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(atualizarUsuarioSchema))
     dto: AtualizarUsuarioDto,
+    @Req() req: { user: { permissoes: string[] } },
   ) {
-    return this.usuariosService.atualizar(Number(id), dto);
+    return this.usuariosService.atualizar(Number(id), dto, req.user);
   }
 
   @Get('cargos')

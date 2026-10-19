@@ -29,8 +29,9 @@ model User {
   nome                     String                  @db.VarChar(120)
   email                    String?                 @unique @db.VarChar(120)
   cpfCnpj                  String?                 @unique @db.VarChar(20)
+  rg                       String?                 @db.VarChar(20)
   senhaHash                String                  @db.VarChar(255)
-  ativo                    Boolean                 @default(true)
+  ativo                    Boolean                 @default(false)
   cargoId                  Int?
   telefone                 String?                 @db.VarChar(20)
   createdAt                DateTime                @default(now())
@@ -75,7 +76,8 @@ model User {
   disponibilidadeDatas     DisponibilidadeData[]
   visitas                  VisitaTecnica[]         @relation("TecnicoVisita")
   veiculosResponsaveis     Veiculo[]
-  registrosKmVeiculos      RegistroKmVeiculo[]
+  registrosKmVeiculos      RegistroKmVeiculo[]        @relation("RegistroKmRegistradoPor")
+  registrosKmColaborador   RegistroKmVeiculo[]        @relation("RegistroKmColaborador")
   abastecimentosVeiculos   AbastecimentoVeiculo[]
   manutencoesVeiculos      ManutencaoVeiculo[]
 
@@ -823,6 +825,7 @@ model Marca {
   equipamentos Equipamento[]
   materiais    Material[]
   veiculos     Veiculo[]
+  veiculosFabricante Veiculo[] @relation("VeiculoFabricante")
 
   @@map("marcas")
 }
@@ -1541,7 +1544,8 @@ model Veiculo {
   id            Int                @id @default(autoincrement())
   codigo        String             @unique @db.VarChar(50)
   placa         String             @unique @db.VarChar(10)
-  descricao     String             @db.VarChar(255)
+  nome          String             @db.VarChar(255)
+  fabricanteId  Int?
   modelo        String?            @db.VarChar(120)
   ano           Int?
   combustivel   CombustivelVeiculo @default(GASOLINA)
@@ -1561,6 +1565,7 @@ model Veiculo {
   status        StatusVeiculo @relation(fields: [statusId], references: [id])
   responsavelId Int?
   responsavel   User?         @relation(fields: [responsavelId], references: [id])
+  fabricante    Marca?        @relation("VeiculoFabricante", fields: [fabricanteId], references: [id])
 
   registrosKm    RegistroKmVeiculo[]
   abastecimentos AbastecimentoVeiculo[]
@@ -1570,7 +1575,7 @@ model Veiculo {
   @@index([tipoId])
   @@index([marcaId])
   @@index([responsavelId])
-  @@index([descricao])
+  @@index([nome])
   @@map("veiculos")
 }
 
@@ -1586,10 +1591,13 @@ model RegistroKmVeiculo {
   veiculoId       Int
   veiculo         Veiculo @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
   registradoPorId Int?
-  registradoPor   User?   @relation(fields: [registradoPorId], references: [id])
+  registradoPor   User?   @relation("RegistroKmRegistradoPor", fields: [registradoPorId], references: [id])
+  colaboradorId   Int?
+  colaborador     User?   @relation("RegistroKmColaborador", fields: [colaboradorId], references: [id])
 
   @@unique([veiculoId, data])
   @@index([veiculoId, data])
+  @@index([colaboradorId])
   @@map("registros_km_veiculo")
 }
 
