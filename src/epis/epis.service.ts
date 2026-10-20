@@ -216,6 +216,21 @@ export class EpisService {
     return epi;
   }
 
+  async proximoCodigo(): Promise<{ codigo: string }> {
+    const ultimo = await this.prisma.epi.findFirst({
+      where: { codigo: { startsWith: 'EPI-' } },
+      orderBy: { id: 'desc' },
+      select: { codigo: true },
+    });
+
+    let proximo = 1;
+    if (ultimo) {
+      const match = ultimo.codigo.match(/^EPI-(\d+)$/);
+      if (match) proximo = Number(match[1]) + 1;
+    }
+    return { codigo: `EPI-${String(proximo).padStart(3, '0')}` };
+  }
+
   async criar(data: any) {
     const nomeUpper =
       typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
@@ -225,7 +240,8 @@ export class EpisService {
       });
       if (exists) throw new AppError(409, 'EPI já cadastrado');
     }
-    return this.prisma.epi.create({ data: { ...data, nome: nomeUpper } });
+    const codigo = data.codigo?.trim() || (await this.proximoCodigo()).codigo;
+    return this.prisma.epi.create({ data: { ...data, codigo, nome: nomeUpper } });
   }
 
   async atualizar(id: number, data: any) {

@@ -78,7 +78,8 @@ model User {
   veiculosResponsaveis     Veiculo[]
   registrosKmVeiculos      RegistroKmVeiculo[]        @relation("RegistroKmRegistradoPor")
   registrosKmColaborador   RegistroKmVeiculo[]        @relation("RegistroKmColaborador")
-  abastecimentosVeiculos   AbastecimentoVeiculo[]
+  abastecimentosVeiculos   AbastecimentoVeiculo[] @relation("AbastecimentoRegistradoPor")
+  abastecimentosMotorista  AbastecimentoVeiculo[] @relation("AbastecimentoMotorista")
   manutencoesVeiculos      ManutencaoVeiculo[]
 
   @@index([cargoId], map: "users_cargoId_fkey")
@@ -1619,7 +1620,9 @@ model AbastecimentoVeiculo {
   fornecedorId    Int?
   fornecedor      Fornecedor? @relation(fields: [fornecedorId], references: [id])
   registradoPorId Int?
-  registradoPor   User?       @relation(fields: [registradoPorId], references: [id])
+  registradoPor   User?       @relation("AbastecimentoRegistradoPor", fields: [registradoPorId], references: [id])
+  motoristaId     Int?
+  motorista       User?       @relation("AbastecimentoMotorista", fields: [motoristaId], references: [id])
 
   @@index([veiculoId])
   @@index([data])
@@ -1705,6 +1708,7 @@ enum StatusMaterial {
 enum TipoMaterial {
   MATERIAL
   EQUIPAMENTO
+  SUPERMERCADO
 }
 
 enum TipoMovimento {

@@ -384,7 +384,7 @@ DESENGRIPANTE	FRASCO
 TINTA	LATA	
 TÁBUA	UNIDADE	
 MC PROOF DF 8 (Manta acrílica impermeável altamente flexível - 12 Kg)	BALDE	MC - BALCHEMIE
-FITA ALUMÍNIO 25MM X 30M	UNIDADE Cadastre estes items em materiais relacionando os fornecedores e unidademedidas, sem reedundência`;
+FITA ALUMÍNIO 25MM X 30M	UNIDADE	`;
 
 // ── Normalização ──────────────────────────────────────────────────
 const UNIT_MAP: Record<string, string> = {
@@ -401,6 +401,24 @@ const UNIT_MAP: Record<string, string> = {
   'Galão': 'GALÃO',
   'BALDINHO': 'BALDE',
 };
+
+// Catálogo de marcas (upsert distinto, sem auto-link posicional aos materiais)
+const MARCAS: string[] = [
+  'Mercantil',
+  'Centergeo',
+  'Ernetex',
+  'Denver',
+  'Maccaferry',
+  'Viapol',
+  'Mc - Balchemie',
+  'Sachi',
+  'Centergel',
+  'Distrimac',
+  'Macfex',
+  'Sika',
+  'Soprema',
+  'Feruni Axton',
+];
 
 const FORN_MAP: Record<string, string> = {
   'MC - BALCHEMIE': 'Mc - Balchemie',
@@ -512,6 +530,14 @@ async function main() {
       fornMap[nome] = rec.id;
       console.log(`  ${rec.nome} (id=${rec.id}) [criado]`);
     }
+  }
+
+  // 2.5. Catálogo de marcas (upsert distinto, sem auto-link posicional)
+  console.log(`\n--- Marcas (${MARCAS.length}) ---`);
+  for (const nome of MARCAS) {
+    const existing = await p.marca.findFirst({ where: { nome } });
+    const rec = existing ?? (await p.marca.create({ data: { nome } }));
+    console.log(`  ${rec.nome} (id=${rec.id})`);
   }
 
   // 3. Inserir materiais

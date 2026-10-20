@@ -3,6 +3,13 @@ import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+const ABASTECIMENTO_INCLUDE = {
+  veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
+  fornecedor: true,
+  registradoPor: { select: { id: true, nome: true } },
+  motorista: { select: { id: true, nome: true } },
+};
+
 @Injectable()
 export class VeiculosService {
   constructor(private readonly prisma: PrismaService) {}
@@ -41,6 +48,7 @@ export class VeiculosService {
       cores,
       tiposManutencao,
       responsaveis,
+      motoristas,
     ] = await Promise.all([
       this.prisma.tipoVeiculo.findMany({
         where: { ativo: true },
@@ -66,6 +74,14 @@ export class VeiculosService {
         where: { ativo: true, papeis: { none: { papel: { nome: 'CLIENTE' } } } },
         select: { id: true, nome: true },
       }),
+      this.prisma.user.findMany({
+        where: {
+          ativo: true,
+          papeis: { none: { papel: { nome: 'CLIENTE' } } },
+        },
+        select: { id: true, nome: true },
+        orderBy: { nome: 'asc' },
+      }),
     ]);
 
     return {
@@ -75,6 +91,7 @@ export class VeiculosService {
       cores,
       tiposManutencao,
       responsaveis,
+      motoristas,
     };
   }
 
@@ -475,6 +492,12 @@ export class VeiculosService {
 
     const dataAbastecimento = data.data ? new Date(data.data) : new Date();
 
+    const motoristaId = data.motoristaId ? Number(data.motoristaId) : null;
+    if (!motoristaId) {
+      throw new AppError(422, 'motoristaId é obrigatório');
+    }
+    await this.validarMotorista(motoristaId);
+
     const ultimo = await this.prisma.abastecimentoVeiculo.findFirst({
       where: { veiculoId },
       orderBy: { data: 'desc' },
@@ -501,7 +524,9 @@ export class VeiculosService {
           kmPorLitro,
           fornecedorId: data.fornecedorId || null,
           registradoPorId: registradoPorId || null,
+          motoristaId,
         },
+        include: ABASTECIMENTO_INCLUDE,
       });
       if (odometro && odometro > Number(veiculo.odometroAtual)) {
         await tx.veiculo.update({
@@ -518,14 +543,23 @@ export class VeiculosService {
     if (veiculoId) where.veiculoId = veiculoId;
     const abastecimentos = await this.prisma.abastecimentoVeiculo.findMany({
       where,
-      include: {
-        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
-        fornecedor: true,
-        registradoPor: { select: { id: true, nome: true } },
-      },
+      include: ABASTECIMENTO_INCLUDE,
       orderBy: { data: 'desc' },
     });
     return abastecimentos.map((a) => this.serializarAbastecimento(a));
+  }
+
+  private async validarMotorista(motoristaId: number) {
+    const motorista = await this.prisma.user.findUnique({
+      where: { id: motoristaId },
+      include: { papeis: { include: { papel: true } } },
+    });
+    if (!motorista?.ativo) {
+      throw new AppError(422, 'Motorista inválido ou inativo');
+    }
+    if (motorista.papeis.some((up) => up.papel.nome === 'CLIENTE')) {
+      throw new AppError(422, 'Motorista não pode ser um cliente');
+    }
   }
 
   async atualizarAbastecimento(id: number, data: any) {
@@ -557,6 +591,15 @@ export class VeiculosService {
         ? Number(data.odometro)
         : Number(abastecimento.odometro);
 
+    let motoristaId: number | null | undefined;
+    if (data.motoristaId !== undefined) {
+      if (!data.motoristaId) {
+        throw new AppError(422, 'motoristaId é obrigatório');
+      }
+      motoristaId = Number(data.motoristaId);
+      await this.validarMotorista(motoristaId);
+    }
+
     return this.serializarAbastecimento(
       await this.prisma.abastecimentoVeiculo.update({
         where: { id },
@@ -567,9 +610,11 @@ export class VeiculosService {
           ...(data.fornecedorId !== undefined && {
             fornecedorId: data.fornecedorId,
           }),
+          ...(data.motoristaId !== undefined && { motoristaId }),
           precoLitro,
           odometro,
         },
+        include: ABASTECIMENTO_INCLUDE,
       }),
     );
   }

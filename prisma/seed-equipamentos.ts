@@ -1,0 +1,462 @@
+import { PrismaClient } from '@prisma/client';
+
+const p = new PrismaClient();
+
+// ── Dedup (mesma regra do EquipamentoService.criar) ───────────────
+function normalize(str: string) {
+  return str
+    .trim()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ── Dados brutos (deduplicado por normalize) ──────────────────────
+const RAW: string[] = [
+  'Afastador para Balancim',
+  'Alicate',
+  'Aplicador de Flex PU',
+  'Arco de Serra Manual',
+  'Aspirador de Pó',
+  "Bomba d'água com conduit (Karcher)",
+  "Bomba d'água com conduit (Sapo - cinza)",
+  'Cabo de Bateria',
+  'Cadeirinha elétrica',
+  'Caixa de Chaves Combinadas',
+  'Caldeira',
+  'Carretinha (simples - pequena)',
+  'Carrinho (carga)',
+  'Carrinho (pedreiro)',
+  'Cavadeira (01 face)',
+  'Cavalete (04)',
+  'Cinto de Segurança',
+  'Cinto de Segurança (laranja)',
+  'Cone de sinalização (laranja e preto)',
+  'Cone de sinalização (preto e amarelo)',
+  'Corda',
+  'Corda (09 metros)',
+  'Corda (12 metros)',
+  'Corda (16 metros)',
+  'Corda (23 metros)',
+  'Corda (29 metros)',
+  'Corda de Rapel (Tipo Bombeiro)',
+  'Cortador de Pisos e Azulejos',
+  'Enxada',
+  'Escada',
+  'Escada andaime (12 degraus - vermelha)',
+  'Escada andaime (16 Degraus - azul)',
+  'Escada articulada alumínio (4x4 degraus)',
+  'Escada de alumínio (06 Degraus - vermelha)',
+  'Escada extensiva (09 degraus)',
+  'Esmerilhadeira',
+  'Esmerilhadeira (115mms 4.1/2 600w M 09012 - 127v)',
+  'Esmerilhadeira (125mms 1050w M 9002B 127v)',
+  'Esticador',
+  'Esticador (cabo de aço - grande)',
+  'Esticador (cabo de aço - médio)',
+  'Extensão',
+  'Extensão (10 metros)',
+  'Extensão (azul/amarela/verde)',
+  'Extensão (Bixo maçarico)',
+  'Extensão (branca)',
+  'Extensão (luminária - 30 metros)',
+  'Extensão (verde/amarelo - grande)',
+  'Furadeira',
+  'Furadeira (127v)',
+  'Furadeira (Bosch)',
+  'Furadeira (Dewalt)',
+  'Ioiô',
+  'Jogo de Chave Combinada (nº 06 à 17 - 10 peças)',
+  'Kit gás',
+  'Lavadora de alta pressão',
+  'Lavadora de alta pressão (AP K330 MPLUS 220v - Karcher)',
+  'Lavadora de alta pressão (cinza)',
+  'Lavadora de alta pressão (com bicos - Vap)',
+  'Lavadora de alta pressão (K3 - K3.30 - Karcher)',
+  'Lavadora de alta pressão (Vonder)',
+  'Lixadeira',
+  'Lixadeira (220v - grande - Makita)',
+  'Lixadeira (220v)',
+  'Lixadeira (9" - Dewalt)',
+  'Lixadeira (Dong Chang)',
+  'Lixadeira (GWS 700)',
+  'Lixadeira (M0921B - Makita)',
+  'Lixadeira (Makita)',
+  'Lixadeira (pequena - Makita)',
+  'Lixadeira (WS4740 - Wesco)',
+  'Maçarico',
+  'Maçarico (amarelo)',
+  'Maçarico (azul)',
+  'Maçarico (azul/verde)',
+  'Maçarico (verde/azul/vermelho)',
+  'Maçarico (vermelho)',
+  'Maçarico (vermelho/verde)',
+  'Makita',
+  'Makita (Dewalt)',
+  'Marreta',
+  'Marreta (1Kg)',
+  'Marretão',
+  'Martelete',
+  'Martelete (220v - grande - Makita)',
+  'Martelete (Dong Cheng)',
+  'Martelete (Eletrop)',
+  'Martelete (grande)',
+  'Martelete (pequeno)',
+  'Martelete (USK)',
+  'Martelo',
+  'Martelo (Dong Cheng DZG06-6S)',
+  'Martelo Rompedor Rotativo (50/60hz - 220v - 2Kg - USK)',
+  'Misturador',
+  'Misturador (elétrico)',
+  'Misturador (grande)',
+  'Serra mármore (Makita - Vonder)',
+  'Misturador (pequeno)',
+  'Esmerilhadeira (110v - Motomil)',
+  'Pá de pedreiro',
+  'Parafusadeira de Impacto (bateria - sem fio)',
+  'Pedestal',
+  'Peneira',
+  'Picareta',
+  'Lixadeira (Politriz)',
+  'Pulverizador',
+  'Pulverizador (02 litros - Fuzil)',
+  'Régua',
+  'Secador',
+  'Serra Circular (amarela)',
+  'Serra mármore',
+  'Serra (para madeira)',
+  'Serrote (22" - prata)',
+  'Talabarte (duplo "Y")',
+  'Talabarte (simples)',
+  'Talabarte (tipo "Y")',
+  'Torques',
+  'Transformador',
+  'Transformador (alugado)',
+  'Trava-quedas',
+  'Trava-quedas (corda)',
+  'Trava-quedas (cabo de aço)',
+  'Trava-quedas (corda - sem gancho)',
+  'Pá (vanga)',
+  'Refletor de led',
+  'Colher de pedreiro',
+  'Guincho (vermelho)',
+  'Extintor de incêndio',
+  'Lixadeira (orbital)',
+  'ALAVANCA',
+  'ALICATE DE BOMBEIRO',
+  'APLICADOR PROFISSIONAL (STAFER)',
+  'BOMBA COSTAL JACTO (20 LITROS)',
+  "BOMBA D'ÁGUA (MAKITA - AQUAMAK PF 1010 - 127V - NOVA)",
+  "BOMBA D'ÁGUA COM CONDUIT (ANAUGER/SAPO - CINZA - 127V)",
+  "BOMBA D'ÁGUA COM CONDUIT (ANAUGER/SAPO - CINZA - 220V)",
+  "BOMBA D'ÁGUA COM CONDUIT (KARCHER - 127V)",
+  "BOMBA D'ÁGUA COM CONDUIT (MAKITA AQUAMAK - PF1010 - 60HZ - 127V)",
+  'CABO DE AÇO',
+  'BOMBA MANUAL',
+  'CABO EXTENSOR PARA ROLO',
+  'CADEIRINHA ELÉTRICA COM CABOS',
+  'CADEIRINHA MADEIRA',
+  'CADEIRINHA MANUAL',
+  'CARRETILHA/MANIVELA (NOVA)',
+  'CAVADEIRA (01 FACE - RETA)',
+  'CAVADEIRA (01 FACE - TRAMONTINA)',
+  'CAVADEIRA (RETA)',
+  'CAVALETE (04 PARTES)',
+  'CHAVE DE BIELA "L" 10MM',
+  'CHAVE DE BIELA "L" 11MM',
+  'CHAVE DE BIELA "L" 12MM',
+  'CHAVE DE BIELA "L" 8MM',
+  'CHAVE DE BOCA Nº 10',
+  'CHAVE DE BOCA Nº 11',
+  'CHAVE DE BOCA Nº 12',
+  'CHAVE DE BOCA Nº 13',
+  'CHAVE DE BOCA Nº 14',
+  'CHAVE DE BOCA Nº 15',
+  'CHAVE DE BOCA Nº 16',
+  'CHAVE DE BOCA Nº 17',
+  'CHAVE DE BOCA Nº 18',
+  'CHAVE DE BOCA Nº 19',
+  'CHAVE DE BOCA Nº 20',
+  'CHAVE DE BOCA Nº 6',
+  'CHAVE DE BOCA Nº 7',
+  'CHAVE DE BOCA Nº 8',
+  'CHAVE DE BOCA Nº 9',
+  'CHAVE DE FENDA',
+  'CHAVE INGLESA (BITOLA: 18")',
+  'CHAVE PHILIPS',
+  'CHIBANCA (HASTE DE FERRO)',
+  'CHIBANCA (HASTE DE PVC)',
+  'CINTO DE SEGURANÇA (BAIXA ALTITUDE - VERDE)',
+  'CINTO DE SEGURANÇA (BOLDRIÊ - PRETO/LARANJA)',
+  'CINTO DE SEGURANÇA (CINZA)',
+  'CINTO DE SEGURANÇA (CINZA/PRETO)',
+  'CINTO DE SEGURANÇA (COMPLETO - BOLDRIÊ - PQD/ABD MULTI 2010 - PRETO/AMARELO )',
+  'CINTO DE SEGURANÇA (COMPLETO - BOLDRIÊ - PQD/ABD MULTI 2010 - PRETO/LARANJ/AZ. )',
+  'CINTO DE SEGURANÇA (PRETO)',
+  'COLHER DE PEDREIRO 8"',
+  'COLHER DE PEDREIRO 9"',
+  'COLHER DE PEDREIRO PEQUENA 6"',
+  'COLHER DE PEDREIRO PEQUENA 7"',
+  'COLHER DE PEDREIRO USADA',
+  'CONJUNTO DE CHAVE COMBINADA',
+  'CORDA (PEDAÇO)',
+  'CORDA (RETINIDA/CORDEL)',
+  'DESEMPENADEIRA 18 X 30',
+  'DESEMPENADEIRA DE EVA',
+  'DESEMPENADEIRA DENTADA',
+  'DESEMPENADEIRA REJUNTE',
+  'DESEMPENADEIRA USADA',
+  'ESCADA (ALUMÍNIO – 06 DEGRAUS – AZUL)',
+  'ESCADA (ALUMÍNIO E FIBRA)',
+  'ESCADA (ANDAIME – 12 DEGRAUS – VERMELHO)',
+  'ESCADA (ANDAIME – AZUL)',
+  'ESCADA (AZUL)',
+  'ESCADA (COM EXTENSÃO – 14 DEGRAUS)',
+  'ESCADA (EXTENSIVA – 9 DEGRAUS)',
+  'ESCADA (FERRO – 12/24 DEGRAUS)',
+  'ESCADA (GRANDE – AZUL)',
+  'ESCADA (GRANDE)',
+  'ESCADA (PEQUENA – VERMELHA)',
+  'ESCADA (SANFONADA – RETRATIL – 12 DEGRAUS)',
+  'ESMERILHADEIRA/LIXADEIRA',
+  'ESMERILHADEIRA/LIXADEIRA (115MM 4.1/2 600W M 09012 - 127V)',
+  'ESMERILHADEIRA/LIXADEIRA (125MMS 1050W M 9002B - 127V)',
+  'ESMERILHADEIRA/LIXADEIRA (220V)',
+  'ESMERILHADEIRA/LIXADEIRA (9" DEWALT)',
+  'ESMERILHADEIRA/LIXADEIRA (BLACK+DECKER)',
+  'ESMERILHADEIRA/LIXADEIRA (BOSCH - 127V)',
+  'ESMERILHADEIRA/LIXADEIRA (BOSCH 7")',
+  'ESMERILHADEIRA/LIXADEIRA (DEWALT)',
+  'ESMERILHADEIRA/LIXADEIRA (DONG CHENG)',
+  'ESMERILHADEIRA/LIXADEIRA (GWS 700 - 220V)',
+  'ESMERILHADEIRA/LIXADEIRA (HILDT - 220V)',
+  'ESMERILHADEIRA/LIXADEIRA (HILDT - VERMELHA - 220V)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA - 127V)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA - 220V)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA - GRANDE - 220V)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA - M0921B)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA - M9002)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA - M9507B)',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA 7")',
+  'ESMERILHADEIRA/LIXADEIRA (MAKITA)',
+  'ESMERILHADEIRA/LIXADEIRA (WESCO - 220V)',
+  'ESMERILHADEIRA/LIXADEIRA (WESCO - WS4740)',
+  'ESMERILHADEIRA/LIXADEIRA BOSCH (850W)',
+  'ESPÁTULA 10 CM',
+  'ESPÁTULA 2 CM',
+  'ESPÁTULA 4 CM',
+  'ESPÁTULA 6 CM',
+  'ESQUADRO',
+  'ESTILETE',
+  'EXTENSÃO (DIVERSA)',
+  'EXTENSÃO (01 LUMINÁRIA)',
+  'EXTENSÃO (10 METROS – BRANCA)',
+  'EXTENSÃO (15 METROS)',
+  'EXTENSÃO (2 METROS)',
+  'EXTENSÃO (3 TOMADAS)',
+  'EXTENSÃO (30 METROS)',
+  'EXTENSÃO (AMARELA)',
+  'EXTENSÃO (AZUL/AMARELA)',
+  'EXTENSÃO (BRANCA - 17METROS)',
+  'EXTENSÃO (C/ PLUGUE ADAPTADOR P/ ESMERILHADEIRA PLUGUE REDONDO - 2 METROS)',
+  'EXTENSÃO (GRANDE - CABO PP - PRETA - 12 METROS)',
+  'EXTENSÃO (GRANDE - CABO PP - PRETA)',
+  'EXTENSÃO (GRANDE COM FITA)',
+  'EXTENSÃO (GRANDE)',
+  'EXTENSÃO (LUMINÁRIA - PRETA)',
+  'EXTENSÃO (PEQUENA - BRANCA)',
+  'EXTENSÃO (PEQUENA)',
+  'EXTENSÃO (PRETA)',
+  'EXTENSÃO (VERDE)',
+  'EXTENSÃO (VERMELHA)',
+  'EXTENSÃO DE BALANCIM',
+  'EXTENSÃO GRANDE VERDE E AMARELO',
+  'EXTENSÃO PARA CADEIRINHA',
+  'EXTENSOR DE EXTENSÃO',
+  'EXTRATOR DE REJUNTE (HARD)',
+  'FACA Nº 6',
+  'FACA Nº 7',
+  'FACA Nº 8',
+  'FURADEIRA (BOSCH GSB 13 RE/GSB 16 RE)',
+  'FURADEIRA (BOSCH GSB 450 RE)',
+  'FURADEIRA (BOSH)',
+  'FURADEIRA (STANLEY)',
+  'GANCHO',
+  'GLP P13 (GÁS DE COZINHA)',
+  'GUINCHO (AMARELO - 110)',
+  'GUINCHO (VERMELHO - 220)',
+  'JOGO CHAVE ALLEN',
+  'LAVADORA DE ALTA PRESSÃO (HD585 - KARCHER - CINZA)',
+  'LAVADORA DE ALTA PRESSÃO (K3 - K3.30 - KARCHER - 127V)',
+  'LAVADORA DE ALTA PRESSÃO (KARCHER)',
+  'LIMPADOR DE JUNTA DE ASSENTAMENTO (HARD)',
+  'MANGUEIRA DE JARDIM',
+  'MANILHA',
+  'MARRETA (1 KG)',
+  'MARRETA DE BORRACHA',
+  'MARTELETE (BOSH - PEQUENO - 110V)',
+  'MARTELETE (DEWALT - ELETROP - PEQUENO - 110V)',
+  'MARTELETE (DONG CHENG - 220V)',
+  'MARTELETE (DONG CHENG - COM CAIXA - 220V)',
+  'MARTELETE (GRANDE - MENEGOTI - COM CAIXA)',
+  'MARTELETE (EINHELL – GRANDE)',
+  'MARTELETE (MAKITA - GRANDE - 220V)',
+  'MARTELETE (MAKITA COM CAIXA - GRANDE - 220V)',
+  'MARTELETE/FURADEIRA (PEQUENO)',
+  'MARTELETE/FURADEIRA (USK)',
+  'MARTELETE/MARTELO ROMPEDOR ROTATIVO (50/60HZ - 220V - 2KG - USK)',
+  'MARTELETE/MARTELO ROMPEDOR ROTATIVO (50/60HZ - 220V - 3001 - USK)',
+  'MARTELETE/MARTELO ROMPEDOR ROTATIVO (DONG CHENG DZG06-6S - COM CAIXA)',
+  'MARTELO/MARRETA DE BORRACHA',
+  'MISTURADOR ELÉTRICO COM HASTE BATEDORA (ANTIGO)',
+  'MISTURADOR ELÉTRICO COM HASTE BATEDORA (NOVO)',
+  'MISTURADOR/HASTE (GRANDE – 60CM)',
+  'MISTURADOR/HASTE (PEQUENO – 40CM)',
+  'PÁ DE PEDREIRO (VANGA)',
+  'PARAFUSADEIRA/DESPARAFUSADEIRA DE IMPACTO (BATERIA - MAKITA)',
+  'PÉ DE CABRA',
+  'PICARETA (DE MÃO)',
+  'PONTEIRA (MARTELETE)',
+  'PONTEIRA (NOVA)',
+  'PONTEIRA (USADA)',
+  'PRESILHA/CASTANHA PARA CABO DE AÇO',
+  'PROLONGADOR (PEQUENO - VERDE)',
+  'PROLONGADOR DE AFASTADOR PARA BALANCIM',
+  'PULVERIZADOR (05 LITROS - BRUDDEM)',
+  'PULVERIZADOR (05 LITROS - VONDER)',
+  'REBITADOR (MANUAL)',
+  'REFLETOR DE LED (DUPLO - METAL - PRATA)',
+  'REFLETOR DE LED (DUPLO - METAL - PRETO)',
+  'REFLETOR DE LED (PRETO)',
+  'REFLETOR DE LED (SIMPLES - CORDÃO PARALELO MARRON)',
+  'RÉGUA DE PEDREIRO',
+  'RÉGUA/FILTRO DE LINHA (PLUGUE/PINO FÊMEA 20A)',
+  'RISCADOR DE FORMICA (NOVO)',
+  'RISCADOR DE FORMICA (USADO)',
+  'RISCADORES DE FORMICA (NOVO)',
+  'RISCADORES DE FORMICA (USADO)',
+  'RODO DE ESPUMA (NOVO)',
+  'RODO DE ESPUMA (USADO)',
+  'SERRA (METAL) STARRET',
+  'SERRA MÁRMORE (CIRCULAR/CORTE - DIVERSAS 220V)',
+  'SERRA MÁRMORE (CIRCULAR/CORTE - DIVERSAS)',
+  'SERRA MÁRMORE (CIRCULAR/CORTE - MAKITA 127V)',
+  'SERRA MÁRMORE (CIRCULAR/CORTE - VONDER 127V)',
+  'SERROTE (22" - PRATA - RAMADA)',
+  'SOPRADOR TÉRMICO (VONDER - 127V)',
+  'SOPRADOR/ASPIRADOR MECÂNICO DE AR (STANLEY - 600W/127V)',
+  'TALABARTE (DUPLO SIMPLES)',
+  'TALABARTE (SIMPLES COM UM GANCHO)',
+  'TALHADEIRA (LÂMINA)',
+  'TALHADEIRA (MARTELETE)',
+  'TALHADEIRA (NOVA)',
+  'TALHADEIRA (USADA)',
+  'TAMBOR',
+  'TELA (TIPO: VÉU)',
+  'TESOURA (ESCRITÓRIO)',
+  'TESOURA (PARA CORTE EM LATA/METAL)',
+  'TRENA',
+  'VASSOURA',
+  'MARTELETE/MARTELO ROMPEDOR ROTATIVO (DESOON DSRH16 - COM CAIXA - 220V)',
+  'RÁDIO COMUNICADOR (HAND TALK - HT - INTELBRAS - RC3002 G2)',
+  'MANGUEIRA (NÍVEL)',
+  'CINTO DE SEGURANÇA (COMPLETO - BOLDRIÊ - PQD/A2 FAB. FEV/2026 - PRETO/AMARELO )',
+  'TALABARTE (DUPLO "Y" ELÁSTICO - AT YFE ABS 707 - FAB.: JAN/2026)',
+  'ESCADA (4 DEGRAUS)',
+  'EXTENSÃO (PRETA - GRANDE - 2 X 1,5MM² - 36 METROS)',
+  'SARGENTO (PARA ANCORAGEM)',
+  'FOGAREIRO',
+  'ESPÁTULA DE ACABAMENTO (KIT)',
+  'ESPÁTULA LIMPADORA (RASPADOR)',
+  'CENTRAL DE COMANDO',
+  'VENTILADOR',
+  'BALANCIM (COMPLETO: Base/laterais/Afastadores/Cabos de aço/castanhas/parafusos/motores/Central)',
+];
+
+const STATUS = [
+  { nome: 'DISPONÍVEL', ordem: 1 },
+  { nome: 'MANUTENÇÃO', ordem: 2 },
+  { nome: 'INUTILIZADO', ordem: 3 },
+];
+
+// ── Main ──────────────────────────────────────────────────────────
+async function main() {
+  const rollback = process.argv.includes('--rollback');
+
+  if (rollback) {
+    console.log('Rollback: removendo equipamentos EQP-* sem movimentação...');
+    const all = await p.equipamento.findMany({
+      where: { codigo: { startsWith: 'EQP-' } },
+      select: { id: true, codigo: true, _count: { select: { manutencoes: true, retiradas: true } } },
+    });
+    const removiveis = all.filter((e) => e._count.manutencoes === 0 && e._count.retiradas === 0);
+    if (removiveis.length > 0) {
+      const del = await p.equipamento.deleteMany({ where: { id: { in: removiveis.map((e) => e.id) } } });
+      console.log(`  Removidos: ${del.count} (os demais têm movimentação e foram mantidos)`);
+    } else {
+      console.log('  Nenhum equipamento EQP-* sem movimentação.');
+    }
+    return;
+  }
+
+  // 1. Status (reaproveita existentes por nome; cria se ausente)
+  console.log('--- Status de equipamento ---');
+  const statusMap: Record<string, number> = {};
+  for (const s of STATUS) {
+    const existing = await p.statusEquipamento.findFirst({ where: { nome: s.nome } });
+    const rec =
+      existing ??
+      (await p.statusEquipamento.create({ data: { nome: s.nome, ordem: s.ordem } }));
+    statusMap[s.nome] = rec.id;
+    console.log(`  ${rec.nome} (id=${rec.id})`);
+  }
+  const statusDisponivel = statusMap['DISPONÍVEL'];
+
+  // 2. Unidade de medida
+  const um = await p.unidadeMedida.upsert({
+    where: { nome: 'UNIDADE' },
+    create: { nome: 'UNIDADE' },
+    update: {},
+  });
+  console.log(`\n--- Unidade: ${um.nome} (id=${um.id}) ---`);
+
+  // 3. Dedup estático + existentes no banco
+  console.log('\n--- Inserindo equipamentos ---');
+  const seen = new Set<string>();
+  const existentes = await p.equipamento.findMany({ select: { descricao: true } });
+  for (const e of existentes) seen.add(normalize(e.descricao));
+
+  let criados = 0;
+  let pulados = 0;
+  for (const nome of RAW) {
+    const key = normalize(nome);
+    if (seen.has(key)) {
+      pulados++;
+      continue;
+    }
+    seen.add(key);
+
+    const codigo = `EQP-${String(criados + 1).padStart(3, '0')}`;
+    await p.equipamento.create({
+      data: {
+        codigo,
+        descricao: nome.toUpperCase(),
+        statusId: statusDisponivel,
+        unidadeMedidaId: um.id,
+      },
+    });
+    criados++;
+  }
+
+  console.log(`\n✅ Seed equipamentos: ${criados} criados, ${pulados} já existentes/pulados.`);
+}
+
+main()
+  .catch((e) => {
+    console.error('Erro:', e);
+    process.exit(1);
+  })
+  .finally(() => p.$disconnect());

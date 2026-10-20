@@ -327,6 +327,21 @@ export class EquipamentosService {
     return equip;
   }
 
+  async proximoCodigo(): Promise<{ codigo: string }> {
+    const ultimo = await this.prisma.equipamento.findFirst({
+      where: { codigo: { startsWith: 'EQP-' } },
+      orderBy: { id: 'desc' },
+      select: { codigo: true },
+    });
+
+    let proximo = 1;
+    if (ultimo) {
+      const match = ultimo.codigo.match(/^EQP-(\d+)$/);
+      if (match) proximo = Number(match[1]) + 1;
+    }
+    return { codigo: `EQP-${String(proximo).padStart(3, '0')}` };
+  }
+
   async criar(data: any) {
     if (data.descricao) {
       data.descricao = data.descricao.toUpperCase();
@@ -335,7 +350,8 @@ export class EquipamentosService {
       });
       if (exists) throw new AppError(409, 'Equipamento já cadastrado');
     }
-    return this.prisma.equipamento.create({ data });
+    const codigo = data.codigo?.trim() || (await this.proximoCodigo()).codigo;
+    return this.prisma.equipamento.create({ data: { ...data, codigo } });
   }
 
   async atualizar(id: number, data: any) {

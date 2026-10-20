@@ -16,7 +16,7 @@ const mockPrisma = {
   tipoManutencao: { findMany: vi.fn() },
   cor: { findMany: vi.fn(), findFirst: vi.fn() },
   marca: { findMany: vi.fn(), findFirst: vi.fn() },
-  user: { findMany: vi.fn(), findFirst: vi.fn() },
+  user: { findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn() },
   registroKmVeiculo: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -590,6 +590,11 @@ describe('VeiculosService', () => {
       it('deve criar abastecimento com cálculos', async () => {
         const veiculo = { id: 1, odometroAtual: 1000 };
         mockPrisma.veiculo.findUnique.mockResolvedValue(veiculo);
+        mockPrisma.user.findUnique.mockResolvedValue({
+          id: 7,
+          ativo: true,
+          papeis: [],
+        });
         mockPrisma.abastecimentoVeiculo.findFirst.mockResolvedValue({
           id: 9,
           odometro: 950,
@@ -599,7 +604,13 @@ describe('VeiculosService', () => {
 
         const result = await servico().criarAbastecimento(
           1,
-          { data: '2026-10-01', litros: 40, valorTotal: 200, odometro: 1050 },
+          {
+            data: '2026-10-01',
+            litros: 40,
+            valorTotal: 200,
+            odometro: 1050,
+            motoristaId: 7,
+          },
           1,
         );
 
@@ -613,6 +624,12 @@ describe('VeiculosService', () => {
             kmDesdeUltimo: 100,
             kmPorLitro: 2.5,
             registradoPorId: 1,
+            motoristaId: 7,
+          }),
+          include: expect.objectContaining({
+            veiculo: expect.anything(),
+            registradoPor: expect.anything(),
+            motorista: { select: { id: true, nome: true } },
           }),
         });
         expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
@@ -620,6 +637,45 @@ describe('VeiculosService', () => {
           data: { odometroAtual: 1050 },
         });
         expect(result).toEqual({ id: 1 });
+      });
+
+      it('deve lançar AppError 422 se motoristaId ausente', async () => {
+        mockPrisma.veiculo.findUnique.mockResolvedValue({
+          id: 1,
+          odometroAtual: 1000,
+        });
+        await expect(
+          servico().criarAbastecimento(
+            1,
+            { data: '2026-10-01', litros: 40, valorTotal: 200 },
+            1,
+          ),
+        ).rejects.toThrow('motoristaId é obrigatório');
+        expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      });
+
+      it('deve lançar AppError 422 se motorista for cliente', async () => {
+        mockPrisma.veiculo.findUnique.mockResolvedValue({
+          id: 1,
+          odometroAtual: 1000,
+        });
+        mockPrisma.user.findUnique.mockResolvedValue({
+          id: 7,
+          ativo: true,
+          papeis: [{ papel: { nome: 'CLIENTE' } }],
+        });
+        await expect(
+          servico().criarAbastecimento(
+            1,
+            {
+              data: '2026-10-01',
+              litros: 40,
+              valorTotal: 200,
+              motoristaId: 7,
+            },
+            1,
+          ),
+        ).rejects.toThrow('não pode ser um cliente');
       });
 
       it('deve lançar AppError 422 se litros <= 0', async () => {

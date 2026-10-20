@@ -225,6 +225,12 @@ export class EquipamentosController {
 
   // --- Rotas Principais ---
 
+  @Get('proximo-codigo')
+  @Permissions('gerenciar_equipamentos')
+  proximoCodigo() {
+    return this.equipamentosService.proximoCodigo();
+  }
+
   @Get(':id')
   async detalhar(@Param('id') id: string) {
     return this.equipamentosService.detalhar(Number(id));

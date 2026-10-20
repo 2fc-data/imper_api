@@ -228,6 +228,12 @@ export class EpisController {
     return this.episService.desativarFornecedor(Number(id));
   }
 
+  @Get('proximo-codigo')
+  @Permissions('gerenciar_epis')
+  proximoCodigo() {
+    return this.episService.proximoCodigo();
+  }
+
   @Get(':id')
   async detalhar(@Param('id') id: string) {
     return this.episService.detalhar(Number(id));

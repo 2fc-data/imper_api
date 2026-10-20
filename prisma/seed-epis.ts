@@ -69,6 +69,8 @@ const ROWS: Row[] = [
   { nome: 'TRAVA-QUEDAS (PARA CORDA)', unidade: 'UNIDADE', fornecedor: null, numeroPatrimonio: '265', numeroCa: null },
   { nome: 'TRAVA-QUEDAS (PARA CORDA)', unidade: 'UNIDADE', fornecedor: null, numeroPatrimonio: '268', numeroCa: null },
   { nome: 'TRAVA-QUEDAS (PARA CORDA)', unidade: 'UNIDADE', fornecedor: null, numeroPatrimonio: '491', numeroCa: null },
+  { nome: 'MÁSCARA PFFI', unidade: 'UNIDADE', fornecedor: 'MERCANTIL', numeroPatrimonio: null, numeroCa: null },
+  { nome: 'CINTO DE SEGURANÇA (COMPLETO)', unidade: 'UNIDADE', fornecedor: null, numeroPatrimonio: null, numeroCa: null },
 ];
 
 // ── Lookups auxiliares ────────────────────────────────────────────
