@@ -233,11 +233,25 @@ async function main() {
   await upsertNomes('caracteristica', CARACTERISTICAS);
 
   console.log('\n--- Sub-serviços (por etapa existente) ---');
+  // Garante as 4 etapas canônicas (idempotente) antes dos sub-serviços.
+  let ordemEtapa = 0;
+  for (const nomeEtapa of Object.keys(SUBS)) {
+    ordemEtapa += 1;
+    const existente = await p.etapa.findFirst({ where: { nome: nomeEtapa } });
+    if (existente) {
+      await p.etapa.update({
+        where: { id: existente.id },
+        data: { ordem: existente.ordem || ordemEtapa, ativo: true },
+      });
+    } else {
+      const criada = await p.etapa.create({
+        data: { nome: nomeEtapa, ordem: ordemEtapa, ativo: true },
+      });
+      console.log(`  ✓ etapa "${criada.nome}" criada (id=${criada.id})`);
+    }
+  }
+
   const etapas = await p.etapa.findMany({ orderBy: { ordem: 'asc' } });
-  if (!etapas.length)
-    throw new Error(
-      'Nenhuma etapa encontrada — rode as seeds/migrations de etapas.',
-    );
 
   let totalSubs = 0;
 
@@ -250,11 +264,14 @@ async function main() {
       continue;
     }
     for (const nomeSub of nomesSub) {
-      const sub = await p.subServico.upsert({
-        where: { etapaId_nome: { etapaId: etapa.id, nome: nomeSub } },
-        create: { etapaId: etapa.id, nome: nomeSub },
-        update: {},
+      const existenteSub = await p.subServico.findFirst({
+        where: { etapaId: etapa.id, nome: nomeSub },
       });
+      const sub =
+        existenteSub ??
+        (await p.subServico.create({
+          data: { etapaId: etapa.id, nome: nomeSub },
+        }));
       console.log(`  ${etapa.nome} → ${sub.nome} (id=${sub.id})`);
       totalSubs++;
     }

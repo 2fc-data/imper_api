@@ -71,7 +71,10 @@ export class VeiculosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
-        where: { ativo: true, papeis: { none: { papel: { nome: 'CLIENTE' } } } },
+        where: {
+          ativo: true,
+          papeis: { none: { papel: { nome: 'CLIENTE' } } },
+        },
         select: { id: true, nome: true },
       }),
       this.prisma.user.findMany({
@@ -205,7 +208,9 @@ export class VeiculosService {
         ...(data.codigo !== undefined && { codigo: data.codigo }),
         ...(data.placa !== undefined && { placa: data.placa }),
         ...(data.nome !== undefined && { nome: data.nome }),
-        ...(data.fabricanteId !== undefined && { fabricanteId: data.fabricanteId }),
+        ...(data.fabricanteId !== undefined && {
+          fabricanteId: data.fabricanteId,
+        }),
         ...(data.modelo !== undefined && { modelo: data.modelo }),
         ...(data.ano !== undefined && { ano: data.ano }),
         ...(data.combustivel !== undefined && {
@@ -259,7 +264,10 @@ export class VeiculosService {
 
     const odometroInformado = Number(data.odometro);
     const odometroAnterior = Number(veiculo.odometroAtual);
-    if (Number.isNaN(odometroInformado) || odometroInformado <= odometroAnterior) {
+    if (
+      Number.isNaN(odometroInformado) ||
+      odometroInformado <= odometroAnterior
+    ) {
       throw new AppError(
         422,
         `Odômetro informado deve ser maior que o odômetro atual (${odometroAnterior} km)`,
@@ -384,7 +392,9 @@ export class VeiculosService {
         data: {
           ...(data.data !== undefined && { data: new Date(data.data) }),
           ...(data.observacao !== undefined && { observacao: data.observacao }),
-          ...(data.colaboradorId !== undefined && { colaboradorId: data.colaboradorId }),
+          ...(data.colaboradorId !== undefined && {
+            colaboradorId: data.colaboradorId,
+          }),
           odometro: odometroNovo,
           kmPercorrido: kmPercorridoNovo,
         },
@@ -403,9 +413,10 @@ export class VeiculosService {
       }
 
       // Atualizar odômetro atual do veículo para o último registro
-      const ultimo = posteriores.length > 0
-        ? Number(posteriores[posteriores.length - 1].odometro)
-        : odometroNovo;
+      const ultimo =
+        posteriores.length > 0
+          ? Number(posteriores[posteriores.length - 1].odometro)
+          : odometroNovo;
       await tx.veiculo.update({
         where: { id: registro.veiculoId },
         data: { odometroAtual: ultimo },
@@ -758,7 +769,11 @@ export class VeiculosService {
     }
     if (data.responsavelId !== undefined) {
       const user = await this.prisma.user.findFirst({
-        where: { id: data.responsavelId, ativo: true, papeis: { none: { papel: { nome: 'CLIENTE' } } } },
+        where: {
+          id: data.responsavelId,
+          ativo: true,
+          papeis: { none: { papel: { nome: 'CLIENTE' } } },
+        },
       });
       if (!user) throw new AppError(422, 'Motorista inválido');
     }

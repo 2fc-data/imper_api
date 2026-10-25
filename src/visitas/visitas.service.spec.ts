@@ -44,7 +44,9 @@ describe('VisitasService', () => {
 
     it('falha 404 se visita não existe', async () => {
       mockPrisma.visitaTecnica.findUnique.mockResolvedValue(null);
-      await expect(service.detalhar(999)).rejects.toThrow('Visita não encontrada');
+      await expect(service.detalhar(999)).rejects.toThrow(
+        'Visita não encontrada',
+      );
     });
   });
 
@@ -62,8 +64,13 @@ describe('VisitasService', () => {
     });
 
     it('adicionarItem: cria item com medições e retorna detalhar', async () => {
-      mockPrisma.visitaTecnica.findUnique.mockResolvedValue({ id: 10, status: 'AGENDADA' });
-      const spyDetalhar = vi.spyOn(service, 'detalhar').mockResolvedValue({ id: 10 } as any);
+      mockPrisma.visitaTecnica.findUnique.mockResolvedValue({
+        id: 10,
+        status: 'AGENDADA',
+      });
+      const spyDetalhar = vi
+        .spyOn(service, 'detalhar')
+        .mockResolvedValue({ id: 10 } as any);
 
       const res = await service.adicionarItem(10, {
         etapaId: 1,
@@ -106,7 +113,9 @@ describe('VisitasService', () => {
 
     it('removerItem: deleta item e retorna detalhar', async () => {
       mockPrisma.visitaItem.findFirst.mockResolvedValue({ id: 77 });
-      const spyDetalhar = vi.spyOn(service, 'detalhar').mockResolvedValue({ id: 10 } as any);
+      const spyDetalhar = vi
+        .spyOn(service, 'detalhar')
+        .mockResolvedValue({ id: 10 } as any);
 
       const res = await service.removerItem(10, 77);
 

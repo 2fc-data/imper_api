@@ -137,7 +137,10 @@ export class VisitasService {
     return visita;
   }
 
-  async adicionarItem(visitaId: number, dto: import('./dto/visita-itens.dto.js').CriarVisitaItemDto) {
+  async adicionarItem(
+    visitaId: number,
+    dto: import('./dto/visita-itens.dto.js').CriarVisitaItemDto,
+  ) {
     const visita = await this.prisma.visitaTecnica.findUnique({
       where: { id: visitaId },
       select: { id: true, status: true },
@@ -154,7 +157,9 @@ export class VisitasService {
         verboId: Number(dto.verboId),
         objetoId: Number(dto.objetoId),
         localId: dto.localId ? Number(dto.localId) : null,
-        caracteristicaId: dto.caracteristicaId ? Number(dto.caracteristicaId) : null,
+        caracteristicaId: dto.caracteristicaId
+          ? Number(dto.caracteristicaId)
+          : null,
         unidadeId: dto.unidadeId ? Number(dto.unidadeId) : null,
         quantidade: dto.quantidade != null ? dto.quantidade : null,
         areaM2: dto.areaM2 != null ? dto.areaM2 : null,

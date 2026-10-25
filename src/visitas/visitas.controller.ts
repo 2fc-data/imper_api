@@ -12,12 +12,12 @@ import {
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-import type { AtualizarVisitaDto, CriarVisitaDto } from './dto/visitas.dto.js';
-import { atualizarVisitaSchema, criarVisitaSchema } from './dto/visitas.dto.js';
 import {
   type CriarVisitaItemDto,
   criarVisitaItemSchema,
 } from './dto/visita-itens.dto.js';
+import type { AtualizarVisitaDto, CriarVisitaDto } from './dto/visitas.dto.js';
+import { atualizarVisitaSchema, criarVisitaSchema } from './dto/visitas.dto.js';
 import { VisitasService } from './visitas.service.js';
 
 @Controller('visitas')
@@ -67,10 +67,7 @@ export class VisitasController {
 
   @Delete(':id/itens/:itemId')
   @Permissions('editar_atendimento')
-  async removerItem(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-  ) {
+  async removerItem(@Param('id') id: string, @Param('itemId') itemId: string) {
     return this.visitasService.removerItem(Number(id), Number(itemId));
   }
 }

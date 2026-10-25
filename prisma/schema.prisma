@@ -81,6 +81,10 @@ model User {
   abastecimentosVeiculos   AbastecimentoVeiculo[] @relation("AbastecimentoRegistradoPor")
   abastecimentosMotorista  AbastecimentoVeiculo[] @relation("AbastecimentoMotorista")
   manutencoesVeiculos      ManutencaoVeiculo[]
+  listasCompraEnviadas        ListaCompra[]       @relation("ListaCompraEnviadoPor")
+  listasCompraAprovadas       ListaCompra[]       @relation("ListaCompraAprovadoPor")
+  itensListaCompraAdicionados ListaCompraItem[]   @relation("ListaItemAdicionadoPor")
+  itensListaCompraComprados   ListaCompraItem[]   @relation("ListaItemCompradoPor")
 
   @@index([cargoId], map: "users_cargoId_fkey")
   @@map("users")
@@ -506,6 +510,7 @@ model Material {
   movimentos         MovimentoEstoque[]
   saldo              SaldoEstoque?
   itensSeparacao     SeparacaoItem[]
+  itensListaCompra   ListaCompraItem[]
   itensServico       ServicoItem[]
   orcamentoMateriais OrcamentoAtividadeMaterial[]
   obrasMateriais     ObraAtividadeMaterial[]
@@ -961,6 +966,7 @@ model Equipamento {
   manutencoes         Manutencao[]
   retiradas           RetiradaEquipamento[]
   separacaoItens      SeparacaoItem[]
+  itensListaCompra    ListaCompraItem[]
 
   @@index([statusId])
   @@index([categoriaId])
@@ -1047,6 +1053,7 @@ model Epi {
   entregas         EntregaEpi[]
   separacaoItens   SeparacaoItem[]
   orcamentoAtividades OrcamentoAtividadeEpi[]
+  itensListaCompra ListaCompraItem[]
   categoria        CategoriaEpi?       @relation(fields: [categoriaId], references: [id])
   cor              Cor?                @relation(fields: [corId], references: [id])
   fornecedor       Fornecedor?         @relation(fields: [fornecedorId], references: [id])
@@ -1066,6 +1073,61 @@ model Epi {
   @@index([subcategoriaId], map: "epis_subcategoriaId_fkey")
   @@index([unidadeMedidaId], map: "epis_unidadeMedidaId_fkey")
   @@map("epis")
+}
+
+model ListaCompra {
+  id             Int               @id @default(autoincrement())
+  tipo           TipoListaCompra
+  setor          SetorCompra
+  mes            Int
+  ano            Int
+  status         StatusListaCompra @default(ABERTA)
+  motivoRecusa   String?           @db.VarChar(255)
+  enviadoPorId   Int?
+  enviadoEm      DateTime?
+  aprovadoPorId  Int?
+  aprovadoEm     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  itens          ListaCompraItem[]
+  enviadoPor     User?             @relation("ListaCompraEnviadoPor", fields: [enviadoPorId], references: [id])
+  aprovadoPor    User?             @relation("ListaCompraAprovadoPor", fields: [aprovadoPorId], references: [id])
+
+  @@unique([tipo, setor, mes, ano])
+  @@index([ano, mes])
+  @@map("listas_compras")
+}
+
+model ListaCompraItem {
+  id              Int               @id @default(autoincrement())
+  listaId         Int
+  materialId      Int?
+  epiId           Int?
+  equipamentoId   Int?
+  quantidade      Decimal           @db.Decimal(12, 3)
+  custoReal       Decimal?          @db.Decimal(12, 2)
+  status          StatusItemLista   @default(PENDENTE)
+  adicionadoPorId Int
+  compradoPorId   Int?
+  compradoEm      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  lista           ListaCompra       @relation(fields: [listaId], references: [id], onDelete: Cascade)
+  material        Material?         @relation(fields: [materialId], references: [id])
+  epi             Epi?              @relation(fields: [epiId], references: [id])
+  equipamento     Equipamento?      @relation(fields: [equipamentoId], references: [id])
+  adicionadoPor   User              @relation("ListaItemAdicionadoPor", fields: [adicionadoPorId], references: [id])
+  compradoPor     User?             @relation("ListaItemCompradoPor", fields: [compradoPorId], references: [id])
+
+  @@unique([listaId, materialId])
+  @@unique([listaId, epiId])
+  @@unique([listaId, equipamentoId])
+  @@index([materialId])
+  @@index([epiId])
+  @@index([equipamentoId])
+  @@map("listas_compras_itens")
 }
 
 model EntregaEpi {
@@ -1900,4 +1962,31 @@ enum CombustivelVeiculo {
   FLEX
   ELETRICO
   OUTRO
+}
+
+// ---------- Lista de compras colaborativa ----------
+enum SetorCompra {
+  LOJA
+  ALMOXARIFADO
+}
+
+enum TipoListaCompra {
+  SUPERMERCADO
+  MATERIAL
+  EPI
+  EQUIPAMENTO
+}
+
+enum StatusListaCompra {
+  ABERTA
+  ENVIADA
+  APROVADA
+  RECUSADA
+  COMPRADA
+}
+
+enum StatusItemLista {
+  PENDENTE
+  RECUSADO
+  COMPRADO
 }

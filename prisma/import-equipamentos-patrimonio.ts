@@ -550,8 +550,20 @@ function parseLista(raw: string): Linha[] {
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
-  const linhas = parseLista(LISTA);
+  let linhas = parseLista(LISTA);
   console.log(`Total de linhas na lista: ${linhas.length}`);
+
+  // Dedup por patrimônio: se mesmo patrimônio aparece com nomes diferentes,
+  // mantém apenas o nome mais curto
+  const porPatrimonio = new Map<string, Linha>();
+  for (const linha of linhas) {
+    const existente = porPatrimonio.get(linha.patrimonio);
+    if (!existente || linha.nome.length < existente.nome.length) {
+      porPatrimonio.set(linha.patrimonio, linha);
+    }
+  }
+  linhas = Array.from(porPatrimonio.values());
+  console.log(`Linhas após dedup por patrimônio:   ${linhas.length}`);
 
   // Status e unidade
   const status = await p.statusEquipamento.findFirst({ where: { nome: 'DISPONÍVEL' } });
