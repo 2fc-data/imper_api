@@ -218,4 +218,3 @@ export class VocabularioController {
     return this.service.removerSubServico(parseId(id, 'Sub-serviço'));
   }
 }
-

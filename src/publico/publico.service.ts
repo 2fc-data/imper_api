@@ -68,7 +68,8 @@ export class PublicoService {
         titulo: 'Impermeabilização de Reservatórios',
         descricao:
           "Soluções atóxicas e certificadas para água potável e caixas d'água.",
-        icone: "M12 2.5c3.5 4 6.5 7.4 6.5 11a6.5 6.5 0 11-13 0c0-3.6 3-7 6.5-11z",
+        icone:
+          'M12 2.5c3.5 4 6.5 7.4 6.5 11a6.5 6.5 0 11-13 0c0-3.6 3-7 6.5-11z',
         ativo: true,
         ordem: 4,
         createdAt: new Date().toISOString(),

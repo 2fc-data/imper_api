@@ -431,7 +431,9 @@ describe('AtendimentoService', () => {
         id: 1,
         status: 'EM_ANDAMENTO',
       });
-      const spyDetalhar = vi.spyOn(service, 'detalhar').mockResolvedValue(item({ id: 1 }) as any);
+      const spyDetalhar = vi
+        .spyOn(service, 'detalhar')
+        .mockResolvedValue(item({ id: 1 }) as any);
 
       const res = await service.adicionarItem(1, {
         etapaId: 1,
@@ -468,7 +470,9 @@ describe('AtendimentoService', () => {
 
     it('removerItem: deleta item e retorna detalhar', async () => {
       mockPrisma.atendimentoItem.findFirst.mockResolvedValue({ id: 50 });
-      const spyDetalhar = vi.spyOn(service, 'detalhar').mockResolvedValue(item({ id: 1 }) as any);
+      const spyDetalhar = vi
+        .spyOn(service, 'detalhar')
+        .mockResolvedValue(item({ id: 1 }) as any);
 
       const res = await service.removerItem(1, 50);
 

@@ -13,6 +13,7 @@ import { EmailModule } from './email/email.module.js';
 import { EpisModule } from './epis/epis.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 import { ExecucaoModule } from './execucao/execucao.module.js';
+import { ListasComprasModule } from './listas-compras/listas-compras.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
 import { ManutencoesVeiculosModule } from './manutencoes-veiculos/manutencoes-veiculos.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
@@ -43,6 +44,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     EpisModule,
     ManutencoesModule,
     ManutencoesVeiculosModule,
+    ListasComprasModule,
     MateriaisModule,
     ObrasModule,
     OrcamentoVocabularioModule,

@@ -445,8 +445,18 @@ describe('VeiculosService', () => {
         odometro: 1000,
       });
       mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
-        { id: 2, data: new Date('2026-10-06'), odometro: 1080, kmPercorrido: 30 },
-        { id: 3, data: new Date('2026-10-07'), odometro: 1130, kmPercorrido: 50 },
+        {
+          id: 2,
+          data: new Date('2026-10-06'),
+          odometro: 1080,
+          kmPercorrido: 30,
+        },
+        {
+          id: 3,
+          data: new Date('2026-10-07'),
+          odometro: 1130,
+          kmPercorrido: 50,
+        },
       ]);
       mockPrisma.registroKmVeiculo.update.mockResolvedValue({});
       mockPrisma.veiculo.update.mockResolvedValue({});
@@ -515,7 +525,10 @@ describe('VeiculosService', () => {
       mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
       mockPrisma.veiculo.update.mockResolvedValue({});
 
-      await servico().atualizarRegistroKm(1, { odometro: 1050, colaboradorId: 42 });
+      await servico().atualizarRegistroKm(1, {
+        odometro: 1050,
+        colaboradorId: 42,
+      });
 
       expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },

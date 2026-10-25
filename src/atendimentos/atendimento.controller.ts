@@ -133,17 +133,15 @@ export class AtendimentoController {
   @Permissions('editar_atendimento')
   async adicionarItem(
     @Param('id') id: string,
-    @Body() dto: import('./dto/atendimento-itens.dto.js').CriarAtendimentoItemDto,
+    @Body()
+    dto: import('./dto/atendimento-itens.dto.js').CriarAtendimentoItemDto,
   ) {
     return this.atendimentoService.adicionarItem(Number(id), dto);
   }
 
   @Delete(':id/itens/:itemId')
   @Permissions('editar_atendimento')
-  async removerItem(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-  ) {
+  async removerItem(@Param('id') id: string, @Param('itemId') itemId: string) {
     return this.atendimentoService.removerItem(Number(id), Number(itemId));
   }
 }

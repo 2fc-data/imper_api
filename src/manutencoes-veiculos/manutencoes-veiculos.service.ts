@@ -14,7 +14,9 @@ export class ManutencoesVeiculosService {
     return this.prisma.manutencaoVeiculo.findMany({
       where,
       include: {
-        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
+        veiculo: {
+          select: { id: true, codigo: true, nome: true, placa: true },
+        },
         tipo: true,
         responsavelManutencao: { select: { id: true, nome: true } },
       },
@@ -49,7 +51,9 @@ export class ManutencoesVeiculosService {
     const item = await this.prisma.manutencaoVeiculo.findUnique({
       where: { id },
       include: {
-        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
+        veiculo: {
+          select: { id: true, codigo: true, nome: true, placa: true },
+        },
         tipo: true,
         responsavelManutencao: { select: { id: true, nome: true } },
       },
@@ -85,7 +89,9 @@ export class ManutencoesVeiculosService {
         responsavelManutencaoId: data.responsavelManutencaoId || null,
       },
       include: {
-        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
+        veiculo: {
+          select: { id: true, codigo: true, nome: true, placa: true },
+        },
         tipo: true,
         responsavelManutencao: { select: { id: true, nome: true } },
       },
@@ -140,7 +146,9 @@ export class ManutencoesVeiculosService {
         }),
       },
       include: {
-        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
+        veiculo: {
+          select: { id: true, codigo: true, nome: true, placa: true },
+        },
         tipo: true,
         responsavelManutencao: { select: { id: true, nome: true } },
       },

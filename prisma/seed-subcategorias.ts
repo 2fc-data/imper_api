@@ -1,160 +1,335 @@
+/**
+ * Seed de subcategorias — EPI (categoriaEpi), equipamentos (categoriaEquipamento)
+ * e materiais (categoriaMaterial).
+ * Resolve categorias por NOME (sem IDs fixos) e é idempotente (upsert por nome+categoria).
+ *
+ * Requer: prisma/seed-cadastros.ts executado antes (cria as categorias).
+ *
+ * Uso: npx tsx prisma/seed-subcategorias.ts
+ */
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type Tipo = 'epi' | 'equipamento' | 'material';
+
 interface SubcategoriaInput {
-  categoriaId: number;
+  tipo: Tipo;
+  categoria: string;
   nome: string;
   ordem: number;
 }
 
+const EPI = (categoria: string, itens: string[]): SubcategoriaInput[] =>
+  itens.map((nome, i) => ({
+    tipo: 'epi' as const,
+    categoria,
+    nome,
+    ordem: i + 1,
+  }));
+
+const EQP = (categoria: string, itens: string[]): SubcategoriaInput[] =>
+  itens.map((nome, i) => ({
+    tipo: 'equipamento' as const,
+    categoria,
+    nome,
+    ordem: i + 1,
+  }));
+
+const MAT = (categoria: string, itens: string[]): SubcategoriaInput[] =>
+  itens.map((nome, i) => ({
+    tipo: 'material' as const,
+    categoria,
+    nome,
+    ordem: i + 1,
+  }));
+
 const subcategorias: SubcategoriaInput[] = [
   // ─── EQUIPAMENTO ──────────────────────────────────────────
-  // 9 · Equipamentos de Aplicação
-  { categoriaId: 9, nome: 'Airless', ordem: 1 },
-  { categoriaId: 9, nome: 'Truque', ordem: 2 },
-  { categoriaId: 9, nome: 'Rolo', ordem: 3 },
-  { categoriaId: 9, nome: 'Espátula', ordem: 4 },
-  { categoriaId: 9, nome: 'Desempenadeira', ordem: 5 },
-
-  // 10 · Equipamentos de Segurança
-  { categoriaId: 10, nome: 'Cinturão Tipo Paraquedista', ordem: 1 },
-  { categoriaId: 10, nome: 'Talabarte', ordem: 2 },
-  { categoriaId: 10, nome: 'Mosquetão', ordem: 3 },
-  { categoriaId: 10, nome: 'Trava-Queda', ordem: 4 },
-  { categoriaId: 10, nome: 'Linha de Vida', ordem: 5 },
-
-  // 11 · Escadas
-  { categoriaId: 11, nome: 'Escada Extensível', ordem: 1 },
-  { categoriaId: 11, nome: 'Escada Convolúvel', ordem: 2 },
-  { categoriaId: 11, nome: 'Escada Triangular', ordem: 3 },
-  { categoriaId: 11, nome: 'Escada Plataforma', ordem: 4 },
-
-  // 12 · Ferramentas Elétricas
-  { categoriaId: 12, nome: 'Furadeira', ordem: 1 },
-  { categoriaId: 12, nome: 'Serra', ordem: 2 },
-  { categoriaId: 12, nome: 'Esmerilhadeira', ordem: 3 },
-  { categoriaId: 12, nome: 'Lixadeira', ordem: 4 },
-  { categoriaId: 12, nome: 'Misturador Elétrico', ordem: 5 },
-
-  // 13 · Ferramentas Manuais
-  { categoriaId: 13, nome: 'Tesoura', ordem: 1 },
-  { categoriaId: 13, nome: 'Facão', ordem: 2 },
-  { categoriaId: 13, nome: 'Chave de Fenda', ordem: 3 },
-  { categoriaId: 13, nome: 'Martelo', ordem: 4 },
-  { categoriaId: 13, nome: 'Nível', ordem: 5 },
-
-  // 14 · Materiais Diversos
-  { categoriaId: 14, nome: 'Fita Adesiva', ordem: 1 },
-  { categoriaId: 14, nome: 'Lona', ordem: 2 },
-  { categoriaId: 14, nome: 'Plástico', ordem: 3 },
-  { categoriaId: 14, nome: 'Isqueiro', ordem: 4 },
-  { categoriaId: 14, nome: 'Barbante', ordem: 5 },
-
-  // 15 · Outros
-  { categoriaId: 15, nome: 'Caixa de Ferramenta', ordem: 1 },
-  { categoriaId: 15, nome: 'Carrinho de Mão', ordem: 2 },
-  { categoriaId: 15, nome: 'Compressor', ordem: 3 },
-  { categoriaId: 15, nome: 'Gerador', ordem: 4 },
-  { categoriaId: 15, nome: 'Outros', ordem: 5 },
+  ...EQP('Equipamentos de Aplicação', [
+    'Airless',
+    'Truque',
+    'Rolo',
+    'Espátula',
+    'Desempenadeira',
+  ]),
+  ...EQP('Equipamentos de Segurança', [
+    'Cinturão Tipo Paraquedista',
+    'Talabarte',
+    'Mosquetão',
+    'Trava-Queda',
+    'Linha de Vida',
+  ]),
+  ...EQP('Escadas', [
+    'Escada Extensível',
+    'Escada Convolúvel',
+    'Escada Triangular',
+    'Escada Plataforma',
+  ]),
+  ...EQP('Ferramentas Elétricas', [
+    'Furadeira',
+    'Serra',
+    'Esmerilhadeira',
+    'Lixadeira',
+    'Misturador Elétrico',
+  ]),
+  ...EQP('Ferramentas Manuais', [
+    'Tesoura',
+    'Facão',
+    'Chave de Fenda',
+    'Martelo',
+    'Nível',
+  ]),
+  ...EQP('Materiais Diversos', [
+    'Fita Adesiva',
+    'Lona',
+    'Plástico',
+    'Isqueiro',
+    'Barbante',
+  ]),
+  ...EQP('Outros', [
+    'Caixa de Ferramenta',
+    'Carrinho de Mão',
+    'Compressor',
+    'Gerador',
+    'Outros',
+  ]),
 
   // ─── EPI ──────────────────────────────────────────────────
-  // 1 · Proteção da Cabeça
-  { categoriaId: 1, nome: 'Capacete de Segurança', ordem: 1 },
-  { categoriaId: 1, nome: 'Capacete com Abafador', ordem: 2 },
-  { categoriaId: 1, nome: 'Boné de Segurança', ordem: 3 },
+  ...EPI('Proteção da Cabeça', [
+    'Capacete de Segurança',
+    'Capacete com Abafador',
+    'Boné de Segurança',
+  ]),
+  ...EPI('Proteção do Corpo', [
+    'Macacão',
+    'Aventil',
+    'Colete Refletivo',
+    'Calça',
+  ]),
+  ...EPI('Proteção Respiratória', [
+    'Máscara PFF2',
+    'Máscara com Filtro',
+    'Respirador Sem Filtro',
+    'Filtro Separado',
+  ]),
+  ...EPI('Proteção das Mãos', [
+    'Luva de Vaqueta',
+    'Luva Nitrílica',
+    'Luva de Borracha',
+    'Luva Térmica',
+  ]),
+  ...EPI('Proteção dos Olhos', [
+    'Óculos de Segurança',
+    'Óculos Ampla Visão',
+    'Máscara Facial',
+  ]),
+  ...EPI('Proteção Auditiva', [
+    'Abafador de Ruído',
+    'Protetor Auricular',
+    'Canaleta',
+  ]),
+  ...EPI('Proteção de Quedas', [
+    'Cinturão Paraquedista',
+    'Talabarte',
+    'Trava-Queda',
+    'Linha de Vida',
+  ]),
+  ...EPI('Proteção Articular', ['Joelheira', 'Cotoveleira', 'Munhequeira']),
 
-  // 2 · Proteção do Corpo
-  { categoriaId: 2, nome: 'Macacão', ordem: 1 },
-  { categoriaId: 2, nome: 'Aventil', ordem: 2 },
-  { categoriaId: 2, nome: 'Colete Refletivo', ordem: 3 },
-  { categoriaId: 2, nome: 'Calça', ordem: 4 },
-
-  // 3 · Proteção Respiratória
-  { categoriaId: 3, nome: 'Máscara PFF2', ordem: 1 },
-  { categoriaId: 3, nome: 'Máscara com Filtro', ordem: 2 },
-  { categoriaId: 3, nome: 'Respirador Sem Filtro', ordem: 3 },
-  { categoriaId: 3, nome: 'Filtro Separado', ordem: 4 },
-
-  // 4 · Proteção das Mãos
-  { categoriaId: 4, nome: 'Luva de Vaqueta', ordem: 1 },
-  { categoriaId: 4, nome: 'Luva Nitrílica', ordem: 2 },
-  { categoriaId: 4, nome: 'Luva de Borracha', ordem: 3 },
-  { categoriaId: 4, nome: 'Luva Térmica', ordem: 4 },
-
-  // 5 · Proteção dos Olhos
-  { categoriaId: 5, nome: 'Óculos de Segurança', ordem: 1 },
-  { categoriaId: 5, nome: 'Óculos Ampla Visão', ordem: 2 },
-  { categoriaId: 5, nome: 'Máscara Facial', ordem: 3 },
-
-  // 6 · Proteção Auditiva
-  { categoriaId: 6, nome: 'Abafador de Ruído', ordem: 1 },
-  { categoriaId: 6, nome: 'Protetor Auricular', ordem: 2 },
-  { categoriaId: 6, nome: 'Canaleta', ordem: 3 },
-
-  // 7 · Proteção de Quedas
-  { categoriaId: 7, nome: 'Cinturão Paraquedista', ordem: 1 },
-  { categoriaId: 7, nome: 'Talabarte', ordem: 2 },
-  { categoriaId: 7, nome: 'Trava-Queda', ordem: 3 },
-  { categoriaId: 7, nome: 'Linha de Vida', ordem: 4 },
-
-  // 8 · Proteção Articular
-  { categoriaId: 8, nome: 'Joelheira', ordem: 1 },
-  { categoriaId: 8, nome: 'Cotoveleira', ordem: 2 },
-  { categoriaId: 8, nome: 'Munhequeira', ordem: 3 },
+  // ─── MATERIAL ─────────────────────────────────────────────
+  ...MAT('Argamassas', ['Argamassa AC', 'Rejunte', 'Contramarcha', 'Massa Pó']),
+  ...MAT('Tintas', [
+    'Tinta Látex',
+    'Tinta Texturizada',
+    'Esmalte',
+    'Fundimento/Primer',
+    'Verniz',
+  ]),
+  ...MAT('Elétricos', [
+    'Fiação e Cabos',
+    'Disjuntores',
+    'Tomadas e Interruptores',
+    'Iluminação',
+    'Quadros de Distribuição',
+  ]),
+  ...MAT('Hidráulicos', [
+    'Tubos',
+    'Conexões',
+    'Registros e Torneiras',
+    'Acessórios de Hidráulica',
+  ]),
+  ...MAT('Ferragens', [
+    'Parafusos',
+    'Pregos',
+    'Dobradiças',
+    'Fechaduras',
+    'Porcas e Arruelas',
+  ]),
+  ...MAT('Madeiras', [
+    'Compensado e Contraplacado',
+    'Tábuas e Vigas',
+    'MDF e MDP',
+    'Madeira Pintada',
+  ]),
+  ...MAT('Revestimentos', [
+    'Cerâmicas',
+    'Porcelanatos',
+    'Pastilhas',
+    'Revestimento de Parede',
+  ]),
+  ...MAT('Diversos', [
+    'Impermeabilizantes',
+    'Consumíveis',
+    'Acessórios Diversos',
+    'Diversos',
+  ]),
 ];
 
 async function main() {
   console.log('┌─────────────────────────────────────────────┐');
-  console.log('│  Seed: Subcategorias de Equipamentos/EPIs   │');
+  console.log('│  Seed: Subcategorias (EPI/Equip/Materiais)         │');
   console.log('└─────────────────────────────────────────────┘\n');
 
-  const existentes = await prisma.subcategoriaEquipamento.count();
-  console.log(`Subcategorias existentes: ${existentes}`);
-
-  if (existentes > 0) {
-    console.log('\n⚠️  Já existem subcategorias. Abortando.');
-    return;
-  }
-
-  // agrupar por categoria para log
-  const porCategoria = new Map<number, SubcategoriaInput[]>();
-  for (const s of subcategorias) {
-    const arr = porCategoria.get(s.categoriaId) ?? [];
-    arr.push(s);
-    porCategoria.set(s.categoriaId, arr);
-  }
-
-  const categorias = await prisma.categoriaEquipamento.findMany({
+  const catsEpi = await prisma.categoriaEpi.findMany({
     select: { id: true, nome: true },
   });
-  const catMap = new Map(categorias.map((c) => [c.id, c]));
+  const catsEqp = await prisma.categoriaEquipamento.findMany({
+    select: { id: true, nome: true },
+  });
+  const catsMat = await prisma.categoriaMaterial.findMany({
+    select: { id: true, nome: true },
+  });
+  const catEpiMap = new Map(catsEpi.map((c) => [c.nome, c.id]));
+  const catEqpMap = new Map(catsEqp.map((c) => [c.nome, c.id]));
+  const catMatMap = new Map(catsMat.map((c) => [c.nome, c.id]));
+
+  // agrupar por tipo+categoria para log
+  const grupos = new Map<string, SubcategoriaInput[]>();
+  for (const s of subcategorias) {
+    const key = `${s.tipo}:${s.categoria}`;
+    const arr = grupos.get(key) ?? [];
+    arr.push(s);
+    grupos.set(key, arr);
+  }
 
   let criadas = 0;
-  for (const [catId, lista] of porCategoria) {
-    const cat = catMap.get(catId);
-    if (!cat) {
-      console.log(`  ⚠️  Categoria ${catId} não encontrada — ignorando`);
+  let atualizadas = 0;
+  const pendentes: string[] = [];
+
+  for (const [key, lista] of grupos) {
+    const [tipo, nomeCat] = key.split(/:(.+)/);
+    const catId =
+      tipo === 'epi'
+        ? catEpiMap.get(nomeCat)
+        : tipo === 'material'
+          ? catMatMap.get(nomeCat)
+          : catEqpMap.get(nomeCat);
+
+    if (!catId) {
+      pendentes.push(`${nomeCat} (${tipo})`);
+      console.log(
+        `  ⚠️  Categoria "${nomeCat}" (${tipo}) não encontrada — ignorando`,
+      );
       continue;
     }
-    console.log(`\n  ${cat.nome} (id=${catId})`);
+
+    console.log(`\n  ${nomeCat} [${tipo}] (id=${catId})`);
     for (const s of lista) {
-      await prisma.subcategoriaEquipamento.create({
-        data: {
-          categoriaId: s.categoriaId,
-          nome: s.nome,
-          ordem: s.ordem,
-        },
-      });
-      console.log(`    ✓ ${s.ordem}. ${s.nome}`);
-      criadas++;
+      if (tipo === 'epi') {
+        const existente = await prisma.subcategoriaEpi.findFirst({
+          where: { categoriaId: catId, nome: s.nome },
+        });
+        if (existente) {
+          await prisma.subcategoriaEpi.update({
+            where: { id: existente.id },
+            data: { ordem: s.ordem, ativo: true },
+          });
+          atualizadas += 1;
+          console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
+        } else {
+          await prisma.subcategoriaEpi.create({
+            data: {
+              categoriaId: catId,
+              nome: s.nome,
+              ordem: s.ordem,
+              ativo: true,
+            },
+          });
+          criadas += 1;
+          console.log(`    ✓ ${s.ordem}. ${s.nome}`);
+        }
+      } else if (tipo === 'material') {
+        const existente = await prisma.subcategoriaMaterial.findFirst({
+          where: { categoriaId: catId, nome: s.nome },
+        });
+        if (existente) {
+          await prisma.subcategoriaMaterial.update({
+            where: { id: existente.id },
+            data: { ordem: s.ordem, ativo: true },
+          });
+          atualizadas += 1;
+          console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
+        } else {
+          await prisma.subcategoriaMaterial.create({
+            data: {
+              categoriaId: catId,
+              nome: s.nome,
+              ordem: s.ordem,
+              ativo: true,
+            },
+          });
+          criadas += 1;
+          console.log(`    ✓ ${s.ordem}. ${s.nome}`);
+        }
+      } else {
+        const existente = await prisma.subcategoriaEquipamento.findFirst({
+          where: { categoriaId: catId, nome: s.nome },
+        });
+        if (existente) {
+          await prisma.subcategoriaEquipamento.update({
+            where: { id: existente.id },
+            data: { ordem: s.ordem, ativo: true },
+          });
+          atualizadas += 1;
+          console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
+        } else {
+          await prisma.subcategoriaEquipamento.create({
+            data: {
+              categoriaId: catId,
+              nome: s.nome,
+              ordem: s.ordem,
+              ativo: true,
+            },
+          });
+          criadas += 1;
+          console.log(`    ✓ ${s.ordem}. ${s.nome}`);
+        }
+      }
     }
   }
 
-  const total = await prisma.subcategoriaEquipamento.count();
+  const [totalEpi, totalEqp, totalMat] = await Promise.all([
+    prisma.subcategoriaEpi.count(),
+    prisma.subcategoriaEquipamento.count(),
+    prisma.subcategoriaMaterial.count(),
+  ]);
+
   console.log(`\n┌─────────────────────────────────────────────┐`);
-  console.log(`│  Criadas: ${String(criadas).padStart(3)}  ·  Total no banco: ${String(total).padStart(3)}  │`);
+  console.log(
+    `│  Criadas: ${String(criadas).padStart(3)} · Atualizadas: ${String(atualizadas).padStart(3)}        │`,
+  );
+  console.log(
+    `│  epi=${totalEpi} · equipamentos=${totalEqp} · materiais=${totalMat}       │`,
+  );
   console.log(`└─────────────────────────────────────────────┘`);
+
+  if (pendentes.length > 0) {
+    console.log(
+      `\n⚠️  Categorias pendentes (rode seed-cadastros antes): ${pendentes.join(', ')}`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 main()

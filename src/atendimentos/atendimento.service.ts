@@ -217,7 +217,9 @@ export class AtendimentoService {
           atendenteId: data.atendenteId ?? null,
         },
         include: {
-          user: { select: { id: true, nome: true, telefone: true, email: true } },
+          user: {
+            select: { id: true, nome: true, telefone: true, email: true },
+          },
           servicoMarketing: { select: { id: true, titulo: true, icone: true } },
         },
       });
@@ -392,7 +394,10 @@ export class AtendimentoService {
     });
   }
 
-  async adicionarItem(atendimentoId: number, dto: import('./dto/atendimento-itens.dto.js').CriarAtendimentoItemDto) {
+  async adicionarItem(
+    atendimentoId: number,
+    dto: import('./dto/atendimento-itens.dto.js').CriarAtendimentoItemDto,
+  ) {
     const atendimento = await this.prisma.atendimento.findUnique({
       where: { id: atendimentoId },
       select: { status: true },
@@ -403,7 +408,10 @@ export class AtendimentoService {
     assertAtendimentoAberto(atendimento.status as StatusCascata);
 
     if (!dto.etapaId || !dto.subServicoId || !dto.verboId || !dto.objetoId) {
-      throw new AppError(400, 'etapaId, subServicoId, verboId e objetoId são obrigatórios');
+      throw new AppError(
+        400,
+        'etapaId, subServicoId, verboId e objetoId são obrigatórios',
+      );
     }
 
     await this.prisma.atendimentoItem.create({
@@ -414,7 +422,9 @@ export class AtendimentoService {
         verboId: Number(dto.verboId),
         objetoId: Number(dto.objetoId),
         localId: dto.localId ? Number(dto.localId) : null,
-        caracteristicaId: dto.caracteristicaId ? Number(dto.caracteristicaId) : null,
+        caracteristicaId: dto.caracteristicaId
+          ? Number(dto.caracteristicaId)
+          : null,
         observacoes: dto.observacoes?.trim() || null,
       },
     });
@@ -438,4 +448,3 @@ export class AtendimentoService {
     return this.detalhar(atendimentoId);
   }
 }
-

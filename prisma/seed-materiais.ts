@@ -384,7 +384,13 @@ DESENGRIPANTE	FRASCO
 TINTA	LATA	
 TÁBUA	UNIDADE	
 MC PROOF DF 8 (Manta acrílica impermeável altamente flexível - 12 Kg)	BALDE	MC - BALCHEMIE
-FITA ALUMÍNIO 25MM X 30M	UNIDADE	`;
+FITA ALUMÍNIO 25MM X 30M	UNIDADE	
+ÁLSAN	BALDE	Mercantil
+FOSFATOL (CONVERTIDOR DE FERRUGEM)	BALDE	
+LÂMPADA	PEÇA	Mercantil
+TUBO (GEODRENO - 2,5")	METRO	Centergeo
+MC PROOF DF 8 (Manta acrílica impermeável altamente flexível - 12 Kg)	BALDE	MC - BALCHEMIE
+`;
 
 // ── Normalização ──────────────────────────────────────────────────
 const UNIT_MAP: Record<string, string> = {

@@ -122,6 +122,16 @@ const PERMISSOES = [
     descricao: 'Gerenciar EPIs',
     categoria: 'estoque',
   },
+  {
+    chave: 'criar_lista_compras',
+    descricao: 'Criar/editar/enviar lista de compras',
+    categoria: 'estoque',
+  },
+  {
+    chave: 'aprovar_lista_compras',
+    descricao: 'Aprovar, recusar e registrar compras de lista',
+    categoria: 'estoque',
+  },
   // Usuários / RBAC
   { chave: 'criar_usuario', descricao: 'Criar usuário', categoria: 'usuarios' },
   {
@@ -181,6 +191,8 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'ver_financeiro',
     'aprovar_compra',
     'aprovar_orcamento',
+    'criar_lista_compras',
+    'aprovar_lista_compras',
     'ativar_usuario',
   ],
 
@@ -208,6 +220,8 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'visualizar_frota',
     'registrar_km_frota',
     'gerenciar_frota',
+    'criar_lista_compras',
+    'aprovar_lista_compras',
   ],
 
   COLABORADOR: [

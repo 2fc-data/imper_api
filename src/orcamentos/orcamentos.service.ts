@@ -36,7 +36,9 @@ const includeDetalhe = {
     orderBy: { ordem: 'asc' as const },
     include: {
       materiais: true,
-      epis: { include: { epi: { select: { id: true, nome: true, codigo: true } } } },
+      epis: {
+        include: { epi: { select: { id: true, nome: true, codigo: true } } },
+      },
     },
   },
   _count: { select: { atividades: true } },

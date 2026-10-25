@@ -241,7 +241,9 @@ export class EpisService {
       if (exists) throw new AppError(409, 'EPI já cadastrado');
     }
     const codigo = data.codigo?.trim() || (await this.proximoCodigo()).codigo;
-    return this.prisma.epi.create({ data: { ...data, codigo, nome: nomeUpper } });
+    return this.prisma.epi.create({
+      data: { ...data, codigo, nome: nomeUpper },
+    });
   }
 
   async atualizar(id: number, data: any) {

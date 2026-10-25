@@ -68,10 +68,31 @@ export type EnumStatusSeparacaoNovo =
   | 'DEVOLUCAO_PENDENTE'
   | 'DEVOLUCAO_CONCLUIDA';
 
-export type EnumStatusEquipamento = 'EM_USO' | 'DEVOLVIDO' | 'EM_MANUTENCAO';
+export type EnumStatusEquipamento =
+  | 'EM_USO'
+  | 'DEVOLVIDO'
+  | 'EM_MANUTENCAO'
+  | 'PERDIDO';
 
 export type StatusObra =
   | 'EM_PREPARACAO'
   | 'EM_EXECUCAO'
   | 'CONCLUIDA'
   | 'CANCELADA';
+
+export type SetorCompra = 'LOJA' | 'ALMOXARIFADO';
+
+export type TipoListaCompra =
+  | 'SUPERMERCADO'
+  | 'MATERIAL'
+  | 'EPI'
+  | 'EQUIPAMENTO';
+
+export type StatusListaCompra =
+  | 'ABERTA'
+  | 'ENVIADA'
+  | 'APROVADA'
+  | 'RECUSADA'
+  | 'COMPRADA';
+
+export type StatusItemLista = 'PENDENTE' | 'RECUSADO' | 'COMPRADO';
