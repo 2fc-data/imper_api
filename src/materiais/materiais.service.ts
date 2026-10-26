@@ -17,7 +17,6 @@ export interface MaterialInputDto {
   tipo: TipoMaterial;
   categoriaId?: number | null;
   unidadeId: number;
-  tipoDespesaId?: number | null;
   obraId?: number | null;
   quantidadeMinima?: number | null;
   custoUnitario?: number | null;
@@ -28,7 +27,6 @@ export interface MaterialUpdateDto {
   tipo?: TipoMaterial;
   categoriaId?: number | null;
   unidadeId?: number;
-  tipoDespesaId?: number | null;
   obraId?: number | null;
   quantidadeMinima?: number | null;
   custoUnitario?: number | null;
@@ -151,30 +149,16 @@ export class MateriaisService {
 
   private async validarRegrasDespesaExtra(
     tipo: TipoMaterial,
-    tipoDespesaId?: number | null,
     obraId?: number | null,
   ) {
     if (tipo !== 'DESPESAS_EXTRAS') return;
 
-    if (tipoDespesaId) {
-      const td = await this.prisma.tipoDespesa.findUnique({
-        where: { id: tipoDespesaId },
+    if (obraId) {
+      const obra = await this.prisma.obra.findUnique({
+        where: { id: obraId },
       });
-      if (!td) {
-        throw new BadRequestException('Tipo de despesa informado não foi encontrado');
-      }
-      if (td.requerObra) {
-        if (!obraId) {
-          throw new BadRequestException(
-            `O tipo de despesa "${td.nome}" exige o vínculo com uma Obra`,
-          );
-        }
-        const obra = await this.prisma.obra.findUnique({
-          where: { id: obraId },
-        });
-        if (!obra) {
-          throw new BadRequestException('Obra informada não foi encontrada');
-        }
+      if (!obra) {
+        throw new BadRequestException('Obra informada não foi encontrada');
       }
     }
   }
@@ -182,7 +166,6 @@ export class MateriaisService {
   async listar(params?: {
     q?: string;
     tipo?: TipoMaterial;
-    tipoDespesaId?: number;
     obraId?: number;
   }) {
     const where: Record<string, unknown> = {};
@@ -191,9 +174,6 @@ export class MateriaisService {
     }
     if (params?.tipo) {
       where.tipo = params.tipo;
-    }
-    if (params?.tipoDespesaId) {
-      where.tipoDespesaId = params.tipoDespesaId;
     }
     if (params?.obraId) {
       where.obraId = params.obraId;
@@ -205,7 +185,6 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
-        tipoDespesa: true,
         obra: {
           select: {
             id: true,
@@ -302,7 +281,6 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
-        tipoDespesa: true,
         obra: {
           select: {
             id: true,
@@ -342,7 +320,7 @@ export class MateriaisService {
     });
     if (exists) throw new AppError(409, 'Material já cadastrado');
 
-    await this.validarRegrasDespesaExtra(dto.tipo, dto.tipoDespesaId, dto.obraId);
+    await this.validarRegrasDespesaExtra(dto.tipo, dto.obraId);
 
     return this.prisma.material.create({
       data: {
@@ -350,7 +328,6 @@ export class MateriaisService {
         tipo: dto.tipo,
         categoriaId: dto.categoriaId ?? null,
         unidadeId: dto.unidadeId,
-        tipoDespesaId: dto.tipoDespesaId ?? null,
         obraId: dto.obraId ?? null,
         quantidadeMinima:
           dto.quantidadeMinima !== undefined ? dto.quantidadeMinima : null,
@@ -366,7 +343,6 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
-        tipoDespesa: true,
         obra: {
           select: {
             id: true,
@@ -397,11 +373,9 @@ export class MateriaisService {
     }
 
     const tipoFinal = dto.tipo ?? atual.tipo;
-    const tipoDespesaFinal =
-      dto.tipoDespesaId !== undefined ? dto.tipoDespesaId : atual.tipoDespesaId;
     const obraFinal = dto.obraId !== undefined ? dto.obraId : atual.obraId;
 
-    await this.validarRegrasDespesaExtra(tipoFinal, tipoDespesaFinal, obraFinal);
+    await this.validarRegrasDespesaExtra(tipoFinal, obraFinal);
 
     return this.prisma.material.update({
       where: { id },
@@ -412,9 +386,6 @@ export class MateriaisService {
           categoriaId: dto.categoriaId ?? null,
         }),
         ...(dto.unidadeId !== undefined && { unidadeId: dto.unidadeId }),
-        ...(dto.tipoDespesaId !== undefined && {
-          tipoDespesaId: dto.tipoDespesaId ?? null,
-        }),
         ...(dto.obraId !== undefined && {
           obraId: dto.obraId ?? null,
         }),

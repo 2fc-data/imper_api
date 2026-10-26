@@ -115,12 +115,6 @@ async function main() {
       where: { nome, tipo: 'DESPESAS_EXTRAS' },
     });
     if (existing) {
-      if (!existing.tipoDespesaId) {
-        await p.material.update({
-          where: { id: existing.id },
-          data: { tipoDespesaId: tipoCopaId },
-        });
-      }
       existentes++;
       console.log(`  ⏭  ${nome} [existente]`);
       continue;
@@ -130,7 +124,6 @@ async function main() {
         nome,
         tipo: 'DESPESAS_EXTRAS',
         unidadeId: um.id,
-        tipoDespesaId: tipoCopaId,
         quantidadeMinima: 1,
         status: 'ATIVO',
         saldo: { create: { saldo: 0 } },

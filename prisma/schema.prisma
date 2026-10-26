@@ -494,8 +494,8 @@ model TipoDespesa {
   ativo      Boolean    @default(true)
   ordem      Int        @default(0)
   createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  materiais  Material[]
+  updatedAt     DateTime      @updatedAt
+  listasCompras ListaCompra[]
 
   @@map("tipos_despesas")
 }
@@ -515,7 +515,6 @@ model Material {
   unidadeId          Int
   categoriaId        Int?
   fornecedorId       Int?
-  tipoDespesaId      Int?
   obraId             Int?
   itensCompra        CompraItem[]
   categoria          CategoriaMaterial?           @relation(fields: [categoriaId], references: [id])
@@ -523,7 +522,6 @@ model Material {
   fornecedor         Fornecedor?                  @relation(fields: [fornecedorId], references: [id])
   marca              Marca?                       @relation(fields: [marcaId], references: [id])
   unidade            UnidadeMedida                @relation(fields: [unidadeId], references: [id])
-  tipoDespesa        TipoDespesa?                 @relation(fields: [tipoDespesaId], references: [id])
   obra               Obra?                        @relation(fields: [obraId], references: [id])
   movimentos         MovimentoEstoque[]
   saldo              SaldoEstoque?
@@ -538,7 +536,6 @@ model Material {
   @@index([corId])
   @@index([categoriaId])
   @@index([fornecedorId])
-  @@index([tipoDespesaId])
   @@index([obraId])
   @@index([unidadeId], map: "materiais_unidadeId_fkey")
   @@map("materiais")
@@ -1107,15 +1104,18 @@ model ListaCompra {
   enviadoEm      DateTime?
   aprovadoPorId  Int?
   aprovadoEm     DateTime?
+  tipoDespesaId  Int?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
+  tipoDespesa    TipoDespesa?      @relation(fields: [tipoDespesaId], references: [id])
   itens          ListaCompraItem[]
   enviadoPor     User?             @relation("ListaCompraEnviadoPor", fields: [enviadoPorId], references: [id])
   aprovadoPor    User?             @relation("ListaCompraAprovadoPor", fields: [aprovadoPorId], references: [id])
 
-  @@unique([tipo, setor, mes, ano])
+  @@unique([tipo, setor, mes, ano, tipoDespesaId])
   @@index([ano, mes])
+  @@index([tipoDespesaId])
   @@map("listas_compras")
 }
 

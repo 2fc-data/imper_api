@@ -36,13 +36,11 @@ export class MateriaisController {
   async listar(
     @Query('q') q?: string,
     @Query('tipo') tipo?: TipoMaterial,
-    @Query('tipoDespesaId') tipoDespesaId?: string,
     @Query('obraId') obraId?: string,
   ) {
     return this.materiaisService.listar({
       q,
       tipo,
-      tipoDespesaId: tipoDespesaId ? Number(tipoDespesaId) : undefined,
       obraId: obraId ? Number(obraId) : undefined,
     });
   }

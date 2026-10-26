@@ -40,7 +40,13 @@ export class ListasComprasController {
     @Query(new ZodValidationPipe(listarListaComprasQuerySchema))
     query: ListarListaComprasQueryInput,
   ) {
-    return this.service.obter(query.tipo, query.setor, query.mes, query.ano);
+    return this.service.obter(
+      query.tipo,
+      query.setor,
+      query.mes,
+      query.ano,
+      query.tipoDespesaId,
+    );
   }
 
   @Put(':tipo/:setor/:mes/:ano/itens')
@@ -50,6 +56,7 @@ export class ListasComprasController {
     @Param('setor') setor: SetorParam,
     @Param('mes') mes: string,
     @Param('ano') ano: string,
+    @Query('tipoDespesaId') queryTipoDespesaId: string | undefined,
     @Body(new ZodValidationPipe(salvarItensListaSchema))
     body: SalvarItensListaInput,
     @Req() req: RequestWithUser,
@@ -57,6 +64,9 @@ export class ListasComprasController {
     const tipoNormalizado = (
       tipo === 'SUPERMERCADO' ? 'DESPESAS_EXTRAS' : tipo
     ) as TipoListaCompra;
+    const tipoDespesaId =
+      body.tipoDespesaId ??
+      (queryTipoDespesaId ? Number(queryTipoDespesaId) : undefined);
     return this.service.salvarItens(
       tipoNormalizado,
       setor,
@@ -64,6 +74,7 @@ export class ListasComprasController {
       Number(ano),
       body,
       req.user?.id ?? 0,
+      tipoDespesaId,
     );
   }
 

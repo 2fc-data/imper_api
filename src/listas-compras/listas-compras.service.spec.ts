@@ -36,17 +36,15 @@ beforeEach(() => {
 
 describe('ListasComprasService — obter', () => {
   it('devolve null quando não há lista para o mês', async () => {
-    mockPrisma.listaCompra.findUnique.mockResolvedValue(null);
+    mockPrisma.listaCompra.findFirst.mockResolvedValue(null);
     const r = await servico().obter('SUPERMERCADO', 'LOJA', 3, 2026);
     expect(r).toBeNull();
-    expect(mockPrisma.listaCompra.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledWith({
       where: {
-        tipo_setor_mes_ano: {
-          tipo: 'SUPERMERCADO',
-          setor: 'LOJA',
-          mes: 3,
-          ano: 2026,
-        },
+        tipo: 'SUPERMERCADO',
+        setor: 'LOJA',
+        mes: 3,
+        ano: 2026,
       },
       include: INCLUDE_LISTA,
     });
@@ -55,9 +53,8 @@ describe('ListasComprasService — obter', () => {
 
 describe('ListasComprasService — salvarItens', () => {
   it('cria lista ABERTA com itens quando não existe', async () => {
-    mockPrisma.listaCompra.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 1, status: 'ABERTA' });
+    mockPrisma.listaCompra.findFirst.mockResolvedValueOnce(null);
+    mockPrisma.listaCompra.findUnique.mockResolvedValueOnce({ id: 1, status: 'ABERTA' });
     mockPrisma.material.findFirst.mockResolvedValue({ id: 7 });
     mockPrisma.listaCompra.create.mockResolvedValue({ id: 1 });
     mockPrisma.listaCompraItem.createMany.mockResolvedValue({ count: 1 });
@@ -77,6 +74,7 @@ describe('ListasComprasService — salvarItens', () => {
         setor: 'LOJA',
         mes: 3,
         ano: 2026,
+        tipoDespesaId: null,
       },
     });
     expect(mockPrisma.listaCompraItem.createMany).toHaveBeenCalledWith({
@@ -95,7 +93,7 @@ describe('ListasComprasService — salvarItens', () => {
   });
 
   it('rejeita itemId inexistente para o domínio', async () => {
-    mockPrisma.listaCompra.findUnique.mockResolvedValue(null);
+    mockPrisma.listaCompra.findFirst.mockResolvedValue(null);
     mockPrisma.material.findFirst.mockResolvedValue(null);
 
     await expect(
@@ -111,7 +109,7 @@ describe('ListasComprasService — salvarItens', () => {
   });
 
   it('lança 409 quando a lista está travada', async () => {
-    mockPrisma.listaCompra.findUnique.mockResolvedValue({
+    mockPrisma.listaCompra.findFirst.mockResolvedValue({
       id: 5,
       status: 'ENVIADA',
     });
@@ -123,6 +121,10 @@ describe('ListasComprasService — salvarItens', () => {
   });
 
   it('substitui itens (deleteMany + createMany) em lista ABERTA', async () => {
+    mockPrisma.listaCompra.findFirst.mockResolvedValue({
+      id: 5,
+      status: 'ABERTA',
+    });
     mockPrisma.listaCompra.findUnique.mockResolvedValue({
       id: 5,
       status: 'ABERTA',
