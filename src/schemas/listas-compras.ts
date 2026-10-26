@@ -1,16 +1,20 @@
 import { z } from 'zod';
 
 export const listarListaComprasQuerySchema = z.object({
-  tipo: z.enum(['SUPERMERCADO', 'MATERIAL', 'EPI', 'EQUIPAMENTO']),
+  tipo: z
+    .enum(['DESPESAS_EXTRAS', 'SUPERMERCADO', 'MATERIAL', 'EPI', 'EQUIPAMENTO'])
+    .transform((t) => (t === 'SUPERMERCADO' ? 'DESPESAS_EXTRAS' : t)),
   setor: z.enum(['LOJA', 'ALMOXARIFADO']),
   mes: z.coerce.number().int().min(1).max(12),
   ano: z.coerce.number().int().min(2020).max(2100),
+  tipoDespesaId: z.coerce.number().int().positive().optional(),
 });
 export type ListarListaComprasQueryInput = z.infer<
   typeof listarListaComprasQuerySchema
 >;
 
 export const salvarItensListaSchema = z.object({
+  tipoDespesaId: z.number().int().positive().optional(),
   itens: z.array(
     z.object({
       itemId: z.number().int().positive(),

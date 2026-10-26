@@ -33,13 +33,66 @@ export class MateriaisController {
   constructor(private readonly materiaisService: MateriaisService) {}
 
   @Get()
-  async listar(@Query('q') q?: string, @Query('tipo') tipo?: TipoMaterial) {
-    return this.materiaisService.listar({ q, tipo });
+  async listar(
+    @Query('q') q?: string,
+    @Query('tipo') tipo?: TipoMaterial,
+    @Query('obraId') obraId?: string,
+  ) {
+    return this.materiaisService.listar({
+      q,
+      tipo,
+      obraId: obraId ? Number(obraId) : undefined,
+    });
   }
 
   @Get('lookups')
   async lookups() {
     return this.materiaisService.lookups();
+  }
+
+  // --- CRUD Tipos de Despesas Extras ---
+
+  @Get('lookups/tipos-despesas')
+  async listarTiposDespesas(@Query('ativo') ativo?: string) {
+    const filtro =
+      ativo === 'true' ? true : ativo === 'false' ? false : undefined;
+    return this.materiaisService.listarTiposDespesas(filtro);
+  }
+
+  @Post('lookups/tipos-despesas')
+  @Permissions('gerenciar_catalogo')
+  async criarTipoDespesa(
+    @Body()
+    body: {
+      nome: string;
+      descricao?: string;
+      requerObra?: boolean;
+      ordem?: number;
+    },
+  ) {
+    return this.materiaisService.criarTipoDespesa(body);
+  }
+
+  @Put('lookups/tipos-despesas/:id')
+  @Permissions('gerenciar_catalogo')
+  async atualizarTipoDespesa(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      nome?: string;
+      descricao?: string;
+      requerObra?: boolean;
+      ativo?: boolean;
+      ordem?: number;
+    },
+  ) {
+    return this.materiaisService.atualizarTipoDespesa(Number(id), body);
+  }
+
+  @Delete('lookups/tipos-despesas/:id')
+  @Permissions('gerenciar_catalogo')
+  async desativarTipoDespesa(@Param('id') id: string) {
+    return this.materiaisService.desativarTipoDespesa(Number(id));
   }
 
   // --- CRUD Categorias Materiais ---

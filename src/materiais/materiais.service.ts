@@ -17,8 +17,9 @@ export interface MaterialInputDto {
   tipo: TipoMaterial;
   categoriaId?: number | null;
   unidadeId: number;
-  quantidadeMinima?: number;
-  custoUnitario?: number;
+  obraId?: number | null;
+  quantidadeMinima?: number | null;
+  custoUnitario?: number | null;
 }
 
 export interface MaterialUpdateDto {
@@ -26,6 +27,7 @@ export interface MaterialUpdateDto {
   tipo?: TipoMaterial;
   categoriaId?: number | null;
   unidadeId?: number;
+  obraId?: number | null;
   quantidadeMinima?: number | null;
   custoUnitario?: number | null;
   status?: StatusMaterial;
@@ -73,7 +75,99 @@ export class MateriaisService {
     });
   }
 
-  async listar(params?: { q?: string; tipo?: TipoMaterial }) {
+  // --- CRUD Tipos de Despesas Extras ---
+
+  async listarTiposDespesas(ativo?: boolean) {
+    return this.prisma.tipoDespesa.findMany({
+      where: ativo === undefined ? {} : { ativo },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+    });
+  }
+
+  async criarTipoDespesa(data: {
+    nome: string;
+    descricao?: string;
+    requerObra?: boolean;
+    ordem?: number;
+  }) {
+    const nomeTrim = data.nome.trim();
+    const exists = await this.prisma.tipoDespesa.findFirst({
+      where: { nome: normalize(nomeTrim) },
+    });
+    if (exists) throw new AppError(409, 'Tipo de despesa já cadastrado');
+
+    return this.prisma.tipoDespesa.create({
+      data: {
+        nome: nomeTrim,
+        descricao: data.descricao?.trim() || null,
+        requerObra: !!data.requerObra,
+        ordem: data.ordem ?? 0,
+        ativo: true,
+      },
+    });
+  }
+
+  async atualizarTipoDespesa(
+    id: number,
+    data: {
+      nome?: string;
+      descricao?: string;
+      requerObra?: boolean;
+      ativo?: boolean;
+      ordem?: number;
+    },
+  ) {
+    if (data.nome) {
+      const nomeTrim = data.nome.trim();
+      const exists = await this.prisma.tipoDespesa.findFirst({
+        where: { nome: normalize(nomeTrim), NOT: { id } },
+      });
+      if (exists) throw new AppError(409, 'Tipo de despesa já cadastrado');
+      data.nome = nomeTrim;
+    }
+
+    return this.prisma.tipoDespesa.update({
+      where: { id },
+      data: {
+        ...(data.nome !== undefined && { nome: data.nome }),
+        ...(data.descricao !== undefined && {
+          descricao: data.descricao?.trim() || null,
+        }),
+        ...(data.requerObra !== undefined && { requerObra: data.requerObra }),
+        ...(data.ativo !== undefined && { ativo: data.ativo }),
+        ...(data.ordem !== undefined && { ordem: data.ordem }),
+      },
+    });
+  }
+
+  async desativarTipoDespesa(id: number) {
+    return this.prisma.tipoDespesa.update({
+      where: { id },
+      data: { ativo: false },
+    });
+  }
+
+  private async validarRegrasDespesaExtra(
+    tipo: TipoMaterial,
+    obraId?: number | null,
+  ) {
+    if (tipo !== 'DESPESAS_EXTRAS') return;
+
+    if (obraId) {
+      const obra = await this.prisma.obra.findUnique({
+        where: { id: obraId },
+      });
+      if (!obra) {
+        throw new BadRequestException('Obra informada não foi encontrada');
+      }
+    }
+  }
+
+  async listar(params?: {
+    q?: string;
+    tipo?: TipoMaterial;
+    obraId?: number;
+  }) {
     const where: Record<string, unknown> = {};
     if (params?.q) {
       where.nome = { contains: params.q };
@@ -81,12 +175,30 @@ export class MateriaisService {
     if (params?.tipo) {
       where.tipo = params.tipo;
     }
+    if (params?.obraId) {
+      where.obraId = params.obraId;
+    }
 
     return this.prisma.material.findMany({
       where,
       include: {
         saldo: true,
         categoria: true,
+        unidade: true,
+        obra: {
+          select: {
+            id: true,
+            codigo: true,
+            atendimento: {
+              select: {
+                id: true,
+                user: {
+                  select: { id: true, nome: true },
+                },
+              },
+            },
+          },
+        },
         movimentos: {
           take: 10,
           orderBy: { createdAt: 'desc' },
@@ -102,31 +214,64 @@ export class MateriaisService {
   }
 
   async lookups() {
-    const [categorias, subcategorias, marcas, cores, unidadesMedida] =
-      await Promise.all([
-        this.prisma.categoriaMaterial.findMany({
-          where: { ativo: true },
-          orderBy: { nome: 'asc' },
-        }),
-        this.prisma.subcategoriaMaterial.findMany({
-          where: { ativo: true },
-          include: { categoria: true },
-          orderBy: { nome: 'asc' },
-        }),
-        this.prisma.marca.findMany({
-          where: { ativo: true },
-          orderBy: { nome: 'asc' },
-        }),
-        this.prisma.cor.findMany({
-          where: { ativo: true },
-          orderBy: { nome: 'asc' },
-        }),
-        this.prisma.unidadeMedida.findMany({
-          where: { ativo: true },
-          orderBy: { ordem: 'asc' },
-        }),
-      ]);
-    return { categorias, subcategorias, marcas, cores, unidadesMedida };
+    const [
+      categorias,
+      subcategorias,
+      marcas,
+      cores,
+      unidadesMedida,
+      tiposDespesas,
+      obras,
+    ] = await Promise.all([
+      this.prisma.categoriaMaterial.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.subcategoriaMaterial.findMany({
+        where: { ativo: true },
+        include: { categoria: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.marca.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.cor.findMany({
+        where: { ativo: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.unidadeMedida.findMany({
+        where: { ativo: true },
+        orderBy: { ordem: 'asc' },
+      }),
+      this.prisma.tipoDespesa.findMany({
+        where: { ativo: true },
+        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      }),
+      this.prisma.obra.findMany({
+        where: { status: { in: ['EM_PREPARACAO', 'EM_EXECUCAO'] } },
+        select: {
+          id: true,
+          codigo: true,
+          atendimento: {
+            select: {
+              id: true,
+              user: { select: { id: true, nome: true } },
+            },
+          },
+        },
+        orderBy: { codigo: 'desc' },
+      }),
+    ]);
+    return {
+      categorias,
+      subcategorias,
+      marcas,
+      cores,
+      unidadesMedida,
+      tiposDespesas,
+      obras,
+    };
   }
 
   async detalhar(id: number) {
@@ -135,6 +280,21 @@ export class MateriaisService {
       include: {
         saldo: true,
         categoria: true,
+        unidade: true,
+        obra: {
+          select: {
+            id: true,
+            codigo: true,
+            atendimento: {
+              select: {
+                id: true,
+                user: {
+                  select: { id: true, nome: true },
+                },
+              },
+            },
+          },
+        },
         movimentos: {
           orderBy: { createdAt: 'desc' },
           include: {
@@ -160,12 +320,15 @@ export class MateriaisService {
     });
     if (exists) throw new AppError(409, 'Material já cadastrado');
 
+    await this.validarRegrasDespesaExtra(dto.tipo, dto.obraId);
+
     return this.prisma.material.create({
       data: {
         nome: nomeUpper,
         tipo: dto.tipo,
         categoriaId: dto.categoriaId ?? null,
         unidadeId: dto.unidadeId,
+        obraId: dto.obraId ?? null,
         quantidadeMinima:
           dto.quantidadeMinima !== undefined ? dto.quantidadeMinima : null,
         custoUnitario:
@@ -179,12 +342,27 @@ export class MateriaisService {
       include: {
         saldo: true,
         categoria: true,
+        unidade: true,
+        obra: {
+          select: {
+            id: true,
+            codigo: true,
+            atendimento: {
+              select: {
+                id: true,
+                user: {
+                  select: { id: true, nome: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
 
   async atualizar(id: number, dto: MaterialUpdateDto) {
-    await this.detalhar(id);
+    const atual = await this.detalhar(id);
 
     if (dto.nome) {
       const nomeUpper = dto.nome.toUpperCase();
@@ -193,6 +371,11 @@ export class MateriaisService {
       });
       if (exists) throw new AppError(409, 'Material já cadastrado');
     }
+
+    const tipoFinal = dto.tipo ?? atual.tipo;
+    const obraFinal = dto.obraId !== undefined ? dto.obraId : atual.obraId;
+
+    await this.validarRegrasDespesaExtra(tipoFinal, obraFinal);
 
     return this.prisma.material.update({
       where: { id },
@@ -203,6 +386,9 @@ export class MateriaisService {
           categoriaId: dto.categoriaId ?? null,
         }),
         ...(dto.unidadeId !== undefined && { unidadeId: dto.unidadeId }),
+        ...(dto.obraId !== undefined && {
+          obraId: dto.obraId ?? null,
+        }),
         ...(dto.quantidadeMinima !== undefined && {
           quantidadeMinima: dto.quantidadeMinima,
         }),
@@ -214,6 +400,22 @@ export class MateriaisService {
       include: {
         saldo: true,
         categoria: true,
+        unidade: true,
+        tipoDespesa: true,
+        obra: {
+          select: {
+            id: true,
+            codigo: true,
+            atendimento: {
+              select: {
+                id: true,
+                user: {
+                  select: { id: true, nome: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }

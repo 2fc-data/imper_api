@@ -19,6 +19,7 @@ const INCLUDE_ITEM: Prisma.ListaCompraItemInclude = {
 };
 
 const INCLUDE_LISTA: Prisma.ListaCompraInclude = {
+  tipoDespesa: true,
   itens: { include: INCLUDE_ITEM, orderBy: { id: 'asc' } },
   enviadoPor: { select: { id: true, nome: true } },
   aprovadoPor: { select: { id: true, nome: true } },
@@ -33,9 +34,19 @@ export class ListasComprasService {
     setor: SetorCompra,
     mes: number,
     ano: number,
+    tipoDespesaId?: number,
   ) {
-    return this.prisma.listaCompra.findUnique({
-      where: { tipo_setor_mes_ano: { tipo, setor, mes, ano } },
+    if (tipo === 'DESPESAS_EXTRAS') {
+      if (tipoDespesaId) {
+        return this.prisma.listaCompra.findFirst({
+          where: { tipo, setor, mes, ano, tipoDespesaId },
+          include: INCLUDE_LISTA,
+        });
+      }
+      return null;
+    }
+    return this.prisma.listaCompra.findFirst({
+      where: { tipo, setor, mes, ano },
       include: INCLUDE_LISTA,
     });
   }
@@ -56,8 +67,13 @@ export class ListasComprasService {
     ano: number,
     input: SalvarItensListaInput,
     usuarioId: number,
+    tipoDespesaId?: number,
   ) {
-    const existente = await this.obter(tipo, setor, mes, ano);
+    const tDespesaId =
+      tipo === 'DESPESAS_EXTRAS'
+        ? (tipoDespesaId ?? input.tipoDespesaId ?? null)
+        : null;
+    const existente = await this.obter(tipo, setor, mes, ano, tDespesaId ?? undefined);
     if (
       existente &&
       (TRAVADOS as readonly string[]).includes(existente.status)
@@ -87,7 +103,7 @@ export class ListasComprasService {
       ops.push(this.prisma.listaCompraItem.deleteMany({ where: { listaId } }));
     } else {
       const criada = await this.prisma.listaCompra.create({
-        data: { tipo, setor, mes, ano },
+        data: { tipo, setor, mes, ano, tipoDespesaId: tDespesaId },
       });
       listaId = criada.id;
     }
@@ -118,9 +134,17 @@ export class ListasComprasService {
     tipo: TipoListaCompra,
     itemId: number,
   ): Promise<{ materialId?: number; epiId?: number; equipamentoId?: number }> {
-    if (tipo === 'SUPERMERCADO' || tipo === 'MATERIAL') {
+    if (
+      tipo === 'DESPESAS_EXTRAS' ||
+      (tipo as string) === 'SUPERMERCADO' ||
+      tipo === 'MATERIAL'
+    ) {
+      const tipoMaterial =
+        tipo === 'DESPESAS_EXTRAS' || (tipo as string) === 'SUPERMERCADO'
+          ? 'DESPESAS_EXTRAS'
+          : 'MATERIAL';
       const material = await this.prisma.material.findFirst({
-        where: { id: itemId, tipo, status: 'ATIVO' },
+        where: { id: itemId, tipo: tipoMaterial, status: 'ATIVO' },
         select: { id: true },
       });
       if (!material) {

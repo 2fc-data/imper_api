@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { TipoListaCompra } from '@prisma/client';
 import type { Request } from 'express';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -39,7 +40,13 @@ export class ListasComprasController {
     @Query(new ZodValidationPipe(listarListaComprasQuerySchema))
     query: ListarListaComprasQueryInput,
   ) {
-    return this.service.obter(query.tipo, query.setor, query.mes, query.ano);
+    return this.service.obter(
+      query.tipo,
+      query.setor,
+      query.mes,
+      query.ano,
+      query.tipoDespesaId,
+    );
   }
 
   @Put(':tipo/:setor/:mes/:ano/itens')
@@ -49,17 +56,25 @@ export class ListasComprasController {
     @Param('setor') setor: SetorParam,
     @Param('mes') mes: string,
     @Param('ano') ano: string,
+    @Query('tipoDespesaId') queryTipoDespesaId: string | undefined,
     @Body(new ZodValidationPipe(salvarItensListaSchema))
     body: SalvarItensListaInput,
     @Req() req: RequestWithUser,
   ) {
+    const tipoNormalizado = (
+      tipo === 'SUPERMERCADO' ? 'DESPESAS_EXTRAS' : tipo
+    ) as TipoListaCompra;
+    const tipoDespesaId =
+      body.tipoDespesaId ??
+      (queryTipoDespesaId ? Number(queryTipoDespesaId) : undefined);
     return this.service.salvarItens(
-      tipo,
+      tipoNormalizado,
       setor,
       Number(mes),
       Number(ano),
       body,
       req.user?.id ?? 0,
+      tipoDespesaId,
     );
   }
 
@@ -122,5 +137,10 @@ export class ListasComprasController {
   }
 }
 
-type TipoParam = 'SUPERMERCADO' | 'MATERIAL' | 'EPI' | 'EQUIPAMENTO';
+type TipoParam =
+  | 'DESPESAS_EXTRAS'
+  | 'SUPERMERCADO'
+  | 'MATERIAL'
+  | 'EPI'
+  | 'EQUIPAMENTO';
 type SetorParam = 'LOJA' | 'ALMOXARIFADO';
