@@ -25,7 +25,7 @@
     "db:seed-equipamentos": "npx tsx prisma/seed-equipamentos.ts",
     "db:seed-epis": "npx tsx prisma/seed-epis.ts",
     "db:seed-materiais": "npx tsx prisma/seed-materiais.ts",
-    "db:seed-supermercados": "npx tsx prisma/seed-supermercados.ts",
+    "db:seed-despesas-extras": "npx tsx prisma/seed-despesas-extras.ts",
     "db:verify-catalogs": "npx tsx scripts/verify-catalogs.ts",
     "seed": "npx tsx prisma/seed-rbac.ts && npx tsx prisma/seed-fluxo2.ts",
     "format": "biome format --write src test",

@@ -46,7 +46,7 @@ export type StatusManutencao =
   | 'CONCLUIDA'
   | 'CANCELADA';
 
-export type TipoMaterial = 'MATERIAL' | 'EQUIPAMENTO';
+export type TipoMaterial = 'MATERIAL' | 'EQUIPAMENTO' | 'DESPESAS_EXTRAS';
 
 export type StatusMaterial = 'ATIVO' | 'INATIVO';
 
@@ -83,7 +83,7 @@ export type StatusObra =
 export type SetorCompra = 'LOJA' | 'ALMOXARIFADO';
 
 export type TipoListaCompra =
-  | 'SUPERMERCADO'
+  | 'DESPESAS_EXTRAS'
   | 'MATERIAL'
   | 'EPI'
   | 'EQUIPAMENTO';

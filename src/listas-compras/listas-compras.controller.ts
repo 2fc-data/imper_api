@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { TipoListaCompra } from '@prisma/client';
 import type { Request } from 'express';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -53,8 +54,11 @@ export class ListasComprasController {
     body: SalvarItensListaInput,
     @Req() req: RequestWithUser,
   ) {
+    const tipoNormalizado = (
+      tipo === 'SUPERMERCADO' ? 'DESPESAS_EXTRAS' : tipo
+    ) as TipoListaCompra;
     return this.service.salvarItens(
-      tipo,
+      tipoNormalizado,
       setor,
       Number(mes),
       Number(ano),
@@ -122,5 +126,10 @@ export class ListasComprasController {
   }
 }
 
-type TipoParam = 'SUPERMERCADO' | 'MATERIAL' | 'EPI' | 'EQUIPAMENTO';
+type TipoParam =
+  | 'DESPESAS_EXTRAS'
+  | 'SUPERMERCADO'
+  | 'MATERIAL'
+  | 'EPI'
+  | 'EQUIPAMENTO';
 type SetorParam = 'LOJA' | 'ALMOXARIFADO';

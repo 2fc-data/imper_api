@@ -118,9 +118,17 @@ export class ListasComprasService {
     tipo: TipoListaCompra,
     itemId: number,
   ): Promise<{ materialId?: number; epiId?: number; equipamentoId?: number }> {
-    if (tipo === 'SUPERMERCADO' || tipo === 'MATERIAL') {
+    if (
+      tipo === 'DESPESAS_EXTRAS' ||
+      (tipo as string) === 'SUPERMERCADO' ||
+      tipo === 'MATERIAL'
+    ) {
+      const tipoMaterial =
+        tipo === 'DESPESAS_EXTRAS' || (tipo as string) === 'SUPERMERCADO'
+          ? 'DESPESAS_EXTRAS'
+          : 'MATERIAL';
       const material = await this.prisma.material.findFirst({
-        where: { id: itemId, tipo, status: 'ATIVO' },
+        where: { id: itemId, tipo: tipoMaterial, status: 'ATIVO' },
         select: { id: true },
       });
       if (!material) {

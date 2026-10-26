@@ -486,6 +486,20 @@ model SubcategoriaMaterial {
   @@map("subcategorias_materiais")
 }
 
+model TipoDespesa {
+  id         Int        @id @default(autoincrement())
+  nome       String     @unique @db.VarChar(120)
+  descricao  String?    @db.VarChar(255)
+  requerObra Boolean    @default(false)
+  ativo      Boolean    @default(true)
+  ordem      Int        @default(0)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  materiais  Material[]
+
+  @@map("tipos_despesas")
+}
+
 model Material {
   id                 Int                          @id @default(autoincrement())
   nome               String                       @db.VarChar(150)
@@ -501,12 +515,16 @@ model Material {
   unidadeId          Int
   categoriaId        Int?
   fornecedorId       Int?
+  tipoDespesaId      Int?
+  obraId             Int?
   itensCompra        CompraItem[]
   categoria          CategoriaMaterial?           @relation(fields: [categoriaId], references: [id])
   cor                Cor?                         @relation(fields: [corId], references: [id])
   fornecedor         Fornecedor?                  @relation(fields: [fornecedorId], references: [id])
   marca              Marca?                       @relation(fields: [marcaId], references: [id])
   unidade            UnidadeMedida                @relation(fields: [unidadeId], references: [id])
+  tipoDespesa        TipoDespesa?                 @relation(fields: [tipoDespesaId], references: [id])
+  obra               Obra?                        @relation(fields: [obraId], references: [id])
   movimentos         MovimentoEstoque[]
   saldo              SaldoEstoque?
   itensSeparacao     SeparacaoItem[]
@@ -520,6 +538,8 @@ model Material {
   @@index([corId])
   @@index([categoriaId])
   @@index([fornecedorId])
+  @@index([tipoDespesaId])
+  @@index([obraId])
   @@index([unidadeId], map: "materiais_unidadeId_fkey")
   @@map("materiais")
 }
@@ -1506,6 +1526,7 @@ model Obra {
   notificacoes    Notificacao[]
   movimentos      MovimentoEstoque[]
   compras         Compra[]
+  materiaisDespesas Material[]
 
   @@index([atendimentoId])
   @@index([status])
@@ -1770,7 +1791,7 @@ enum StatusMaterial {
 enum TipoMaterial {
   MATERIAL
   EQUIPAMENTO
-  SUPERMERCADO
+  DESPESAS_EXTRAS
 }
 
 enum TipoMovimento {
@@ -1971,7 +1992,7 @@ enum SetorCompra {
 }
 
 enum TipoListaCompra {
-  SUPERMERCADO
+  DESPESAS_EXTRAS
   MATERIAL
   EPI
   EQUIPAMENTO
