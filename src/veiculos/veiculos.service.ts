@@ -1,4 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  calcularProximoCodigo,
+  criarComCodigoSequencial,
+} from '../lib/codigo-sequencial.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -117,117 +121,114 @@ export class VeiculosService {
   }
 
   async proximoCodigo(): Promise<{ codigo: string }> {
-    const ultimo = await this.prisma.veiculo.findFirst({
+    const existentes = await this.prisma.veiculo.findMany({
       where: { codigo: { startsWith: 'VCL-' } },
-      orderBy: { id: 'desc' },
       select: { codigo: true },
     });
 
-    let proximo = 1;
-    if (ultimo) {
-      const match = ultimo.codigo.match(/^VCL-(\d+)$/);
-      if (match) proximo = Number(match[1]) + 1;
-    }
-    return { codigo: `VCL-${String(proximo).padStart(2, '0')}` };
+    return { codigo: calcularProximoCodigo(existentes, 'VCL-', 2) };
   }
 
   async criar(data: any) {
-    const nome = (data.nome ?? '').trim();
+    const payload = { ...data };
+    delete payload.codigo;
+
+    const nome = (payload.nome ?? '').trim();
     if (!nome) {
       throw new AppError(422, 'Nome é obrigatório');
     }
-    await this.validarLookups(data);
+    await this.validarLookups(payload);
 
-    const codigo = data.codigo?.trim() || (await this.proximoCodigo()).codigo;
-
+    const placa = (payload.placa ?? '').toUpperCase();
     const exists = await this.prisma.veiculo.findFirst({
-      where: { OR: [{ codigo }, { placa: data.placa }] },
+      where: { placa },
     });
     if (exists) {
-      throw new AppError(409, 'Código ou placa já cadastrado');
+      throw new AppError(409, 'Placa já cadastrada');
     }
 
-    return this.prisma.veiculo.create({
-      data: {
-        codigo,
-        placa: (data.placa ?? '').toUpperCase(),
-        nome: normalize(nome),
-        fabricanteId: data.fabricanteId || null,
-        modelo: data.modelo || null,
-        ano: data.ano || null,
-        combustivel: data.combustivel || 'GASOLINA',
-        odometroAtual: data.odometroAtual || 0,
-        observacoes: data.observacoes || null,
-        marcaId: data.marcaId || null,
-        corId: data.corId || null,
-        tipoId: data.tipoId,
-        statusId: data.statusId,
-        responsavelId: data.responsavelId || null,
-      },
-      include: {
-        marca: true,
-        cor: true,
-        tipo: true,
-        status: true,
-        responsavel: { select: { id: true, nome: true } },
-      },
-    });
+    return criarComCodigoSequencial(
+      async () => (await this.proximoCodigo()).codigo,
+      (codigo) =>
+        this.prisma.veiculo.create({
+          data: {
+            codigo,
+            placa,
+            nome: normalize(nome),
+            fabricanteId: payload.fabricanteId || null,
+            modelo: payload.modelo || null,
+            ano: payload.ano || null,
+            combustivel: payload.combustivel || 'GASOLINA',
+            odometroAtual: payload.odometroAtual || 0,
+            observacoes: payload.observacoes || null,
+            marcaId: payload.marcaId || null,
+            corId: payload.corId || null,
+            tipoId: payload.tipoId,
+            statusId: payload.statusId,
+            responsavelId: payload.responsavelId || null,
+          },
+          include: {
+            marca: true,
+            cor: true,
+            tipo: true,
+            status: true,
+            responsavel: { select: { id: true, nome: true } },
+          },
+        }),
+      'Não foi possível gerar o código do veículo',
+    );
   }
 
   async atualizar(id: number, data: any) {
     await this.detalhar(id);
 
-    if (data.nome !== undefined) {
-      const nome = (data.nome ?? '').trim();
+    const payload = { ...data };
+    delete payload.codigo;
+
+    if (payload.nome !== undefined) {
+      const nome = (payload.nome ?? '').trim();
       if (!nome) {
         throw new AppError(422, 'Nome é obrigatório');
       }
-      data.nome = normalize(nome);
+      payload.nome = normalize(nome);
     }
-    if (data.placa !== undefined) {
-      data.placa = (data.placa ?? '').toUpperCase();
+    if (payload.placa !== undefined) {
+      payload.placa = (payload.placa ?? '').toUpperCase();
     }
-    await this.validarLookups(data);
+    await this.validarLookups(payload);
 
-    if (data.codigo || data.placa) {
+    if (payload.placa) {
       const exists = await this.prisma.veiculo.findFirst({
-        where: {
-          OR: [
-            ...(data.codigo ? [{ codigo: data.codigo }] : []),
-            ...(data.placa ? [{ placa: data.placa }] : []),
-          ],
-          NOT: { id },
-        },
+        where: { placa: payload.placa, NOT: { id } },
       });
-      if (exists) throw new AppError(409, 'Código ou placa já cadastrado');
+      if (exists) throw new AppError(409, 'Placa já cadastrada');
     }
 
     return this.prisma.veiculo.update({
       where: { id },
       data: {
-        ...(data.codigo !== undefined && { codigo: data.codigo }),
-        ...(data.placa !== undefined && { placa: data.placa }),
-        ...(data.nome !== undefined && { nome: data.nome }),
-        ...(data.fabricanteId !== undefined && {
-          fabricanteId: data.fabricanteId,
+        ...(payload.placa !== undefined && { placa: payload.placa }),
+        ...(payload.nome !== undefined && { nome: payload.nome }),
+        ...(payload.fabricanteId !== undefined && {
+          fabricanteId: payload.fabricanteId,
         }),
-        ...(data.modelo !== undefined && { modelo: data.modelo }),
-        ...(data.ano !== undefined && { ano: data.ano }),
-        ...(data.combustivel !== undefined && {
-          combustivel: data.combustivel,
+        ...(payload.modelo !== undefined && { modelo: payload.modelo }),
+        ...(payload.ano !== undefined && { ano: payload.ano }),
+        ...(payload.combustivel !== undefined && {
+          combustivel: payload.combustivel,
         }),
-        ...(data.odometroAtual !== undefined && {
-          odometroAtual: data.odometroAtual,
+        ...(payload.odometroAtual !== undefined && {
+          odometroAtual: payload.odometroAtual,
         }),
-        ...(data.observacoes !== undefined && {
-          observacoes: data.observacoes,
+        ...(payload.observacoes !== undefined && {
+          observacoes: payload.observacoes,
         }),
-        ...(data.marcaId !== undefined && { marcaId: data.marcaId }),
-        ...(data.corId !== undefined && { corId: data.corId }),
-        ...(data.tipoId !== undefined && { tipoId: data.tipoId }),
-        ...(data.statusId !== undefined && { statusId: data.statusId }),
-        ...(data.responsavelId !== undefined && {
-          responsavelId: data.responsavelId,
+        ...(payload.marcaId !== undefined && { marcaId: payload.marcaId }),
+        ...(payload.corId !== undefined && { corId: payload.corId }),
+        ...(payload.tipoId !== undefined && { tipoId: payload.tipoId }),
+        ...(payload.statusId !== undefined && { statusId: payload.statusId }),
+        ...(payload.responsavelId !== undefined && {
+          responsavelId: payload.responsavelId,
         }),
       },
       include: {

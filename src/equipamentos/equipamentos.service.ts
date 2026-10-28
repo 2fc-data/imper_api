@@ -3,6 +3,10 @@ import {
   type LookupCrud,
   LookupService,
 } from '../common/services/lookup.service.js';
+import {
+  calcularProximoCodigo,
+  criarComCodigoSequencial,
+} from '../lib/codigo-sequencial.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -328,42 +332,52 @@ export class EquipamentosService {
   }
 
   async proximoCodigo(): Promise<{ codigo: string }> {
-    const ultimo = await this.prisma.equipamento.findFirst({
+    const existentes = await this.prisma.equipamento.findMany({
       where: { codigo: { startsWith: 'EQP-' } },
-      orderBy: { id: 'desc' },
       select: { codigo: true },
     });
 
-    let proximo = 1;
-    if (ultimo) {
-      const match = ultimo.codigo.match(/^EQP-(\d+)$/);
-      if (match) proximo = Number(match[1]) + 1;
-    }
-    return { codigo: `EQP-${String(proximo).padStart(3, '0')}` };
+    return { codigo: calcularProximoCodigo(existentes, 'EQP-', 3) };
   }
 
   async criar(data: any) {
-    if (data.descricao) {
-      data.descricao = data.descricao.toUpperCase();
+    const payload = { ...data };
+    delete payload.codigo;
+
+    if (payload.descricao) {
+      payload.descricao = payload.descricao.toUpperCase();
       const exists = await this.prisma.equipamento.findFirst({
-        where: { descricao: normalize(data.descricao) },
+        where: { descricao: normalize(payload.descricao) },
       });
       if (exists) throw new AppError(409, 'Equipamento já cadastrado');
     }
-    const codigo = data.codigo?.trim() || (await this.proximoCodigo()).codigo;
-    return this.prisma.equipamento.create({ data: { ...data, codigo } });
+
+    return criarComCodigoSequencial(
+      async () => (await this.proximoCodigo()).codigo,
+      (codigo) =>
+        this.prisma.equipamento.create({ data: { ...payload, codigo } }),
+      'Não foi possível gerar o código do equipamento',
+    );
   }
 
   async atualizar(id: number, data: any) {
     await this.detalhar(id);
-    if (data.descricao) {
-      data.descricao = data.descricao.toUpperCase();
+
+    const payload = { ...data };
+    delete payload.codigo;
+
+    if (payload.descricao) {
+      payload.descricao = payload.descricao.toUpperCase();
       const exists = await this.prisma.equipamento.findFirst({
-        where: { descricao: normalize(data.descricao), NOT: { id } },
+        where: { descricao: normalize(payload.descricao), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'Equipamento já cadastrado');
     }
-    return this.prisma.equipamento.update({ where: { id }, data });
+
+    return this.prisma.equipamento.update({
+      where: { id },
+      data: payload,
+    });
   }
 
   async excluir(id: number) {

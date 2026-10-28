@@ -1,5 +1,5 @@
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppError } from '../lib/errors.js';
 import { VeiculosService } from './veiculos.service.js';
 
 const mockPrisma = {
@@ -110,33 +110,38 @@ describe('VeiculosService', () => {
 
   describe('proximoCodigo', () => {
     it('deve retornar VCL-01 quando não há veículos VCL', async () => {
-      mockPrisma.veiculo.findFirst.mockResolvedValue(null);
+      mockPrisma.veiculo.findMany.mockResolvedValue([]);
       const result = await servico().proximoCodigo();
       expect(result).toEqual({ codigo: 'VCL-01' });
-      expect(mockPrisma.veiculo.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { codigo: { startsWith: 'VCL-' } },
-        }),
-      );
+      expect(mockPrisma.veiculo.findMany).toHaveBeenCalledWith({
+        where: { codigo: { startsWith: 'VCL-' } },
+        select: { codigo: true },
+      });
     });
 
-    it('deve incrementar o último código VCL-XX', async () => {
-      mockPrisma.veiculo.findFirst.mockResolvedValue({ codigo: 'VCL-07' });
+    it('deve incrementar o maior código VCL-XX existente', async () => {
+      mockPrisma.veiculo.findMany.mockResolvedValue([
+        { codigo: 'VCL-07' },
+        { codigo: 'VCL-03' },
+      ]);
       const result = await servico().proximoCodigo();
       expect(result).toEqual({ codigo: 'VCL-08' });
     });
 
-    it('deve ignorar códigos fora do padrão VCL- e reiniciar em VCL-01', async () => {
-      mockPrisma.veiculo.findFirst.mockResolvedValue({ codigo: 'V001' });
+    it('deve ignorar códigos fora do padrão VCL-', async () => {
+      mockPrisma.veiculo.findMany.mockResolvedValue([
+        { codigo: 'V001' },
+        { codigo: 'VCL-ABC' },
+      ]);
       const result = await servico().proximoCodigo();
       expect(result).toEqual({ codigo: 'VCL-01' });
     });
   });
 
   describe('criar', () => {
-    it('deve criar veículo com nome e lookups', async () => {
+    it('deve criar veículo gerando o código e ignorando o informado', async () => {
       const data = {
-        codigo: 'VCL-01',
+        codigo: 'VCL-99',
         placa: 'abc-1234',
         nome: 'FIESTA PRATA',
         tipoId: 1,
@@ -145,9 +150,11 @@ describe('VeiculosService', () => {
       mockPrisma.tipoVeiculo.findFirst.mockResolvedValue({ id: 1 });
       mockPrisma.statusVeiculo.findFirst.mockResolvedValue({ id: 1 });
       mockPrisma.veiculo.findFirst.mockResolvedValue(null);
+      mockPrisma.veiculo.findMany.mockResolvedValue([]);
       mockPrisma.veiculo.create.mockResolvedValue({
         id: 1,
         ...data,
+        codigo: 'VCL-01',
         placa: 'ABC-1234',
       });
 
@@ -170,9 +177,8 @@ describe('VeiculosService', () => {
     it('deve gerar código VCL-XX automático quando codigo não informado', async () => {
       mockPrisma.tipoVeiculo.findFirst.mockResolvedValue({ id: 1 });
       mockPrisma.statusVeiculo.findFirst.mockResolvedValue({ id: 1 });
-      mockPrisma.veiculo.findFirst
-        .mockResolvedValueOnce({ codigo: 'VCL-03' }) // proximoCodigo
-        .mockResolvedValueOnce(null); // exists
+      mockPrisma.veiculo.findFirst.mockResolvedValue(null);
+      mockPrisma.veiculo.findMany.mockResolvedValue([{ codigo: 'VCL-03' }]);
       mockPrisma.veiculo.create.mockResolvedValue({
         id: 1,
         codigo: 'VCL-04',
@@ -194,7 +200,62 @@ describe('VeiculosService', () => {
       );
     });
 
-    it('deve lançar AppError 409 se código ou placa já existe', async () => {
+    it('deve tentar novamente quando houver colisão de código', async () => {
+      mockPrisma.tipoVeiculo.findFirst.mockResolvedValue({ id: 1 });
+      mockPrisma.statusVeiculo.findFirst.mockResolvedValue({ id: 1 });
+      mockPrisma.veiculo.findFirst.mockResolvedValue(null);
+      mockPrisma.veiculo.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ codigo: 'VCL-01' }]);
+      mockPrisma.veiculo.create
+        .mockRejectedValueOnce(
+          new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+            code: 'P2002',
+            clientVersion: 'test',
+            meta: { target: ['codigo'] },
+          }),
+        )
+        .mockResolvedValueOnce({ id: 2, codigo: 'VCL-02' });
+
+      const result = await servico().criar({
+        placa: 'ABC-1234',
+        nome: 'FIESTA',
+        tipoId: 1,
+        statusId: 1,
+      });
+
+      expect(result).toEqual({ id: 2, codigo: 'VCL-02' });
+      expect(mockPrisma.veiculo.create).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.veiculo.create.mock.calls[1][0].data.codigo).toBe(
+        'VCL-02',
+      );
+    });
+
+    it('deve lançar 409 após esgotar as tentativas de código', async () => {
+      mockPrisma.tipoVeiculo.findFirst.mockResolvedValue({ id: 1 });
+      mockPrisma.statusVeiculo.findFirst.mockResolvedValue({ id: 1 });
+      mockPrisma.veiculo.findFirst.mockResolvedValue(null);
+      mockPrisma.veiculo.findMany.mockResolvedValue([]);
+      mockPrisma.veiculo.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['codigo'] },
+        }),
+      );
+
+      await expect(
+        servico().criar({
+          placa: 'ABC-1234',
+          nome: 'FIESTA',
+          tipoId: 1,
+          statusId: 1,
+        }),
+      ).rejects.toThrow('Não foi possível gerar o código do veículo');
+      expect(mockPrisma.veiculo.create).toHaveBeenCalledTimes(3);
+    });
+
+    it('deve lançar AppError 409 se placa já existe', async () => {
       mockPrisma.tipoVeiculo.findFirst.mockResolvedValue({ id: 1 });
       mockPrisma.statusVeiculo.findFirst.mockResolvedValue({ id: 1 });
       mockPrisma.veiculo.findFirst.mockResolvedValue({ id: 1 });
@@ -206,7 +267,7 @@ describe('VeiculosService', () => {
           tipoId: 1,
           statusId: 1,
         }),
-      ).rejects.toThrow(AppError);
+      ).rejects.toThrow('Placa já cadastrada');
     });
 
     it('deve lançar 422 se tipoId não existir', async () => {
@@ -263,14 +324,27 @@ describe('VeiculosService', () => {
       const payload = mockPrisma.veiculo.update.mock.calls[0][0].data;
       expect(payload.nome).toBe('FIESTA AZUL');
       expect(payload.odometroAtual).toBe(9999);
+      expect(payload).not.toHaveProperty('codigo');
     });
 
-    it('deve lançar 409 se codigo/placa duplicado em outro registro', async () => {
+    it('deve ignorar codigo enviado no update', async () => {
+      mockPrisma.veiculo.findUnique.mockResolvedValue({ id: 1 });
+      mockPrisma.veiculo.findFirst.mockResolvedValue(null);
+      mockPrisma.veiculo.update.mockResolvedValue({ id: 1 });
+
+      await servico().atualizar(1, { codigo: 'V999', nome: 'FIESTA' });
+
+      const payload = mockPrisma.veiculo.update.mock.calls[0][0].data;
+      expect(payload).not.toHaveProperty('codigo');
+      expect(payload.nome).toBe('FIESTA');
+    });
+
+    it('deve lançar 409 se placa duplicada em outro registro', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue({ id: 1 });
       mockPrisma.veiculo.findFirst.mockResolvedValue({ id: 2 });
-      await expect(servico().atualizar(1, { codigo: 'V002' })).rejects.toThrow(
-        AppError,
-      );
+      await expect(
+        servico().atualizar(1, { placa: 'ABC-9999' }),
+      ).rejects.toThrow('Placa já cadastrada');
     });
   });
 

@@ -3,6 +3,10 @@ import {
   type LookupCrud,
   LookupService,
 } from '../common/services/lookup.service.js';
+import {
+  calcularProximoCodigo,
+  criarComCodigoSequencial,
+} from '../lib/codigo-sequencial.js';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -217,50 +221,63 @@ export class EpisService {
   }
 
   async proximoCodigo(): Promise<{ codigo: string }> {
-    const ultimo = await this.prisma.epi.findFirst({
+    const existentes = await this.prisma.epi.findMany({
       where: { codigo: { startsWith: 'EPI-' } },
-      orderBy: { id: 'desc' },
       select: { codigo: true },
     });
 
-    let proximo = 1;
-    if (ultimo) {
-      const match = ultimo.codigo.match(/^EPI-(\d+)$/);
-      if (match) proximo = Number(match[1]) + 1;
-    }
-    return { codigo: `EPI-${String(proximo).padStart(3, '0')}` };
+    return { codigo: calcularProximoCodigo(existentes, 'EPI-', 3) };
   }
 
   async criar(data: any) {
+    const payload = { ...data };
+    delete payload.codigo;
+
     const nomeUpper =
-      typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
-    if (data.nome) {
+      typeof payload.nome === 'string'
+        ? payload.nome.toUpperCase()
+        : payload.nome;
+    if (payload.nome) {
       const exists = await this.prisma.epi.findFirst({
         where: { nome: normalize(nomeUpper) },
       });
       if (exists) throw new AppError(409, 'EPI já cadastrado');
     }
-    const codigo = data.codigo?.trim() || (await this.proximoCodigo()).codigo;
-    return this.prisma.epi.create({
-      data: { ...data, codigo, nome: nomeUpper },
-    });
+
+    return criarComCodigoSequencial(
+      async () => (await this.proximoCodigo()).codigo,
+      (codigo) =>
+        this.prisma.epi.create({
+          data: { ...payload, codigo, nome: nomeUpper },
+        }),
+      'Não foi possível gerar o código do EPI',
+    );
   }
 
   async atualizar(id: number, data: any) {
     await this.detalhar(id);
-    if (data.nome) {
+
+    const payload = { ...data };
+    delete payload.codigo;
+
+    if (payload.nome) {
       const nomeUpper =
-        typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+        typeof payload.nome === 'string'
+          ? payload.nome.toUpperCase()
+          : payload.nome;
       const exists = await this.prisma.epi.findFirst({
         where: { nome: normalize(nomeUpper), NOT: { id } },
       });
       if (exists) throw new AppError(409, 'EPI já cadastrado');
     }
+
     const nomeValue =
-      typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
+      typeof payload.nome === 'string'
+        ? payload.nome.toUpperCase()
+        : payload.nome;
     return this.prisma.epi.update({
       where: { id },
-      data: { ...data, nome: nomeValue },
+      data: { ...payload, nome: nomeValue },
     });
   }
 
