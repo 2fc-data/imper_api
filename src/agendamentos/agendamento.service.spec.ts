@@ -19,11 +19,23 @@ const mockPrisma = {
   $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) => fn(mockTx)),
 };
 
+function dataFutura(): string {
+  const d = new Date();
+  d.setHours(10, 0, 0, 0);
+  let dias = 0;
+  while (dias < 3) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) dias++;
+  }
+  return d.toISOString();
+}
+
 function dto(parcial: Record<string, unknown>) {
   return {
     userId: 1,
     atendimentoId: 10,
-    dataPrevista: '2026-11-01T10:00:00.000Z',
+    dataPrevista: dataFutura(),
     ...parcial,
   } as any;
 }

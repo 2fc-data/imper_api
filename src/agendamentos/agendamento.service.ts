@@ -160,7 +160,7 @@ export class AgendamentoService {
 
     try {
       const agendamento = await this.prisma.$transaction(async (tx) => {
-        if (!atendimento.visitaSolicitada) {
+        if (tipo === 'VISITA' && !atendimento.visitaSolicitada) {
           await tx.atendimento.update({
             where: { id: Number(dto.atendimentoId) },
             data: { visitaSolicitada: true },
