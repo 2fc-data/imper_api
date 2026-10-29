@@ -74,20 +74,39 @@ describe('AtendimentoController', () => {
   });
 
   describe('criar', () => {
-    it('should create a new atendimento', async () => {
+    it('should create a new atendimento and set atendenteId from authenticated user', async () => {
       const dto = { canal: 'LOJA' as const };
-      const created = { id: 1, ...dto, status: 'NOVO' };
+      const created = { id: 1, ...dto, status: 'NOVO', atendenteId: 7 };
       mockService.criar.mockResolvedValue(created);
-      const result = await controller.criar(dto);
+      const req = { user: { id: 7 } } as any;
+      const result = await controller.criar(dto, req);
       expect(result).toEqual(created);
-      expect(mockService.criar).toHaveBeenCalledWith(dto);
+      expect(mockService.criar).toHaveBeenCalledWith({
+        ...dto,
+        atendenteId: 7,
+      });
+    });
+
+    it('should keep explicit atendenteId from body when provided', async () => {
+      const dto = { canal: 'LOJA' as const, atendenteId: 9 };
+      mockService.criar.mockResolvedValue({ id: 1, ...dto });
+      const req = { user: { id: 7 } } as any;
+      await controller.criar(dto, req);
+      expect(mockService.criar).toHaveBeenCalledWith({
+        ...dto,
+        atendenteId: 9,
+      });
     });
 
     it('should pass visitaSolicitada to service', async () => {
       const dto = { canal: 'LOJA' as const, visitaSolicitada: true };
       mockService.criar.mockResolvedValue({ id: 1, ...dto });
-      await controller.criar(dto);
-      expect(mockService.criar).toHaveBeenCalledWith(dto);
+      const req = { user: { id: 7 } } as any;
+      await controller.criar(dto, req);
+      expect(mockService.criar).toHaveBeenCalledWith({
+        ...dto,
+        atendenteId: 7,
+      });
     });
   });
 

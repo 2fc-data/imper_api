@@ -90,8 +90,12 @@ export class AtendimentoController {
       userEmail?: string;
       userCpfCnpj?: string;
     },
+    @Req() req: RequestWithUser,
   ) {
-    return this.atendimentoService.criar(dto);
+    return this.atendimentoService.criar({
+      ...dto,
+      atendenteId: dto.atendenteId ?? req.user?.id,
+    });
   }
 
   @Patch(':id/status')
