@@ -31,6 +31,14 @@ export class ObrasService {
       where,
       include: {
         user: { select: { id: true, nome: true, email: true, telefone: true } },
+        endereco: {
+          select: {
+            logradouro: true,
+            numero: true,
+            bairro: true,
+            cidade: true,
+          },
+        },
         aprovadoPor: { select: { id: true, nome: true } },
         _count: { select: { aditivos: true, etapas: true } },
       },
