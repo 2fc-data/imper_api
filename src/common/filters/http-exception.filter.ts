@@ -75,8 +75,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return 'Registro duplicado';
       case 'P2025':
         return 'Registro não encontrado';
-      case 'P2003':
-        return 'Violação de chave estrangeira';
+      case 'P2003': {
+        const meta = error.meta as Record<string, unknown> | undefined;
+        const alvo = meta?.target ?? meta?.constraint ?? meta?.field;
+        const detalhe = Array.isArray(alvo)
+          ? alvo.join(', ')
+          : alvo != null
+            ? String(alvo)
+            : '';
+        this.logger.warn(
+          `P2003 violação de chave estrangeira${detalhe ? ` (${detalhe})` : ''}`,
+        );
+        return detalhe
+          ? `Violação de chave estrangeira (${detalhe}) — o registro referenciado não existe mais. Recarregue os dados e tente novamente.`
+          : 'Violação de chave estrangeira — o registro referenciado não existe mais. Recarregue os dados e tente novamente.';
+      }
       default:
         return 'Erro no banco de dados';
     }

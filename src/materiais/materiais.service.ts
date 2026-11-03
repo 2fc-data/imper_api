@@ -163,11 +163,7 @@ export class MateriaisService {
     }
   }
 
-  async listar(params?: {
-    q?: string;
-    tipo?: TipoMaterial;
-    obraId?: number;
-  }) {
+  async listar(params?: { q?: string; tipo?: TipoMaterial; obraId?: number }) {
     const where: Record<string, unknown> = {};
     if (params?.q) {
       where.nome = { contains: params.q };
@@ -401,7 +397,6 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
-        tipoDespesa: true,
         obra: {
           select: {
             id: true,

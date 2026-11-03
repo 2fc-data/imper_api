@@ -35,7 +35,9 @@ const includeDetalhe = {
   atividades: {
     orderBy: { ordem: 'asc' as const },
     include: {
-      materiais: true,
+      materiais: {
+        include: { material: { select: { id: true, nome: true } } },
+      },
       epis: {
         include: { epi: { select: { id: true, nome: true, codigo: true } } },
       },
@@ -146,6 +148,7 @@ export class OrcamentosService {
       );
     }
 
+    await this.validarRefsCabecalho(dto);
     const codigo = await this.gerarCodigo();
     const { linhas, total } = await this.montarAtividades(dto);
 
@@ -212,6 +215,7 @@ export class OrcamentosService {
     });
     if (!atendimento) throw new AppError(404, 'Atendimento não encontrado');
 
+    await this.validarRefsCabecalho(dto, { incluirVisita: true });
     const { linhas, total } = await this.montarAtividades(dto);
 
     return this.prisma.$transaction(async (tx) => {
@@ -293,7 +297,166 @@ export class OrcamentosService {
     return validade;
   }
 
+  /** Valida uma lista de referências (FK) antes de gravar; falha com 409 clara. */
+  private async exigirExistencias(
+    tipo: string,
+    ids: (number | null | undefined)[],
+    buscar: (idsUnicos: number[]) => Promise<Array<{ id: number }>>,
+    acao = 'atualize o campo e tente novamente',
+  ): Promise<void> {
+    const unicos = [
+      ...new Set(ids.filter((i): i is number => typeof i === 'number')),
+    ];
+    if (unicos.length === 0) return;
+    const encontrados = await buscar(unicos);
+    this.conferirExistencias(tipo, unicos, encontrados, acao);
+  }
+
+  /** Mesma validação reaproveitando uma consulta já feita (material/epi). */
+  private conferirExistencias(
+    tipo: string,
+    ids: (number | null | undefined)[],
+    encontrados: Array<{ id: number }>,
+    acao: string,
+  ): void {
+    const unicos = [
+      ...new Set(ids.filter((i): i is number => typeof i === 'number')),
+    ];
+    const achados = new Set(encontrados.map((r) => r.id));
+    const faltando = unicos.filter((i) => !achados.has(i));
+    if (faltando.length > 0) {
+      throw new AppError(
+        409,
+        `${tipo} não existe mais: #${faltando.join(', #')} — ${acao}`,
+      );
+    }
+  }
+
+  private async exigirExistenciasLote(
+    consultas: Array<{
+      tipo: string;
+      ids: (number | null | undefined)[];
+      buscar: (idsUnicos: number[]) => Promise<Array<{ id: number }>>;
+      acao?: string;
+    }>,
+  ): Promise<void> {
+    for (const c of consultas) {
+      await this.exigirExistencias(c.tipo, c.ids, c.buscar, c.acao);
+    }
+  }
+
+  /** Valida referências do cabeçalho do orçamento (FK diretas) antes de gravar. */
+  private async validarRefsCabecalho(
+    dto: CriarOrcamentoDto,
+    opts: { incluirVisita?: boolean } = {},
+  ): Promise<void> {
+    const consultas: Array<{
+      tipo: string;
+      ids: (number | null | undefined)[];
+      buscar: (idsUnicos: number[]) => Promise<Array<{ id: number }>>;
+    }> = [
+      {
+        tipo: 'Endereço',
+        ids: [dto.enderecoId],
+        buscar: (ids) =>
+          this.prisma.endereco.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Serviço de marketing',
+        ids: [dto.servicoMarketingId],
+        buscar: (ids) =>
+          this.prisma.servicoMarketing.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+    ];
+    if (opts.incluirVisita) {
+      consultas.push({
+        tipo: 'Visita técnica',
+        ids: [dto.visitaId],
+        buscar: (ids) =>
+          this.prisma.visitaTecnica.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      });
+    }
+    await this.exigirExistenciasLote(consultas);
+  }
+
   private async montarAtividades(dto: CriarOrcamentoDto) {
+    const linhasDto = dto.atividades.flatMap((a) => a.linhas);
+
+    await this.exigirExistenciasLote([
+      {
+        tipo: 'Etapa',
+        ids: dto.atividades.map((a) => a.etapaId),
+        buscar: (ids) =>
+          this.prisma.etapa.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Sub-serviço',
+        ids: dto.atividades.map((a) => a.subServicoId),
+        buscar: (ids) =>
+          this.prisma.subServico.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Verbo',
+        ids: linhasDto.map((l) => l.verboId),
+        buscar: (ids) =>
+          this.prisma.verbo.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Objeto',
+        ids: linhasDto.map((l) => l.objetoId),
+        buscar: (ids) =>
+          this.prisma.objeto.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Local da obra',
+        ids: linhasDto.map((l) => l.localId),
+        buscar: (ids) =>
+          this.prisma.localObra.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Característica',
+        ids: linhasDto.map((l) => l.caracteristicaId),
+        buscar: (ids) =>
+          this.prisma.caracteristica.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+      {
+        tipo: 'Unidade de medida',
+        ids: linhasDto.map((l) => l.unidadeId),
+        buscar: (ids) =>
+          this.prisma.unidadeMedida.findMany({
+            where: { id: { in: ids } },
+            select: { id: true },
+          }),
+      },
+    ]);
+
     const materialIds = [
       ...new Set(
         dto.atividades.flatMap((a) =>
@@ -307,6 +470,12 @@ export class OrcamentosService {
           select: { id: true, custoUnitario: true },
         })
       : [];
+    this.conferirExistencias(
+      'Material',
+      materialIds,
+      materiais,
+      'remova o item da linha ou troque por um material existente',
+    );
     const custo = (materialId: number): number => {
       const m = materiais.find((x) => x.id === materialId);
       return m?.custoUnitario != null ? Number(m.custoUnitario) : 0;
@@ -325,6 +494,12 @@ export class OrcamentosService {
           select: { id: true, custoUnitario: true },
         })
       : [];
+    this.conferirExistencias(
+      'EPI',
+      epiIds,
+      epis,
+      'remova o item da linha ou troque por um EPI existente',
+    );
     // precedência: preço do cadastro > preço enviado no dto > 0
     const custoEpi = (epiId: number, enviado?: number | null): number => {
       const e = epis.find((x) => x.id === epiId);

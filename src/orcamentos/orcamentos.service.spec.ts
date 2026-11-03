@@ -23,7 +23,17 @@ const mockTx = {
 
 const mockPrisma = {
   atendimento: { findUnique: vi.fn() },
-  visitaTecnica: { findFirst: vi.fn(), findUnique: vi.fn() },
+  visitaTecnica: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
+  agendamento: { findMany: vi.fn() },
+  endereco: { findMany: vi.fn() },
+  servicoMarketing: { findMany: vi.fn() },
+  etapa: { findMany: vi.fn() },
+  subServico: { findMany: vi.fn() },
+  verbo: { findMany: vi.fn() },
+  objeto: { findMany: vi.fn() },
+  localObra: { findMany: vi.fn() },
+  caracteristica: { findMany: vi.fn() },
+  unidadeMedida: { findMany: vi.fn() },
   material: { findMany: vi.fn() },
   epi: { findMany: vi.fn() },
   orcamento: {
@@ -88,6 +98,26 @@ describe('OrcamentosService', () => {
   beforeEach(() => {
     service = new OrcamentosService(mockPrisma as any);
     vi.clearAllMocks();
+    // delegates de validação de FK: ecoam os ids pedidos (tudo existe por padrão)
+    for (const d of [
+      mockPrisma.visitaTecnica,
+      mockPrisma.agendamento,
+      mockPrisma.endereco,
+      mockPrisma.servicoMarketing,
+      mockPrisma.etapa,
+      mockPrisma.subServico,
+      mockPrisma.verbo,
+      mockPrisma.objeto,
+      mockPrisma.localObra,
+      mockPrisma.caracteristica,
+      mockPrisma.unidadeMedida,
+    ]) {
+      d.findMany.mockImplementation((args: any) =>
+        Promise.resolve(
+          (args?.where?.id?.in ?? []).map((id: number) => ({ id })),
+        ),
+      );
+    }
   });
 
   describe('criar', () => {
@@ -373,6 +403,71 @@ describe('OrcamentosService', () => {
         }),
       );
     });
+
+    describe('validação de referências (409)', () => {
+      it('enderecoId inexistente → 409 e não cria', async () => {
+        mockPrisma.endereco.findMany.mockResolvedValue([]);
+        await expect(
+          service.criar({ ...dtoBase(), enderecoId: 99 }, 1),
+        ).rejects.toThrow('Endereço não existe mais: #99');
+        expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+      });
+
+      it('servicoMarketingId inexistente → 409 e não cria', async () => {
+        mockPrisma.servicoMarketing.findMany.mockResolvedValue([]);
+        await expect(
+          service.criar({ ...dtoBase(), servicoMarketingId: 77 }, 1),
+        ).rejects.toThrow('Serviço de marketing não existe mais: #77');
+        expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+      });
+
+      it('subServicoId inexistente → 409 e não cria', async () => {
+        const dto = dtoBase();
+        dto.atividades[0].subServicoId = 99;
+        mockPrisma.subServico.findMany.mockResolvedValue([]);
+        await expect(service.criar(dto, 1)).rejects.toThrow(
+          'Sub-serviço não existe mais: #99',
+        );
+        expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+      });
+
+      it('verboId inexistente → 409 e não cria', async () => {
+        const dto = dtoBase();
+        dto.atividades[0].linhas[0].verboId = 42;
+        mockPrisma.verbo.findMany.mockResolvedValue([]);
+        await expect(service.criar(dto, 1)).rejects.toThrow(
+          'Verbo não existe mais: #42',
+        );
+        expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+      });
+
+      it('material que saiu do cadastro → 409 com mensagem específica', async () => {
+        mockPrisma.material.findMany.mockResolvedValue([
+          { id: 1, custoUnitario: 10.5 },
+        ]);
+        await expect(service.criar(dtoBase(), 1)).rejects.toThrow(
+          'Material não existe mais: #2 — remova o item da linha ou troque por um material existente',
+        );
+        expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+      });
+
+      it('epi inexistente → 409 com mensagem específica', async () => {
+        const dto = dtoBase();
+        dto.atividades[0].linhas[0].epis = [{ epiId: 9, quantidade: 1 }];
+        mockPrisma.epi.findMany.mockResolvedValue([]);
+        await expect(service.criar(dto, 1)).rejects.toThrow(
+          'EPI não existe mais: #9 — remova o item da linha ou troque por um EPI existente',
+        );
+        expect(mockPrisma.orcamento.create).not.toHaveBeenCalled();
+      });
+
+      it('referências válidas → cria normalmente (409s são só para ids stale)', async () => {
+        await expect(service.criar(dtoBase(), 1)).resolves.toMatchObject({
+          status: 'RASCUNHO',
+        });
+        expect(mockPrisma.orcamento.create).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe('listar', () => {
@@ -530,6 +625,48 @@ describe('OrcamentosService', () => {
         expect(e).toBeInstanceOf(AppError);
         expect((e as AppError).getStatus()).toBe(404);
       }
+    });
+
+    describe('validação de referências (409)', () => {
+      it('visitaId stale → 409 e não inicia a transação', async () => {
+        mockPrisma.visitaTecnica.findMany.mockResolvedValue([]);
+        await expect(
+          service.atualizar(1, { ...dtoBase(), visitaId: 88 }),
+        ).rejects.toThrow('Visita técnica não existe mais: #88');
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('enderecoId stale → 409 e não inicia a transação', async () => {
+        mockPrisma.endereco.findMany.mockResolvedValue([]);
+        await expect(
+          service.atualizar(1, { ...dtoBase(), enderecoId: 99 }),
+        ).rejects.toThrow('Endereço não existe mais: #99');
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('servicoMarketingId stale → 409 e não inicia a transação', async () => {
+        mockPrisma.servicoMarketing.findMany.mockResolvedValue([]);
+        await expect(
+          service.atualizar(1, { ...dtoBase(), servicoMarketingId: 77 }),
+        ).rejects.toThrow('Serviço de marketing não existe mais: #77');
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('etapa inexistente → 409 antes de recriar as atividades', async () => {
+        mockPrisma.etapa.findMany.mockResolvedValue([]);
+        await expect(service.atualizar(1, dtoBase())).rejects.toThrow(
+          'Etapa não existe mais: #1',
+        );
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('verbo inexistente → 409 e não recria linhas', async () => {
+        mockPrisma.verbo.findMany.mockResolvedValue([]);
+        await expect(service.atualizar(1, dtoBase())).rejects.toThrow(
+          'Verbo não existe mais: #1, #2',
+        );
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      });
     });
   });
 
