@@ -1231,11 +1231,16 @@ model ExecucaoAtividade {
   dataConclusao DateTime?
   status        EnumStatusExecucaoAtividade @default(PENDENTE)
   atribuidoAId  Int?
+  veiculoId     Int?
+  tokenAcesso   String?                     @unique @db.VarChar(64)
+  fotoConclusaoUrl String?                  @db.VarChar(500)
+  observacaoConclusao String?               @db.VarChar(1000)
   criadoPorId   Int?
   criadoEm      DateTime                    @default(now())
   atualizadoEm  DateTime                    @updatedAt
   atividade     ObraAtividade               @relation(fields: [atividadeId], references: [id])
   atribuidoA    User?                       @relation("ExecucaoAtribuidoA", fields: [atribuidoAId], references: [id])
+  veiculo       Veiculo?                    @relation(fields: [veiculoId], references: [id])
   criadoPor     User?                       @relation("ExecucaoCriador", fields: [criadoPorId], references: [id])
   checklist     ChecklistAtividade[]
   separacoes    Separacao[]
@@ -1508,6 +1513,9 @@ model Obra {
   valorM2         Decimal?           @db.Decimal(10, 2)
   observacoes     String?            @db.VarChar(2000)
   formaPagamento  FormaPagamento?
+  dataInicioPrevista  DateTime?
+  dataDisparoWhatsapp DateTime?
+  statusWhatsapp      String?            @default("PENDENTE") @db.VarChar(30)
   aprovadoPorId   Int // cliente (portal) ou admin
   aprovadoEm      DateTime
   createdAt       DateTime           @default(now())
@@ -1654,6 +1662,7 @@ model Veiculo {
   registrosKm    RegistroKmVeiculo[]
   abastecimentos AbastecimentoVeiculo[]
   manutencoes    ManutencaoVeiculo[]
+  execucoes      ExecucaoAtividade[]
 
   @@index([statusId])
   @@index([tipoId])

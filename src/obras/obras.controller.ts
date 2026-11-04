@@ -32,12 +32,18 @@ import type {
   CriarEtapaInput,
   ListarObrasQueryInput,
 } from './dto/obras.dto.js';
+import type { SalvarPlanejamentoInput } from './dto/planejamento.dto.js';
+import { salvarPlanejamentoSchema } from './dto/planejamento.dto.js';
 import { ObrasService } from './obras.service.js';
+import { PlanejamentoService } from './planejamento.service.js';
 
 @Controller('obras')
 @UseGuards(JwtAuthGuard)
 export class ObrasController {
-  constructor(private readonly obrasService: ObrasService) {}
+  constructor(
+    private readonly obrasService: ObrasService,
+    private readonly planejamentoService: PlanejamentoService,
+  ) {}
 
   @Get()
   @Permissions('ver_obras')
@@ -142,5 +148,32 @@ export class ObrasController {
   @Permissions('aprovar_aditivo')
   async recusarAditivo(@Param('id') id: string, @Req() req: Request) {
     return this.obrasService.recusarAditivo(Number(id), (req as any).user.id);
+  }
+
+  @Get(':id/planejamento')
+  @Permissions('ver_obras')
+  async obterPlanejamento(@Param('id') id: string) {
+    return this.planejamentoService.obterPlanejamento(Number(id));
+  }
+
+  @Post(':id/planejamento')
+  @Permissions('editar_obra')
+  async salvarPlanejamento(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(salvarPlanejamentoSchema))
+    dto: SalvarPlanejamentoInput,
+    @Req() req: Request,
+  ) {
+    return this.planejamentoService.salvarPlanejamento(
+      Number(id),
+      dto,
+      (req as any).user.id,
+    );
+  }
+
+  @Post(':id/planejamento/disparar-whatsapp')
+  @Permissions('editar_obra')
+  async dispararWhatsapp(@Param('id') id: string) {
+    return this.planejamentoService.dispararWhatsapp(Number(id));
   }
 }

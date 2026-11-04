@@ -5,14 +5,9 @@ import { config } from '../config.js';
 export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
 
-  async enviarCodigoRecuperacao(
-    telefone: string,
-    codigo: string,
-  ): Promise<boolean> {
-    const mensagem = `Seu código de recuperação é: *${codigo}*. Válido por ${config.resetTokenExpiresMin} minutos.`;
-
+  async enviarMensagem(telefone: string, mensagem: string): Promise<boolean> {
     if (!config.whatsappApiUrl) {
-      this.logger.log(`[WhatsApp DEV] Para: ${telefone} | Código: ${codigo}`);
+      this.logger.log(`[WhatsApp DEV] Para: ${telefone} | Mensagem:\n${mensagem}`);
       return true;
     }
 
@@ -44,5 +39,13 @@ export class WhatsAppService {
       this.logger.error(`Falha ao enviar WhatsApp para ${telefone}: ${err}`);
       return false;
     }
+  }
+
+  async enviarCodigoRecuperacao(
+    telefone: string,
+    codigo: string,
+  ): Promise<boolean> {
+    const mensagem = `Seu código de recuperação é: *${codigo}*. Válido por ${config.resetTokenExpiresMin} minutos.`;
+    return this.enviarMensagem(telefone, mensagem);
   }
 }

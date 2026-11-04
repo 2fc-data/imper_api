@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
@@ -11,6 +12,10 @@ async function bootstrap() {
   app.use(new TrimMiddleware().use);
 
   app.setGlobalPrefix('api');
+
+  app.useStaticAssets(path.join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
 
   app.enableCors({
     origin: (process.env.CORS_ORIGINS || '')

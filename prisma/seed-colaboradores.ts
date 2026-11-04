@@ -270,10 +270,13 @@ const COLABORADORES: ColaboradorInput[] = [
 async function main() {
   console.log('=== Iniciando cadastro de ' + COLABORADORES.length + ' colaboradores na tabela `users` ===\n');
 
-  // Busca papel COLABORADOR
-  const papelColaborador = await prisma.papelRbac.findUnique({
-    where: { nome: 'COLABORADOR' },
-  });
+  // Busca papéis para atribuição conforme o cargo
+  const [papelColaborador, papelAlmoxarife, papelAtendimento, papelAdministrativo] = await Promise.all([
+    prisma.papelRbac.findUnique({ where: { nome: 'COLABORADOR' } }),
+    prisma.papelRbac.findUnique({ where: { nome: 'ALMOXARIFE' } }),
+    prisma.papelRbac.findUnique({ where: { nome: 'ATENDIMENTO' } }),
+    prisma.papelRbac.findUnique({ where: { nome: 'ADMINISTRATIVO' } }),
+  ]);
   if (!papelColaborador) {
     throw new Error('Perfil COLABORADOR não encontrado. Execute db:seed-rbac antes deste script.');
   }
@@ -340,19 +343,23 @@ async function main() {
       criados++;
     }
 
-    // Vincula papel COLABORADOR
-    await prisma.usuarioPapel.upsert({
-      where: {
-        userId_papelId: {
-          userId: user.id,
-          papelId: papelColaborador.id,
-        },
-      },
-      create: {
+    // Define papel correto pelo cargo
+    let papelAtribuirId = papelColaborador.id;
+    if (c.cargo === 'Almoxarife' && papelAlmoxarife) {
+      papelAtribuirId = papelAlmoxarife.id;
+    } else if (c.cargo === 'Secretária' && papelAtendimento) {
+      papelAtribuirId = papelAtendimento.id;
+    } else if (c.cargo === 'Auxiliar Administrativo' && papelAdministrativo) {
+      papelAtribuirId = papelAdministrativo.id;
+    }
+
+    // Remove papéis antigos deste usuário e vincula o papel correspondente
+    await prisma.usuarioPapel.deleteMany({ where: { userId: user.id } });
+    await prisma.usuarioPapel.create({
+      data: {
         userId: user.id,
-        papelId: papelColaborador.id,
+        papelId: papelAtribuirId,
       },
-      update: {},
     });
 
     console.log(

@@ -19,7 +19,14 @@ const includeResumo = {
     },
   },
   user: { select: { id: true, nome: true } },
-  obra: { select: { id: true, codigo: true, status: true } },
+  obra: {
+    select: {
+      id: true,
+      codigo: true,
+      status: true,
+      dataInicioPrevista: true,
+    },
+  },
   servicoMarketing: { select: { id: true, titulo: true } },
   ficha: { select: { id: true } },
   _count: { select: { atividades: true } },
