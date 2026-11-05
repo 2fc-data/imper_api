@@ -1578,6 +1578,8 @@ model ObraAtividade {
   ordem               Int
   aditivoId           Int? // null = base; set = criado por aditivo
   cancelada           Boolean                 @default(false)
+  dataDisparoWhatsapp DateTime?
+  statusWhatsapp      String?                 @default("PENDENTE") @db.VarChar(30)
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
   obraEtapa           ObraEtapa               @relation(fields: [obraEtapaId], references: [id], onDelete: Cascade)

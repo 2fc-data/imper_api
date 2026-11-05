@@ -23,6 +23,11 @@ describe('PlanejamentoService', () => {
       deleteMany: vi.fn(),
       createMany: vi.fn(),
     },
+    obraAtividade: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
   };
 
   const mockPrisma = {
@@ -49,6 +54,9 @@ describe('PlanejamentoService', () => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    obraAtividade: {
       updateMany: vi.fn(),
     },
     $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) => fn(mockTx)),
@@ -192,6 +200,135 @@ describe('PlanejamentoService', () => {
 
       expect(resultado.catalogos.colaboradores).toHaveLength(1);
       expect(resultado.catalogos.colaboradores[0].nome).toBe('Colaborador Um');
+    });
+  });
+
+  describe('dispararWhatsapp - status por atividade', () => {
+    const fixture = (telefone: string | null) => ({
+      obra: {
+        id: 1,
+        codigo: 'OBR-001',
+        enderecoCompleto: 'Rua X, 100',
+        etapas: [
+          {
+            nome: 'Fundação',
+            atividades: [
+              {
+                id: 'ativ-1',
+                descricao: 'Aplicar impermeabilizante',
+                execucoes: [
+                  {
+                    atribuidoA: { id: 10, nome: 'João', telefone },
+                    tokenAcesso: 'tok-1',
+                    dataPrevisao: '2026-11-10',
+                    separacoes: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      catalogos: {},
+    });
+
+    it('marca as atividades como ENVIADO quando o envio é bem-sucedido', async () => {
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(fixture('5511999999999') as any);
+      mockWhatsApp.enviarMensagem.mockResolvedValue(true);
+
+      const res = await service.dispararWhatsapp(1);
+
+      expect(res.enviosSucesso).toBe(1);
+      expect(mockPrisma.obraAtividade.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['ativ-1'] } },
+        data: { statusWhatsapp: 'ENVIADO' },
+      });
+      expect(mockPrisma.obra.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { statusWhatsapp: 'ENVIADO' },
+      });
+    });
+
+    it('não marca atividades quando o envio falha', async () => {
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(fixture('5511999999999') as any);
+      mockWhatsApp.enviarMensagem.mockResolvedValue(false);
+
+      const res = await service.dispararWhatsapp(1);
+
+      expect(res.enviosSucesso).toBe(0);
+      expect(mockPrisma.obraAtividade.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('não marca atividades quando o colaborador não tem telefone', async () => {
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(fixture(null) as any);
+
+      await service.dispararWhatsapp(1);
+
+      expect(mockWhatsApp.enviarMensagem).not.toHaveBeenCalled();
+      expect(mockPrisma.obraAtividade.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('salvarPlanejamento - statusWhatsapp por atividade', () => {
+    const prepararSalvamento = (dataDisparoWhatsapp: string | null) => {
+      mockPrisma.obra.findUnique.mockResolvedValue({
+        id: 1,
+        codigo: 'OBR-001',
+        statusWhatsapp: 'PENDENTE',
+        etapas: [],
+      });
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue({
+        obra: { id: 1 } as any,
+        catalogos: {} as any,
+      });
+      mockTx.execucaoAtividade.findMany.mockResolvedValue([]);
+      mockTx.execucaoAtividade.create.mockResolvedValue({ id: 'exec-nova' });
+      return service.salvarPlanejamento(
+        1,
+        {
+          dispararAgora: false,
+          atividades: [
+            {
+              atividadeId: 'ativ-100',
+              dataDisparoWhatsapp,
+            },
+          ],
+        },
+        99,
+      );
+    };
+
+    it('reseta o status para PENDENTE quando a data de disparo é alterada', async () => {
+      mockTx.obraAtividade.findUnique.mockResolvedValue({
+        dataDisparoWhatsapp: new Date('2026-11-10T10:00:00.000Z'),
+      });
+
+      await prepararSalvamento('2026-11-20T10:00');
+
+      expect(mockTx.obraAtividade.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ativ-100' },
+          data: expect.objectContaining({
+            statusWhatsapp: 'PENDENTE',
+          }),
+        }),
+      );
+    });
+
+    it('mantém o status atual quando a data de disparo não muda', async () => {
+      const data = new Date('2026-11-10T10:00:00.000Z');
+      mockTx.obraAtividade.findUnique.mockResolvedValue({ dataDisparoWhatsapp: data });
+
+      await prepararSalvamento(data.toISOString());
+
+      expect(mockTx.obraAtividade.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ativ-100' },
+          data: expect.not.objectContaining({
+            statusWhatsapp: expect.anything(),
+          }),
+        }),
+      );
     });
   });
 });

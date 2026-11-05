@@ -19,6 +19,7 @@ export const atividadePlanejamentoSchema = z.object({
   colaboradorId: z.number().int().positive().nullable().optional(),
   colaboradoresIds: z.array(z.number().int().positive()).optional().default([]),
   dataPrevisao: z.string().nullable().optional(),
+  dataDisparoWhatsapp: z.string().nullable().optional(),
   veiculoId: z.number().int().positive().nullable().optional(),
   materiais: z.array(materialItemSchema).default([]),
   epis: z.array(epiItemSchema).default([]),
@@ -27,7 +28,6 @@ export const atividadePlanejamentoSchema = z.object({
 
 export const salvarPlanejamentoSchema = z.object({
   dataInicioPrevista: z.string().nullable().optional(),
-  dataDisparoWhatsapp: z.string().nullable().optional(),
   dispararAgora: z.boolean().optional().default(false),
   atividades: z.array(atividadePlanejamentoSchema),
 });

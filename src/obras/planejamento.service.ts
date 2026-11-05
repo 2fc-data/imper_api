@@ -36,6 +36,10 @@ export class PlanejamentoService {
               where: { cancelada: false },
               orderBy: { ordem: 'asc' },
               include: {
+                verbo: { select: { id: true, nome: true } },
+                objeto: { select: { id: true, nome: true } },
+                local: { select: { id: true, nome: true } },
+                caracteristica: { select: { id: true, nome: true } },
                 materiais: {
                   include: {
                     material: {
@@ -226,15 +230,32 @@ export class PlanejamentoService {
           dataInicioPrevista: dto.dataInicioPrevista
             ? new Date(dto.dataInicioPrevista)
             : null,
-          dataDisparoWhatsapp: dto.dataDisparoWhatsapp
-            ? new Date(dto.dataDisparoWhatsapp)
-            : null,
           statusWhatsapp: dto.dispararAgora ? 'ENVIADO' : (obra.statusWhatsapp ?? 'PENDENTE'),
         },
       });
 
       // 2. Processar cada atividade informada
       for (const ativInput of dto.atividades) {
+        if (ativInput.dataDisparoWhatsapp !== undefined) {
+          const novaData = ativInput.dataDisparoWhatsapp
+            ? new Date(ativInput.dataDisparoWhatsapp)
+            : null;
+          const atual = await tx.obraAtividade.findUnique({
+            where: { id: ativInput.atividadeId },
+            select: { dataDisparoWhatsapp: true },
+          });
+          const mudou =
+            (atual?.dataDisparoWhatsapp?.getTime() ?? null) !== (novaData?.getTime() ?? null);
+          await tx.obraAtividade.update({
+            where: { id: ativInput.atividadeId },
+            data: {
+              dataDisparoWhatsapp: novaData,
+              // Reagendar invalida o envio anterior da atividade
+              ...(mudou ? { statusWhatsapp: 'PENDENTE' } : {}),
+            },
+          });
+        }
+
         // Normaliza a lista de colaboradores selecionados (múltiplos ou único)
         const targetColabIds: number[] = Array.from(
           new Set(
@@ -450,6 +471,7 @@ export class PlanejamentoService {
         veiculo?: { nome: string; placa: string };
         tokenAcesso?: string;
         tarefas: Array<{
+          atividadeId: string;
           descricao: string;
           etapa: string;
           dataPrevisao?: string | null;
@@ -497,6 +519,7 @@ export class PlanejamentoService {
           }
 
           registro.tarefas.push({
+            atividadeId: ativ.id,
             descricao: ativ.descricao,
             etapa: etapa.nome,
             dataPrevisao: exec.dataPrevisao
@@ -512,6 +535,7 @@ export class PlanejamentoService {
 
     const appUrl = process.env.APP_URL || 'http://localhost:5173';
     let enviosSucesso = 0;
+    const atividadesEnviadas = new Set<string>();
 
     for (const [, item] of tarefasPorColab) {
       if (!item.colaborador.telefone) continue;
@@ -546,7 +570,17 @@ export class PlanejamentoService {
         item.colaborador.telefone,
         mensagem,
       );
-      if (enviado) enviosSucesso++;
+      if (enviado) {
+        enviosSucesso++;
+        for (const t of item.tarefas) atividadesEnviadas.add(t.atividadeId);
+      }
+    }
+
+    if (atividadesEnviadas.size > 0) {
+      await this.prisma.obraAtividade.updateMany({
+        where: { id: { in: [...atividadesEnviadas] } },
+        data: { statusWhatsapp: 'ENVIADO' },
+      });
     }
 
     await this.prisma.obra.update({
