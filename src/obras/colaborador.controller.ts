@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import type { ConcluirTarefaColaboradorInput } from './dto/planejamento.dto.js';
 import { concluirTarefaColaboradorSchema } from './dto/planejamento.dto.js';
@@ -29,4 +22,3 @@ export class ColaboradorController {
     return this.planejamentoService.concluirTarefa(id, dto);
   }
 }
-

@@ -10,9 +10,18 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { VeiculosService } from './veiculos.service.js';
+import {
+  type AbastecimentoAtualizarInput,
+  type AbastecimentoCriarInput,
+  VeiculosService,
+} from './veiculos.service.js';
+
+interface RequestWithUser extends Request {
+  user?: { id: number };
+}
 
 @Controller('abastecimentos-veiculos')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +38,10 @@ export class AbastecimentosController {
 
   @Post()
   @Permissions('gerenciar_frota')
-  criar(@Body() dto: any, @Req() req: any) {
+  criar(
+    @Body() dto: AbastecimentoCriarInput & { veiculoId: number },
+    @Req() req: RequestWithUser,
+  ) {
     return this.veiculosService.criarAbastecimento(
       dto.veiculoId,
       dto,
@@ -39,7 +51,7 @@ export class AbastecimentosController {
 
   @Put(':id')
   @Permissions('gerenciar_frota')
-  atualizar(@Param('id') id: string, @Body() dto: any) {
+  atualizar(@Param('id') id: string, @Body() dto: AbastecimentoAtualizarInput) {
     return this.veiculosService.atualizarAbastecimento(Number(id), dto);
   }
 

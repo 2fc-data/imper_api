@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -36,7 +37,7 @@ export class DisponibilidadeService {
   // ---------- PADRÕES ----------
 
   async listarPadroes(userId?: number) {
-    const where: any = {};
+    const where: Prisma.DisponibilidadePadraoWhereInput = {};
     if (userId) where.userId = userId;
     return this.prisma.disponibilidadePadrao.findMany({
       where,
@@ -89,7 +90,10 @@ export class DisponibilidadeService {
     });
   }
 
-  async atualizarPadrao(id: number, data: Record<string, any>) {
+  async atualizarPadrao(
+    id: number,
+    data: Prisma.DisponibilidadePadraoUncheckedUpdateInput,
+  ) {
     const padrao = await this.prisma.disponibilidadePadrao.findUnique({
       where: { id },
     });
@@ -108,7 +112,7 @@ export class DisponibilidadeService {
   // ---------- DATAS ----------
 
   async listarDatas(userId?: number, mes?: number, ano?: number) {
-    const where: any = {};
+    const where: Prisma.DisponibilidadeDataWhereInput = {};
     if (userId) where.userId = userId;
     if (mes && ano) {
       where.data = {
@@ -143,7 +147,10 @@ export class DisponibilidadeService {
     });
   }
 
-  async atualizarData(id: number, data: Record<string, any>) {
+  async atualizarData(
+    id: number,
+    data: Prisma.DisponibilidadeDataUncheckedUpdateInput,
+  ) {
     const registro = await this.prisma.disponibilidadeData.findUnique({
       where: { id },
     });
@@ -193,14 +200,16 @@ export class DisponibilidadeService {
     const ultimoDia = new Date(ano, mes, 0);
 
     // 1. Get recurring patterns
-    const padroesWhere: any = { ativo: true };
+    const padroesWhere: Prisma.DisponibilidadePadraoWhereInput = {
+      ativo: true,
+    };
     if (userId) padroesWhere.userId = userId;
     const padroes = await this.prisma.disponibilidadePadrao.findMany({
       where: padroesWhere,
     });
 
     // 2. Get specific date overrides
-    const datasWhere: any = {
+    const datasWhere: Prisma.DisponibilidadeDataWhereInput = {
       data: { gte: primeiroDia, lte: ultimoDia },
     };
     if (userId) datasWhere.userId = userId;
@@ -209,7 +218,7 @@ export class DisponibilidadeService {
     });
 
     // 3. Get existing agendamentos for this month
-    const agendamentosWhere: any = {
+    const agendamentosWhere: Prisma.AgendamentoWhereInput = {
       tipo: 'VISITA',
       status: { not: 'CANCELADO' },
       dataPrevista: { gte: primeiroDia, lte: ultimoDia },
@@ -220,7 +229,16 @@ export class DisponibilidadeService {
     });
 
     // 4. Generate slots
-    const slots: any[] = [];
+    type Slot = {
+      data: string;
+      diaSemana: string;
+      horaInicio: string;
+      horaFim: string;
+      capacidade: number;
+      ocupados: number;
+      disponivel: boolean;
+    };
+    const slots: Slot[] = [];
     // Enforce minimum 2 business days in advance
     const dataMinima = this.calcularDataMinimaAgendamento();
 

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AtualizarVisitaDto, CriarVisitaDto } from './dto/visitas.dto.js';
@@ -81,7 +82,7 @@ export class VisitasService {
       }
     }
 
-    const data: any = {};
+    const data: Prisma.VisitaTecnicaUpdateInput = {};
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.resultado !== undefined) data.resultado = dto.resultado;
     if (dto.constatacao !== undefined) data.constatacao = dto.constatacao;

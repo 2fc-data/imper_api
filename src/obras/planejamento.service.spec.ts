@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlanejamentoService } from './planejamento.service.js';
 
 describe('PlanejamentoService', () => {
@@ -59,7 +59,9 @@ describe('PlanejamentoService', () => {
     obraAtividade: {
       updateMany: vi.fn(),
     },
-    $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) => fn(mockTx)),
+    $transaction: vi.fn(async (fn: (tx: typeof mockTx) => unknown) =>
+      fn(mockTx),
+    ),
   };
 
   const mockWhatsApp = {
@@ -187,7 +189,12 @@ describe('PlanejamentoService', () => {
             some: {
               papel: {
                 nome: {
-                  in: ['COLABORADOR', 'Colaborador', 'Colaboradores', 'COLABORADORES'],
+                  in: [
+                    'COLABORADOR',
+                    'Colaborador',
+                    'Colaboradores',
+                    'COLABORADORES',
+                  ],
                 },
               },
             },
@@ -233,7 +240,9 @@ describe('PlanejamentoService', () => {
     });
 
     it('marca as atividades como ENVIADO quando o envio é bem-sucedido', async () => {
-      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(fixture('5511999999999') as any);
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(
+        fixture('5511999999999') as any,
+      );
       mockWhatsApp.enviarMensagem.mockResolvedValue(true);
 
       const res = await service.dispararWhatsapp(1);
@@ -250,7 +259,9 @@ describe('PlanejamentoService', () => {
     });
 
     it('não marca atividades quando o envio falha', async () => {
-      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(fixture('5511999999999') as any);
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(
+        fixture('5511999999999') as any,
+      );
       mockWhatsApp.enviarMensagem.mockResolvedValue(false);
 
       const res = await service.dispararWhatsapp(1);
@@ -260,7 +271,9 @@ describe('PlanejamentoService', () => {
     });
 
     it('não marca atividades quando o colaborador não tem telefone', async () => {
-      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(fixture(null) as any);
+      vi.spyOn(service, 'obterPlanejamento').mockResolvedValue(
+        fixture(null) as any,
+      );
 
       await service.dispararWhatsapp(1);
 
@@ -291,6 +304,10 @@ describe('PlanejamentoService', () => {
             {
               atividadeId: 'ativ-100',
               dataDisparoWhatsapp,
+              colaboradoresIds: [],
+              materiais: [],
+              epis: [],
+              equipamentos: [],
             },
           ],
         },
@@ -317,7 +334,9 @@ describe('PlanejamentoService', () => {
 
     it('mantém o status atual quando a data de disparo não muda', async () => {
       const data = new Date('2026-11-10T10:00:00.000Z');
-      mockTx.obraAtividade.findUnique.mockResolvedValue({ dataDisparoWhatsapp: data });
+      mockTx.obraAtividade.findUnique.mockResolvedValue({
+        dataDisparoWhatsapp: data,
+      });
 
       await prepararSalvamento(data.toISOString());
 
@@ -332,4 +351,3 @@ describe('PlanejamentoService', () => {
     });
   });
 });
-

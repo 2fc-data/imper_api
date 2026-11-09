@@ -41,7 +41,7 @@ export class AtendimentoController {
   ) {
     return this.atendimentoService.listar({
       q,
-      status,
+      status: status as StatusAtendimento,
       criadoDe,
       criadoAte,
       atualizadoDe,

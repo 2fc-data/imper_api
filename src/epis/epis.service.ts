@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import {
   type LookupCrud,
   LookupService,
@@ -10,6 +11,14 @@ import {
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+export type EpiCriarInput = Partial<Prisma.EpiUncheckedCreateInput> & {
+  nome: string;
+};
+
+export type EpiAtualizarInput = Partial<
+  Omit<Prisma.EpiUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>
+>;
 
 @Injectable()
 export class EpisService {
@@ -229,7 +238,7 @@ export class EpisService {
     return { codigo: calcularProximoCodigo(existentes, 'EPI-', 3) };
   }
 
-  async criar(data: any) {
+  async criar(data: EpiCriarInput) {
     const payload = { ...data };
     delete payload.codigo;
 
@@ -254,7 +263,7 @@ export class EpisService {
     );
   }
 
-  async atualizar(id: number, data: any) {
+  async atualizar(id: number, data: EpiAtualizarInput) {
     await this.detalhar(id);
 
     const payload = { ...data };

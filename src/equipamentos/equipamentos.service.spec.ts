@@ -53,6 +53,7 @@ describe('EquipamentosService', () => {
       await servico().criar({
         codigo: 'EQP-999',
         descricao: 'betoneira',
+        statusId: 1,
       });
 
       const payload = mockPrisma.equipamento.create.mock.calls[0][0].data;
@@ -63,9 +64,9 @@ describe('EquipamentosService', () => {
     it('mantém a validação de descrição duplicada', async () => {
       mockPrisma.equipamento.findFirst.mockResolvedValue({ id: 2 });
 
-      await expect(servico().criar({ descricao: 'betoneira' })).rejects.toThrow(
-        'Equipamento já cadastrado',
-      );
+      await expect(
+        servico().criar({ descricao: 'betoneira', statusId: 1 }),
+      ).rejects.toThrow('Equipamento já cadastrado');
     });
   });
 

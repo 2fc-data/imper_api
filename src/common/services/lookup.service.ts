@@ -3,17 +3,20 @@ import { AppError } from '../../lib/errors.js';
 import { normalize } from '../../lib/utils.js';
 
 type PrismaModel = {
-  findMany: (args?: any) => Promise<any[]>;
-  findFirst: (args: any) => Promise<any>;
-  create: (args: { data: any }) => Promise<any>;
-  update: (args: { where: { id: number }; data: any }) => Promise<any>;
+  findMany(args?: unknown): Promise<unknown[]>;
+  findFirst(args?: unknown): Promise<unknown>;
+  create(args: unknown): Promise<unknown>;
+  update(args: unknown): Promise<unknown>;
 };
 
+export type LookupInput = { nome: string; [campo: string]: unknown };
+export type LookupAtualizacao = { nome?: string; [campo: string]: unknown };
+
 export interface LookupCrud {
-  listar: () => Promise<any[]>;
-  criar: (data: any) => Promise<any>;
-  atualizar: (id: number, data: any) => Promise<any>;
-  desativar: (id: number) => Promise<any>;
+  listar: () => Promise<unknown[]>;
+  criar: (data: LookupInput) => Promise<unknown>;
+  atualizar: (id: number, data: LookupAtualizacao) => Promise<unknown>;
+  desativar: (id: number) => Promise<unknown>;
 }
 
 @Injectable()
@@ -37,7 +40,7 @@ export class LookupService {
           orderBy: { [orderBy]: 'asc' },
         }),
 
-      criar: async (data: any) => {
+      criar: async (data: LookupInput) => {
         const nomeUpper =
           typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
         const exists = await model.findFirst({
@@ -51,7 +54,7 @@ export class LookupService {
         return model.create({ data: { ...data, nome: nomeUpper } });
       },
 
-      atualizar: async (id: number, data: any) => {
+      atualizar: async (id: number, data: LookupAtualizacao) => {
         if (data.nome) {
           data.nome =
             typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;

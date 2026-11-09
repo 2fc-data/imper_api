@@ -1,12 +1,12 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 import type {
@@ -119,7 +119,12 @@ export class PlanejamentoService {
               some: {
                 papel: {
                   nome: {
-                    in: ['COLABORADOR', 'Colaborador', 'Colaboradores', 'COLABORADORES'],
+                    in: [
+                      'COLABORADOR',
+                      'Colaborador',
+                      'Colaboradores',
+                      'COLABORADORES',
+                    ],
                   },
                 },
               },
@@ -230,7 +235,9 @@ export class PlanejamentoService {
           dataInicioPrevista: dto.dataInicioPrevista
             ? new Date(dto.dataInicioPrevista)
             : null,
-          statusWhatsapp: dto.dispararAgora ? 'ENVIADO' : (obra.statusWhatsapp ?? 'PENDENTE'),
+          statusWhatsapp: dto.dispararAgora
+            ? 'ENVIADO'
+            : (obra.statusWhatsapp ?? 'PENDENTE'),
         },
       });
 
@@ -245,7 +252,8 @@ export class PlanejamentoService {
             select: { dataDisparoWhatsapp: true },
           });
           const mudou =
-            (atual?.dataDisparoWhatsapp?.getTime() ?? null) !== (novaData?.getTime() ?? null);
+            (atual?.dataDisparoWhatsapp?.getTime() ?? null) !==
+            (novaData?.getTime() ?? null);
           await tx.obraAtividade.update({
             where: { id: ativInput.atividadeId },
             data: {
@@ -259,7 +267,7 @@ export class PlanejamentoService {
         // Normaliza a lista de colaboradores selecionados (múltiplos ou único)
         const targetColabIds: number[] = Array.from(
           new Set(
-            (ativInput.colaboradoresIds && ativInput.colaboradoresIds.length > 0)
+            ativInput.colaboradoresIds && ativInput.colaboradoresIds.length > 0
               ? ativInput.colaboradoresIds
               : ativInput.colaboradorId
                 ? [ativInput.colaboradorId]
@@ -338,30 +346,32 @@ export class PlanejamentoService {
                   dataPrevisao: dataPrevisaoDate,
                 },
               });
-            } else if (idsExistentesNaoUsados.length > 0) {
-              const execItem = idsExistentesNaoUsados.shift()!;
-              execId = execItem.id;
-              await tx.execucaoAtividade.update({
-                where: { id: execItem.id },
-                data: {
-                  atribuidoAId: colabId,
-                  veiculoId: ativInput.veiculoId ?? null,
-                  dataPrevisao: dataPrevisaoDate,
-                },
-              });
             } else {
-              const nova = await tx.execucaoAtividade.create({
-                data: {
-                  atividadeId: ativInput.atividadeId,
-                  atribuidoAId: colabId,
-                  veiculoId: ativInput.veiculoId ?? null,
-                  dataPrevisao: dataPrevisaoDate,
-                  criadoPorId: userId,
-                  status: 'PENDENTE',
-                  tokenAcesso: crypto.randomBytes(24).toString('hex'),
-                },
-              });
-              execId = nova.id;
+              const execItem = idsExistentesNaoUsados.shift();
+              if (execItem) {
+                execId = execItem.id;
+                await tx.execucaoAtividade.update({
+                  where: { id: execItem.id },
+                  data: {
+                    atribuidoAId: colabId,
+                    veiculoId: ativInput.veiculoId ?? null,
+                    dataPrevisao: dataPrevisaoDate,
+                  },
+                });
+              } else {
+                const nova = await tx.execucaoAtividade.create({
+                  data: {
+                    atividadeId: ativInput.atividadeId,
+                    atribuidoAId: colabId,
+                    veiculoId: ativInput.veiculoId ?? null,
+                    dataPrevisao: dataPrevisaoDate,
+                    criadoPorId: userId,
+                    status: 'PENDENTE',
+                    tokenAcesso: crypto.randomBytes(24).toString('hex'),
+                  },
+                });
+                execId = nova.id;
+              }
             }
 
             if (i === 0) {
@@ -386,7 +396,10 @@ export class PlanejamentoService {
             },
           });
 
-          if (separacao && separacao.executucaoAtividadeId !== primaryExecucaoId) {
+          if (
+            separacao &&
+            separacao.executucaoAtividadeId !== primaryExecucaoId
+          ) {
             separacao = await tx.separacao.update({
               where: { id: separacao.id },
               data: { executucaoAtividadeId: primaryExecucaoId },
@@ -486,19 +499,25 @@ export class PlanejamentoService {
       for (const ativ of etapa.atividades) {
         // Encontra itens de separação da atividade (seja da execução primária ou qualquer outra)
         const separacaoItens =
-          ativ.execucoes?.find((e: any) => e.separacoes?.length)?.separacoes[0]?.itens ?? [];
+          ativ.execucoes?.find((e) => e.separacoes?.length)?.separacoes[0]
+            ?.itens ?? [];
         const materiais = separacaoItens
-          .filter((i: any) => i.material)
-          .map((i: any) => `${i.material!.nome} (${Number(i.quantidadeNecessaria)} ${i.material!.unidade?.nome ?? 'un'})`);
+          .filter((i) => i.material)
+          .map(
+            (i) =>
+              `${i.material?.nome} (${Number(i.quantidadeNecessaria)} ${i.material?.unidade?.nome ?? 'un'})`,
+          );
         const epis = separacaoItens
-          .filter((i: any) => i.epi)
-          .map((i: any) => `${i.epi!.nome} (Qtd: ${Number(i.quantidadeNecessaria)})`);
+          .filter((i) => i.epi)
+          .map(
+            (i) => `${i.epi?.nome} (Qtd: ${Number(i.quantidadeNecessaria)})`,
+          );
         const equipamentos = separacaoItens
-          .filter((i: any) => i.equipamento)
-          .map((i: any) => `${i.equipamento!.descricao} [${i.equipamento!.codigo}]`);
+          .filter((i) => i.equipamento)
+          .map((i) => `${i.equipamento?.descricao} [${i.equipamento?.codigo}]`);
 
         for (const exec of ativ.execucoes ?? []) {
-          if (!exec || !exec.atribuidoA) continue;
+          if (!exec?.atribuidoA) continue;
 
           const colabId = exec.atribuidoA.id;
           let registro = tarefasPorColab.get(colabId);
@@ -545,9 +564,13 @@ export class PlanejamentoService {
           (t, idx) =>
             `*${idx + 1}. ${t.etapa} - ${t.descricao}*` +
             (t.dataPrevisao ? `\n   📅 Data prevista: ${t.dataPrevisao}` : '') +
-            (t.materiais.length ? `\n   📦 Materiais: ${t.materiais.join(', ')}` : '') +
+            (t.materiais.length
+              ? `\n   📦 Materiais: ${t.materiais.join(', ')}`
+              : '') +
             (t.epis.length ? `\n   🦺 EPIs: ${t.epis.join(', ')}` : '') +
-            (t.equipamentos.length ? `\n   🛠️ Equipamentos: ${t.equipamentos.join(', ')}` : ''),
+            (t.equipamentos.length
+              ? `\n   🛠️ Equipamentos: ${t.equipamentos.join(', ')}`
+              : ''),
         )
         .join('\n\n');
 
@@ -657,9 +680,16 @@ export class PlanejamentoService {
                             unidade: { select: { nome: true } },
                           },
                         },
-                        epi: { select: { id: true, nome: true, numeroCa: true } },
+                        epi: {
+                          select: { id: true, nome: true, numeroCa: true },
+                        },
                         equipamento: {
-                          select: { id: true, descricao: true, codigo: true, modelo: true },
+                          select: {
+                            id: true,
+                            descricao: true,
+                            codigo: true,
+                            modelo: true,
+                          },
                         },
                       },
                     },
@@ -682,7 +712,12 @@ export class PlanejamentoService {
                 },
                 epi: { select: { id: true, nome: true, numeroCa: true } },
                 equipamento: {
-                  select: { id: true, descricao: true, codigo: true, modelo: true },
+                  select: {
+                    id: true,
+                    descricao: true,
+                    codigo: true,
+                    modelo: true,
+                  },
                 },
               },
             },
@@ -708,7 +743,8 @@ export class PlanejamentoService {
       tarefas: todasExecucoes.map((ex) => {
         const itens =
           ex.separacoes?.[0]?.itens ??
-          (ex.atividade as any)?.execucoes?.find((e: any) => e.separacoes?.length)?.separacoes[0]?.itens ??
+          ex.atividade.execucoes.find((e) => e.separacoes.length)?.separacoes[0]
+            ?.itens ??
           [];
         return {
           id: ex.id,
@@ -722,13 +758,20 @@ export class PlanejamentoService {
           observacaoConclusao: ex.observacaoConclusao,
           materiais: itens
             .filter((i) => i.material)
-            .map((i) => `${i.material!.nome} (${Number(i.quantidadeNecessaria)} ${i.material!.unidade?.nome ?? 'un'})`),
+            .map(
+              (i) =>
+                `${i.material?.nome} (${Number(i.quantidadeNecessaria)} ${i.material?.unidade?.nome ?? 'un'})`,
+            ),
           epis: itens
             .filter((i) => i.epi)
-            .map((i) => `${i.epi!.nome} (Qtd: ${Number(i.quantidadeNecessaria)})`),
+            .map(
+              (i) => `${i.epi?.nome} (Qtd: ${Number(i.quantidadeNecessaria)})`,
+            ),
           equipamentos: itens
             .filter((i) => i.equipamento)
-            .map((i) => `${i.equipamento!.descricao} [${i.equipamento!.codigo}]`),
+            .map(
+              (i) => `${i.equipamento?.descricao} [${i.equipamento?.codigo}]`,
+            ),
         };
       }),
     };
@@ -767,7 +810,7 @@ export class PlanejamentoService {
         await fs.writeFile(filePath, buffer);
 
         fotoUrl = `/uploads/conclusoes/${fileName}`;
-      } catch (err) {
+      } catch {
         // Falha no salvamento da imagem não impede a conclusão da tarefa
       }
     }

@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { StatusOrcamento } from '../schemas/enums.js';
 import type { CriarOrcamentoDto } from './dto/orcamentos.dto.js';
 import {
   episValor,
@@ -58,14 +59,14 @@ export class OrcamentosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listar(params?: {
-    status?: string;
+    status?: StatusOrcamento;
     q?: string;
     atendimentoId?: number;
   }) {
     const where: Prisma.OrcamentoWhereInput = {};
 
     if (params?.status) {
-      where.status = params.status as any;
+      where.status = params.status;
     }
 
     if (params?.atendimentoId) {

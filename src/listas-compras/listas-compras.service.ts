@@ -73,7 +73,13 @@ export class ListasComprasService {
       tipo === 'DESPESAS_EXTRAS'
         ? (tipoDespesaId ?? input.tipoDespesaId ?? null)
         : null;
-    const existente = await this.obter(tipo, setor, mes, ano, tDespesaId ?? undefined);
+    const existente = await this.obter(
+      tipo,
+      setor,
+      mes,
+      ano,
+      tDespesaId ?? undefined,
+    );
     if (
       existente &&
       (TRAVADOS as readonly string[]).includes(existente.status)

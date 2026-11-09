@@ -11,7 +11,11 @@ import {
 } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { EquipamentosService } from './equipamentos.service.js';
+import {
+  type EquipamentoAtualizarInput,
+  type EquipamentoCriarInput,
+  EquipamentosService,
+} from './equipamentos.service.js';
 
 @Controller('equipamentos')
 @UseGuards(JwtAuthGuard)
@@ -44,12 +48,22 @@ export class EquipamentosController {
   }
   @Post('lookups/categorias')
   @Permissions('gerenciar_catalogo')
-  async criarCategoria(@Body() dto: any) {
+  async criarCategoria(
+    @Body() dto: { nome: string; descricao?: string; ordem?: number },
+  ) {
     return this.equipamentosService.criarCategoria(dto);
   }
   @Put('lookups/categorias/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarCategoria(@Param('id') id: string, @Body() dto: any) {
+  async atualizarCategoria(
+    @Param('id') id: string,
+    @Body() dto: {
+      nome?: string;
+      descricao?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
     return this.equipamentosService.atualizarCategoria(Number(id), dto);
   }
   @Delete('lookups/categorias/:id')
@@ -64,12 +78,27 @@ export class EquipamentosController {
   }
   @Post('lookups/subcategorias')
   @Permissions('gerenciar_catalogo')
-  async criarSubcategoria(@Body() dto: any) {
+  async criarSubcategoria(
+    @Body() dto: {
+      nome: string;
+      categoriaId: number;
+      descricao?: string;
+      ordem?: number;
+    },
+  ) {
     return this.equipamentosService.criarSubcategoria(dto);
   }
   @Put('lookups/subcategorias/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarSubcategoria(@Param('id') id: string, @Body() dto: any) {
+  async atualizarSubcategoria(
+    @Param('id') id: string,
+    @Body() dto: {
+      nome?: string;
+      descricao?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
     return this.equipamentosService.atualizarSubcategoria(Number(id), dto);
   }
   @Delete('lookups/subcategorias/:id')
@@ -84,12 +113,15 @@ export class EquipamentosController {
   }
   @Post('lookups/marcas')
   @Permissions('gerenciar_catalogo')
-  async criarMarca(@Body() dto: any) {
+  async criarMarca(@Body() dto: { nome: string; ordem?: number }) {
     return this.equipamentosService.criarMarca(dto);
   }
   @Put('lookups/marcas/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarMarca(@Param('id') id: string, @Body() dto: any) {
+  async atualizarMarca(
+    @Param('id') id: string,
+    @Body() dto: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.equipamentosService.atualizarMarca(Number(id), dto);
   }
   @Delete('lookups/marcas/:id')
@@ -104,12 +136,28 @@ export class EquipamentosController {
   }
   @Post('lookups/fornecedores')
   @Permissions('gerenciar_catalogo')
-  async criarFornecedor(@Body() dto: any) {
+  async criarFornecedor(
+    @Body() dto: {
+      nome: string;
+      cnpj?: string;
+      telefone?: string;
+      email?: string;
+    },
+  ) {
     return this.equipamentosService.criarFornecedor(dto);
   }
   @Put('lookups/fornecedores/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarFornecedor(@Param('id') id: string, @Body() dto: any) {
+  async atualizarFornecedor(
+    @Param('id') id: string,
+    @Body() dto: {
+      nome?: string;
+      cnpj?: string;
+      telefone?: string;
+      email?: string;
+      ativo?: boolean;
+    },
+  ) {
     return this.equipamentosService.atualizarFornecedor(Number(id), dto);
   }
   @Delete('lookups/fornecedores/:id')
@@ -124,12 +172,22 @@ export class EquipamentosController {
   }
   @Post('lookups/localizacoes')
   @Permissions('gerenciar_catalogo')
-  async criarLocalizacao(@Body() dto: any) {
+  async criarLocalizacao(
+    @Body() dto: { nome: string; descricao?: string; ordem?: number },
+  ) {
     return this.equipamentosService.criarLocalizacao(dto);
   }
   @Put('lookups/localizacoes/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarLocalizacao(@Param('id') id: string, @Body() dto: any) {
+  async atualizarLocalizacao(
+    @Param('id') id: string,
+    @Body() dto: {
+      nome?: string;
+      descricao?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
     return this.equipamentosService.atualizarLocalizacao(Number(id), dto);
   }
   @Delete('lookups/localizacoes/:id')
@@ -144,12 +202,15 @@ export class EquipamentosController {
   }
   @Post('lookups/status')
   @Permissions('gerenciar_catalogo')
-  async criarStatus(@Body() dto: any) {
+  async criarStatus(@Body() dto: { nome: string; ordem?: number }) {
     return this.equipamentosService.criarStatus(dto);
   }
   @Put('lookups/status/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarStatus(@Param('id') id: string, @Body() dto: any) {
+  async atualizarStatus(
+    @Param('id') id: string,
+    @Body() dto: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.equipamentosService.atualizarStatus(Number(id), dto);
   }
   @Delete('lookups/status/:id')
@@ -164,12 +225,15 @@ export class EquipamentosController {
   }
   @Post('lookups/estados-conservacao')
   @Permissions('gerenciar_catalogo')
-  async criarEstadoConservacao(@Body() dto: any) {
+  async criarEstadoConservacao(@Body() dto: { nome: string; ordem?: number }) {
     return this.equipamentosService.criarEstadoConservacao(dto);
   }
   @Put('lookups/estados-conservacao/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarEstadoConservacao(@Param('id') id: string, @Body() dto: any) {
+  async atualizarEstadoConservacao(
+    @Param('id') id: string,
+    @Body() dto: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.equipamentosService.atualizarEstadoConservacao(Number(id), dto);
   }
   @Delete('lookups/estados-conservacao/:id')
@@ -184,12 +248,15 @@ export class EquipamentosController {
   }
   @Post('lookups/tipos-manutencao')
   @Permissions('gerenciar_catalogo')
-  async criarTipoManutencao(@Body() dto: any) {
+  async criarTipoManutencao(@Body() dto: { nome: string; ordem?: number }) {
     return this.equipamentosService.criarTipoManutencao(dto);
   }
   @Put('lookups/tipos-manutencao/:id')
   @Permissions('gerenciar_catalogo')
-  async atualizarTipoManutencao(@Param('id') id: string, @Body() dto: any) {
+  async atualizarTipoManutencao(
+    @Param('id') id: string,
+    @Body() dto: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.equipamentosService.atualizarTipoManutencao(Number(id), dto);
   }
   @Delete('lookups/tipos-manutencao/:id')
@@ -238,13 +305,16 @@ export class EquipamentosController {
 
   @Post()
   @Permissions('gerenciar_equipamentos')
-  async criar(@Body() dto: any) {
+  async criar(@Body() dto: EquipamentoCriarInput) {
     return this.equipamentosService.criar(dto);
   }
 
   @Put(':id')
   @Permissions('gerenciar_equipamentos')
-  async atualizar(@Param('id') id: string, @Body() dto: any) {
+  async atualizar(
+    @Param('id') id: string,
+    @Body() dto: EquipamentoAtualizarInput,
+  ) {
     return this.equipamentosService.atualizar(Number(id), dto);
   }
 

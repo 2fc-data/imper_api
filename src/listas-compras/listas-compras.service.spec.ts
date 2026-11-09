@@ -1,5 +1,9 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import type { TipoListaCompra } from '@prisma/client';
 import { ListasComprasService } from './listas-compras.service.js';
+
+// Valor legado aceito pelo service (normalizado para DESPESAS_EXTRAS no controller)
+const SUPERMERCADO = 'SUPERMERCADO' as unknown as TipoListaCompra;
 
 const mockPrisma = {
   $transaction: vi.fn(),
@@ -37,7 +41,7 @@ beforeEach(() => {
 describe('ListasComprasService — obter', () => {
   it('devolve null quando não há lista para o mês', async () => {
     mockPrisma.listaCompra.findFirst.mockResolvedValue(null);
-    const r = await servico().obter('SUPERMERCADO', 'LOJA', 3, 2026);
+    const r = await servico().obter(SUPERMERCADO, 'LOJA', 3, 2026);
     expect(r).toBeNull();
     expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledWith({
       where: {
@@ -54,13 +58,16 @@ describe('ListasComprasService — obter', () => {
 describe('ListasComprasService — salvarItens', () => {
   it('cria lista ABERTA com itens quando não existe', async () => {
     mockPrisma.listaCompra.findFirst.mockResolvedValueOnce(null);
-    mockPrisma.listaCompra.findUnique.mockResolvedValueOnce({ id: 1, status: 'ABERTA' });
+    mockPrisma.listaCompra.findUnique.mockResolvedValueOnce({
+      id: 1,
+      status: 'ABERTA',
+    });
     mockPrisma.material.findFirst.mockResolvedValue({ id: 7 });
     mockPrisma.listaCompra.create.mockResolvedValue({ id: 1 });
     mockPrisma.listaCompraItem.createMany.mockResolvedValue({ count: 1 });
 
     const r = await servico().salvarItens(
-      'SUPERMERCADO',
+      SUPERMERCADO,
       'LOJA',
       3,
       2026,
@@ -98,7 +105,7 @@ describe('ListasComprasService — salvarItens', () => {
 
     await expect(
       servico().salvarItens(
-        'SUPERMERCADO',
+        SUPERMERCADO,
         'LOJA',
         3,
         2026,

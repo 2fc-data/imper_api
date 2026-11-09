@@ -33,7 +33,9 @@ export const salvarPlanejamentoSchema = z.object({
 });
 
 export type SalvarPlanejamentoInput = z.infer<typeof salvarPlanejamentoSchema>;
-export type AtividadePlanejamentoInput = z.infer<typeof atividadePlanejamentoSchema>;
+export type AtividadePlanejamentoInput = z.infer<
+  typeof atividadePlanejamentoSchema
+>;
 
 export const concluirTarefaColaboradorSchema = z.object({
   token: z.string().min(1),
@@ -42,5 +44,6 @@ export const concluirTarefaColaboradorSchema = z.object({
   observacao: z.string().max(1000).optional(),
 });
 
-export type ConcluirTarefaColaboradorInput = z.infer<typeof concluirTarefaColaboradorSchema>;
-
+export type ConcluirTarefaColaboradorInput = z.infer<
+  typeof concluirTarefaColaboradorSchema
+>;

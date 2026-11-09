@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { config } from '../config.js';
 import { EmailModule } from '../email/email.module.js';
@@ -18,8 +18,10 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: config.jwtSecret,
-      signOptions: { expiresIn: config.jwtExpires },
-    } as any),
+      signOptions: {
+        expiresIn: config.jwtExpires as JwtSignOptions['expiresIn'],
+      },
+    }),
     EmailModule,
     PrismaModule,
   ],

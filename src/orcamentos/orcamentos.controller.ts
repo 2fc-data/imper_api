@@ -14,9 +14,14 @@ import type { Request } from 'express';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+import type { StatusOrcamento } from '../schemas/enums.js';
 import type { CriarOrcamentoDto, RecusarDto } from './dto/orcamentos.dto.js';
 import { criarOrcamentoSchema, recusarSchema } from './dto/orcamentos.dto.js';
 import { OrcamentosService } from './orcamentos.service.js';
+
+interface RequestWithUser extends Request {
+  user: { id: number };
+}
 
 @Controller('orcamentos')
 @UseGuards(JwtAuthGuard)
@@ -25,7 +30,7 @@ export class OrcamentosController {
 
   @Get()
   async listar(
-    @Query('status') status?: string,
+    @Query('status') status?: StatusOrcamento,
     @Query('q') q?: string,
     @Query('atendimentoId') atendimentoId?: string,
   ) {
@@ -47,9 +52,9 @@ export class OrcamentosController {
   @Permissions('ver_financeiro')
   async criar(
     @Body(new ZodValidationPipe(criarOrcamentoSchema)) dto: CriarOrcamentoDto,
-    @Req() req: Request,
+    @Req() req: RequestWithUser,
   ) {
-    return this.orcamentosService.criar(dto, (req as any).user.id);
+    return this.orcamentosService.criar(dto, req.user.id);
   }
 
   @Patch(':id')
@@ -75,8 +80,8 @@ export class OrcamentosController {
 
   @Post(':id/aprovar')
   @Permissions('aprovar_orcamento')
-  async aprovar(@Param('id') id: string, @Req() req: Request) {
-    return this.orcamentosService.aprovar(Number(id), (req as any).user.id);
+  async aprovar(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.orcamentosService.aprovar(Number(id), req.user.id);
   }
 
   @Post(':id/recusar')

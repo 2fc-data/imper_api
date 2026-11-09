@@ -1,13 +1,35 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { StatusManutencao } from '@prisma/client';
+import type { Prisma, StatusManutencao } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+export type ManutencaoCriarInput = {
+  equipamentoId: number;
+  tipoId: number;
+  data: string | number;
+  descricao: string;
+  custo?: number | string | null;
+  responsavelManutencaoId?: number | null;
+  proximaManutencao?: string | number | null;
+  status?: StatusManutencao;
+};
+
+export type ManutencaoAtualizarInput = {
+  equipamentoId?: number;
+  tipoId?: number;
+  data?: string | number;
+  descricao?: string;
+  custo?: number | string | null;
+  responsavelManutencaoId?: number | null;
+  proximaManutencao?: string | number | null;
+  status?: StatusManutencao;
+};
 
 @Injectable()
 export class ManutencoesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listar(params?: { equipamentoId?: number; status?: StatusManutencao }) {
-    const where: Record<string, unknown> = {};
+    const where: Prisma.ManutencaoWhereInput = {};
     if (params?.equipamentoId) where.equipamentoId = params.equipamentoId;
     if (params?.status) where.status = params.status;
 
@@ -83,7 +105,7 @@ export class ManutencoesService {
     return item;
   }
 
-  async criar(data: any) {
+  async criar(data: ManutencaoCriarInput) {
     return this.prisma.manutencao.create({
       data: {
         equipamentoId: data.equipamentoId,
@@ -117,7 +139,7 @@ export class ManutencoesService {
     });
   }
 
-  async atualizar(id: number, data: any) {
+  async atualizar(id: number, data: ManutencaoAtualizarInput) {
     await this.detalhar(id);
 
     return this.prisma.manutencao.update({

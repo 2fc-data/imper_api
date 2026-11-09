@@ -461,10 +461,22 @@ export class MateriaisService {
   async listarCategorias() {
     return this.categorias.listar();
   }
-  async criarCategoria(data: any) {
+  async criarCategoria(data: {
+    nome: string;
+    descricao?: string;
+    ordem?: number;
+  }) {
     return this.categorias.criar(data);
   }
-  async atualizarCategoria(id: number, data: any) {
+  async atualizarCategoria(
+    id: number,
+    data: {
+      nome?: string;
+      descricao?: string;
+      ativo?: boolean;
+      ordem?: number;
+    },
+  ) {
     return this.categorias.atualizar(id, data);
   }
   async desativarCategoria(id: number) {
@@ -478,10 +490,23 @@ export class MateriaisService {
       orderBy: { nome: 'asc' },
     });
   }
-  async criarSubcategoria(data: any) {
+  async criarSubcategoria(data: {
+    categoriaId: number;
+    nome: string;
+    descricao?: string;
+    ordem?: number;
+  }) {
     return this.subcategorias.criar(data);
   }
-  async atualizarSubcategoria(id: number, data: any) {
+  async atualizarSubcategoria(
+    id: number,
+    data: {
+      nome?: string;
+      descricao?: string;
+      ativo?: boolean;
+      ordem?: number;
+    },
+  ) {
     return this.subcategorias.atualizar(id, data);
   }
   async desativarSubcategoria(id: number) {
@@ -491,10 +516,10 @@ export class MateriaisService {
   async listarMarcas() {
     return this.marcas.listar();
   }
-  async criarMarca(data: any) {
+  async criarMarca(data: { nome: string }) {
     return this.marcas.criar(data);
   }
-  async atualizarMarca(id: number, data: any) {
+  async atualizarMarca(id: number, data: { nome?: string; ativo?: boolean }) {
     return this.marcas.atualizar(id, data);
   }
   async desativarMarca(id: number) {
@@ -504,10 +529,10 @@ export class MateriaisService {
   async listarCores() {
     return this.cores.listar();
   }
-  async criarCor(data: any) {
+  async criarCor(data: { nome: string }) {
     return this.cores.criar(data);
   }
-  async atualizarCor(id: number, data: any) {
+  async atualizarCor(id: number, data: { nome?: string; ativo?: boolean }) {
     return this.cores.atualizar(id, data);
   }
   async desativarCor(id: number) {

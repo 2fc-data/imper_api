@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -16,7 +17,7 @@ export class ObrasService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listar(query: ListarObrasQueryInput) {
-    const where: any = {};
+    const where: Prisma.ObraWhereInput = {};
     if (query.status) where.status = query.status;
     if (query.clienteId) where.userId = query.clienteId;
     if (query.busca) {

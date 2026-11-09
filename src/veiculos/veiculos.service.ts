@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { CombustivelVeiculo, Prisma } from '@prisma/client';
 import {
   calcularProximoCodigo,
   criarComCodigoSequencial,
@@ -6,6 +7,77 @@ import {
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+type VeiculoLookupsInput = {
+  tipoId?: number;
+  statusId?: number;
+  marcaId?: number;
+  corId?: number;
+  fabricanteId?: number;
+  responsavelId?: number;
+};
+
+export type VeiculoCriarInput = VeiculoLookupsInput & {
+  nome: string;
+  tipoId: number;
+  statusId: number;
+  codigo?: string;
+  placa?: string;
+  modelo?: string;
+  ano?: number;
+  combustivel?: CombustivelVeiculo;
+  odometroAtual?: number | string;
+  observacoes?: string;
+};
+
+export type VeiculoAtualizarInput = VeiculoLookupsInput & {
+  codigo?: string;
+  nome?: string;
+  placa?: string;
+  modelo?: string;
+  ano?: number;
+  combustivel?: CombustivelVeiculo;
+  odometroAtual?: number | string;
+  observacoes?: string;
+};
+
+export type RegistroKmInput = {
+  odometro: number | string;
+  data?: string | number;
+  observacao?: string | null;
+  colaboradorId?: number | null;
+};
+
+export type AbastecimentoCriarInput = {
+  litros: number | string;
+  valorTotal: number | string;
+  data?: string | number;
+  motoristaId?: number | string;
+  odometro?: number | string;
+  fornecedorId?: number | null;
+};
+
+export type AbastecimentoAtualizarInput = {
+  litros?: number | string;
+  valorTotal?: number | string;
+  data?: string | number;
+  motoristaId?: number | string | null;
+  odometro?: number | string;
+  fornecedorId?: number | null;
+};
+
+type VeiculoBasico = {
+  id: number;
+  codigo: string;
+  nome: string;
+  placa: string;
+};
+
+type VeiculoSemKm = VeiculoBasico & {
+  motivo?: string;
+  ultimoRegistro?: Date;
+  diasSemRegistro?: number;
+};
 
 const ABASTECIMENTO_INCLUDE = {
   veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
@@ -19,7 +91,7 @@ export class VeiculosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listar(params?: { q?: string; statusId?: number; tipoId?: number }) {
-    const where: Record<string, unknown> = { ativo: true };
+    const where: Prisma.VeiculoWhereInput = { ativo: true };
     if (params?.q) {
       where.OR = [
         { codigo: { contains: params.q } },
@@ -129,7 +201,7 @@ export class VeiculosService {
     return { codigo: calcularProximoCodigo(existentes, 'VCL-', 2) };
   }
 
-  async criar(data: any) {
+  async criar(data: VeiculoCriarInput) {
     const payload = { ...data };
     delete payload.codigo;
 
@@ -179,7 +251,7 @@ export class VeiculosService {
     );
   }
 
-  async atualizar(id: number, data: any) {
+  async atualizar(id: number, data: VeiculoAtualizarInput) {
     await this.detalhar(id);
 
     const payload = { ...data };
@@ -255,7 +327,11 @@ export class VeiculosService {
     });
   }
 
-  async registrarKm(veiculoId: number, data: any, registradoPorId?: number) {
+  async registrarKm(
+    veiculoId: number,
+    data: RegistroKmInput,
+    registradoPorId?: number,
+  ) {
     const veiculo = await this.prisma.veiculo.findUnique({
       where: { id: veiculoId },
     });
@@ -310,7 +386,7 @@ export class VeiculosService {
   }
 
   async listarRegistrosKm(veiculoId: number, mes?: number, ano?: number) {
-    const where: Record<string, unknown> = { veiculoId };
+    const where: Prisma.RegistroKmVeiculoWhereInput = { veiculoId };
     if (mes && ano) {
       const inicio = new Date(ano, mes - 1, 1);
       const fim = new Date(ano, mes, 0);
@@ -326,7 +402,7 @@ export class VeiculosService {
     });
   }
 
-  async atualizarRegistroKm(id: number, data: any) {
+  async atualizarRegistroKm(id: number, data: RegistroKmInput) {
     const registro = await this.prisma.registroKmVeiculo.findUnique({
       where: { id },
     });
@@ -466,8 +542,8 @@ export class VeiculosService {
     return ontem;
   }
 
-  private serializarAbastecimento<T extends Record<string, any>>(a: T): T {
-    const out: Record<string, any> = { ...a };
+  private serializarAbastecimento<T extends Record<string, unknown>>(a: T): T {
+    const out: Record<string, unknown> = { ...a };
     for (const campo of [
       'odometro',
       'litros',
@@ -483,7 +559,7 @@ export class VeiculosService {
 
   async criarAbastecimento(
     veiculoId: number,
-    data: any,
+    data: AbastecimentoCriarInput,
     registradoPorId?: number,
   ) {
     const veiculo = await this.prisma.veiculo.findUnique({
@@ -551,7 +627,7 @@ export class VeiculosService {
   }
 
   async listarAbastecimentos(veiculoId?: number) {
-    const where: Record<string, unknown> = {};
+    const where: Prisma.AbastecimentoVeiculoWhereInput = {};
     if (veiculoId) where.veiculoId = veiculoId;
     const abastecimentos = await this.prisma.abastecimentoVeiculo.findMany({
       where,
@@ -574,7 +650,7 @@ export class VeiculosService {
     }
   }
 
-  async atualizarAbastecimento(id: number, data: any) {
+  async atualizarAbastecimento(id: number, data: AbastecimentoAtualizarInput) {
     const abastecimento = await this.prisma.abastecimentoVeiculo.findUnique({
       where: { id },
     });
@@ -697,11 +773,11 @@ export class VeiculosService {
   }
 
   private async calcularVeiculosSemKm(
-    veiculos: any[],
+    veiculos: VeiculoBasico[],
     _inicio: Date,
     _fim: Date,
   ) {
-    const semKm: any[] = [];
+    const semKm: VeiculoSemKm[] = [];
     for (const veiculo of veiculos) {
       const ultimoKm = await this.prisma.registroKmVeiculo.findFirst({
         where: { veiculoId: veiculo.id },
@@ -737,7 +813,7 @@ export class VeiculosService {
     return dias;
   }
 
-  private async validarLookups(data: any) {
+  private async validarLookups(data: VeiculoLookupsInput) {
     if (data.tipoId !== undefined) {
       const tipo = await this.prisma.tipoVeiculo.findFirst({
         where: { id: data.tipoId, ativo: true },

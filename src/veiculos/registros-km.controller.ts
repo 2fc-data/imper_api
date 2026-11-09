@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { VeiculosService } from './veiculos.service.js';
+import { type RegistroKmInput, VeiculosService } from './veiculos.service.js';
 
 @Controller('registros-km')
 @UseGuards(JwtAuthGuard)
@@ -17,7 +17,7 @@ export class RegistrosKmController {
 
   @Put(':id')
   @Permissions('registrar_km_frota', 'gerenciar_frota')
-  atualizar(@Param('id') id: string, @Body() dto: any) {
+  atualizar(@Param('id') id: string, @Body() dto: RegistroKmInput) {
     return this.veiculosService.atualizarRegistroKm(Number(id), dto);
   }
 

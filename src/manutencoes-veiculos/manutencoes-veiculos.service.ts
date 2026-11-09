@@ -1,13 +1,39 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { StatusManutencao } from '@prisma/client';
+import type { Prisma, StatusManutencao } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+export type ManutencaoVeiculoCriarInput = {
+  veiculoId: number;
+  tipoId: number;
+  data: string | number;
+  descricao: string;
+  custoPecas?: number | string | null;
+  custoMaoDeObra?: number | string | null;
+  local?: string | null;
+  proximaManutencao?: string | number | null;
+  status?: StatusManutencao;
+  responsavelManutencaoId?: number | null;
+};
+
+export type ManutencaoVeiculoAtualizarInput = {
+  veiculoId?: number;
+  tipoId?: number;
+  data?: string | number;
+  descricao?: string;
+  custoPecas?: number | string | null;
+  custoMaoDeObra?: number | string | null;
+  local?: string | null;
+  proximaManutencao?: string | number | null;
+  status?: StatusManutencao;
+  responsavelManutencaoId?: number | null;
+};
 
 @Injectable()
 export class ManutencoesVeiculosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listar(params?: { veiculoId?: number; status?: StatusManutencao }) {
-    const where: Record<string, unknown> = {};
+    const where: Prisma.ManutencaoVeiculoWhereInput = {};
     if (params?.veiculoId) where.veiculoId = params.veiculoId;
     if (params?.status) where.status = params.status;
 
@@ -66,7 +92,7 @@ export class ManutencoesVeiculosService {
     return item;
   }
 
-  async criar(data: any) {
+  async criar(data: ManutencaoVeiculoCriarInput) {
     const custoPecas = data.custoPecas != null ? Number(data.custoPecas) : 0;
     const custoMaoDeObra =
       data.custoMaoDeObra != null ? Number(data.custoMaoDeObra) : 0;
@@ -98,7 +124,7 @@ export class ManutencoesVeiculosService {
     });
   }
 
-  async atualizar(id: number, data: any) {
+  async atualizar(id: number, data: ManutencaoVeiculoAtualizarInput) {
     await this.detalhar(id);
 
     const custoPecas =

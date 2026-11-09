@@ -12,6 +12,10 @@ import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ChecklistService } from './checklist.service.js';
 
+interface RequestWithUser extends Request {
+  user: { id: number };
+}
+
 @Controller('checklist')
 @UseGuards(JwtAuthGuard)
 export class ChecklistController {
@@ -26,8 +30,8 @@ export class ChecklistController {
 
   @Put(':id/concluir')
   @Permissions('concluir_execucao')
-  async concluir(@Param('id') id: string, @Req() req: Request) {
-    return this.service.concluir(id, (req as any).user.id);
+  async concluir(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.service.concluir(id, req.user.id);
   }
 
   @Put(':id/bloquear')

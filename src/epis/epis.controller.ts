@@ -11,7 +11,11 @@ import {
 } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { EpisService } from './epis.service.js';
+import {
+  type EpiAtualizarInput,
+  type EpiCriarInput,
+  EpisService,
+} from './epis.service.js';
 
 @Controller('epis')
 @UseGuards(JwtAuthGuard)
@@ -241,13 +245,13 @@ export class EpisController {
 
   @Post()
   @Permissions('gerenciar_epis')
-  async criar(@Body() dto: any) {
+  async criar(@Body() dto: EpiCriarInput) {
     return this.episService.criar(dto);
   }
 
   @Put(':id')
   @Permissions('gerenciar_epis')
-  async atualizar(@Param('id') id: string, @Body() dto: any) {
+  async atualizar(@Param('id') id: string, @Body() dto: EpiAtualizarInput) {
     return this.episService.atualizar(Number(id), dto);
   }
 

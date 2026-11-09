@@ -12,7 +12,11 @@ import {
 import type { StatusManutencao } from '@prisma/client';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { ManutencoesVeiculosService } from './manutencoes-veiculos.service.js';
+import {
+  type ManutencaoVeiculoAtualizarInput,
+  type ManutencaoVeiculoCriarInput,
+  ManutencoesVeiculosService,
+} from './manutencoes-veiculos.service.js';
 
 @Controller('manutencoes-veiculos')
 @UseGuards(JwtAuthGuard)
@@ -45,13 +49,16 @@ export class ManutencoesVeiculosController {
 
   @Post()
   @Permissions('gerenciar_frota')
-  criar(@Body() dto: any) {
+  criar(@Body() dto: ManutencaoVeiculoCriarInput) {
     return this.service.criar(dto);
   }
 
   @Put(':id')
   @Permissions('gerenciar_frota')
-  atualizar(@Param('id') id: string, @Body() dto: any) {
+  atualizar(
+    @Param('id') id: string,
+    @Body() dto: ManutencaoVeiculoAtualizarInput,
+  ) {
     return this.service.atualizar(Number(id), dto);
   }
 

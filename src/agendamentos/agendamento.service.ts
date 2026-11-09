@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { assertAtendimentoAberto } from '../atendimentos/cascata.js';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -70,16 +71,17 @@ export class AgendamentoService {
     dataDe?: string;
     dataAte?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.AgendamentoWhereInput = {};
 
     if (params?.status) where.status = params.status;
     if (params?.tipo) where.tipo = params.tipo;
     if (params?.userId) where.userId = Number(params.userId);
 
     if (params?.dataDe || params?.dataAte) {
-      where.dataPrevista = {};
-      if (params.dataDe) where.dataPrevista.gte = new Date(params.dataDe);
-      if (params.dataAte) where.dataPrevista.lte = new Date(params.dataAte);
+      const intervalo: Prisma.DateTimeFilter<'Agendamento'> = {};
+      if (params.dataDe) intervalo.gte = new Date(params.dataDe);
+      if (params.dataAte) intervalo.lte = new Date(params.dataAte);
+      where.dataPrevista = intervalo;
     }
 
     return this.prisma.agendamento.findMany({
@@ -236,8 +238,12 @@ export class AgendamentoService {
 
       this.logger.log(`[criar] agendamento criado id=${agendamento.id}`);
       return agendamento;
-    } catch (err: any) {
-      this.logger.error(`[criar] ERRO: ${err?.message}`, err?.stack);
+    } catch (err) {
+      if (err instanceof Error) {
+        this.logger.error(`[criar] ERRO: ${err.message}`, err.stack);
+      } else {
+        this.logger.error(`[criar] ERRO: ${String(err)}`);
+      }
       throw err;
     }
   }
@@ -245,10 +251,9 @@ export class AgendamentoService {
   async atualizar(id: number, dto: AtualizarAgendamentoDto) {
     await this.detalhar(id);
 
-    const data: any = {};
+    const data: Prisma.AgendamentoUncheckedUpdateInput = {};
     if (dto.userId !== undefined) data.userId = Number(dto.userId);
-    if (dto.atendimentoId !== undefined)
-      data.atendimentoId = dto.atendimentoId ? Number(dto.atendimentoId) : null;
+    if (dto.atendimentoId) data.atendimentoId = Number(dto.atendimentoId);
     if (dto.enderecoId !== undefined)
       data.enderecoId = dto.enderecoId ? Number(dto.enderecoId) : null;
     if (dto.tipo !== undefined) data.tipo = dto.tipo;
@@ -275,7 +280,7 @@ export class AgendamentoService {
   ) {
     await this.detalhar(id);
 
-    const data: any = { status };
+    const data: Prisma.AgendamentoUncheckedUpdateInput = { status };
     if (dataRealizada !== undefined) {
       data.dataRealizada = dataRealizada ? new Date(dataRealizada) : null;
     } else if (status === 'REALIZADO') {

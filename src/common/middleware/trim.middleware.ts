@@ -1,15 +1,16 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 
-function trimStrings(obj: any): any {
-  if (typeof obj === 'string') return obj.trim();
-  if (Array.isArray(obj)) return obj.map(trimStrings);
+function trimStrings<T>(obj: T): T {
+  if (typeof obj === 'string') return obj.trim() as T;
+  if (Array.isArray(obj)) return obj.map(trimStrings) as T;
   if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const key of Object.keys(obj)) {
-      result[key] = trimStrings(obj[key]);
+    const result: Record<string, unknown> = {};
+    const source = obj as Record<string, unknown>;
+    for (const key of Object.keys(source)) {
+      result[key] = trimStrings(source[key]);
     }
-    return result;
+    return result as T;
   }
   return obj;
 }

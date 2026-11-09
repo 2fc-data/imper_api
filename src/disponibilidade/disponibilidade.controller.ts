@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DisponibilidadeService } from './disponibilidade.service.js';
@@ -43,7 +44,7 @@ export class DisponibilidadeController {
   @Permissions('editar_atendimento')
   async atualizarPadrao(
     @Param('id') id: string,
-    @Body() body: Record<string, any>,
+    @Body() body: Prisma.DisponibilidadePadraoUncheckedUpdateInput,
   ) {
     return this.service.atualizarPadrao(Number(id), body);
   }
@@ -89,7 +90,7 @@ export class DisponibilidadeController {
   @Permissions('editar_atendimento')
   async atualizarData(
     @Param('id') id: string,
-    @Body() body: Record<string, any>,
+    @Body() body: Prisma.DisponibilidadeDataUncheckedUpdateInput,
   ) {
     return this.service.atualizarData(Number(id), body);
   }

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import {
   type LookupCrud,
   LookupService,
@@ -10,6 +11,16 @@ import {
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+export type EquipamentoCriarInput =
+  Partial<Prisma.EquipamentoUncheckedCreateInput> & {
+    descricao: string;
+    statusId: number;
+  };
+
+export type EquipamentoAtualizarInput = Partial<
+  Omit<Prisma.EquipamentoUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>
+>;
 
 @Injectable()
 export class EquipamentosService {
@@ -178,10 +189,22 @@ export class EquipamentosService {
   async listarCategorias() {
     return this.categorias.listar();
   }
-  async criarCategoria(data: any) {
+  async criarCategoria(data: {
+    nome: string;
+    descricao?: string;
+    ordem?: number;
+  }) {
     return this.categorias.criar(data);
   }
-  async atualizarCategoria(id: number, data: any) {
+  async atualizarCategoria(
+    id: number,
+    data: {
+      nome?: string;
+      descricao?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
     return this.categorias.atualizar(id, data);
   }
   async desativarCategoria(id: number) {
@@ -195,10 +218,23 @@ export class EquipamentosService {
       orderBy: { nome: 'asc' },
     });
   }
-  async criarSubcategoria(data: any) {
+  async criarSubcategoria(data: {
+    nome: string;
+    categoriaId: number;
+    descricao?: string;
+    ordem?: number;
+  }) {
     return this.subcategorias.criar(data);
   }
-  async atualizarSubcategoria(id: number, data: any) {
+  async atualizarSubcategoria(
+    id: number,
+    data: {
+      nome?: string;
+      descricao?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
     return this.subcategorias.atualizar(id, data);
   }
   async desativarSubcategoria(id: number) {
@@ -208,10 +244,13 @@ export class EquipamentosService {
   async listarMarcas() {
     return this.marcas.listar();
   }
-  async criarMarca(data: any) {
+  async criarMarca(data: { nome: string; ordem?: number }) {
     return this.marcas.criar(data);
   }
-  async atualizarMarca(id: number, data: any) {
+  async atualizarMarca(
+    id: number,
+    data: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.marcas.atualizar(id, data);
   }
   async desativarMarca(id: number) {
@@ -221,10 +260,24 @@ export class EquipamentosService {
   async listarFornecedores() {
     return this.fornecedores.listar();
   }
-  async criarFornecedor(data: any) {
+  async criarFornecedor(data: {
+    nome: string;
+    cnpj?: string;
+    telefone?: string;
+    email?: string;
+  }) {
     return this.fornecedores.criar(data);
   }
-  async atualizarFornecedor(id: number, data: any) {
+  async atualizarFornecedor(
+    id: number,
+    data: {
+      nome?: string;
+      cnpj?: string;
+      telefone?: string;
+      email?: string;
+      ativo?: boolean;
+    },
+  ) {
     return this.fornecedores.atualizar(id, data);
   }
   async desativarFornecedor(id: number) {
@@ -234,10 +287,22 @@ export class EquipamentosService {
   async listarLocalizacoes() {
     return this.localizacoes.listar();
   }
-  async criarLocalizacao(data: any) {
+  async criarLocalizacao(data: {
+    nome: string;
+    descricao?: string;
+    ordem?: number;
+  }) {
     return this.localizacoes.criar(data);
   }
-  async atualizarLocalizacao(id: number, data: any) {
+  async atualizarLocalizacao(
+    id: number,
+    data: {
+      nome?: string;
+      descricao?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
     return this.localizacoes.atualizar(id, data);
   }
   async desativarLocalizacao(id: number) {
@@ -247,10 +312,13 @@ export class EquipamentosService {
   async listarStatus() {
     return this.statuses.listar();
   }
-  async criarStatus(data: any) {
+  async criarStatus(data: { nome: string; ordem?: number }) {
     return this.statuses.criar(data);
   }
-  async atualizarStatus(id: number, data: any) {
+  async atualizarStatus(
+    id: number,
+    data: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.statuses.atualizar(id, data);
   }
   async desativarStatus(id: number) {
@@ -260,10 +328,13 @@ export class EquipamentosService {
   async listarEstadosConservacao() {
     return this.estadosConservacao.listar();
   }
-  async criarEstadoConservacao(data: any) {
+  async criarEstadoConservacao(data: { nome: string; ordem?: number }) {
     return this.estadosConservacao.criar(data);
   }
-  async atualizarEstadoConservacao(id: number, data: any) {
+  async atualizarEstadoConservacao(
+    id: number,
+    data: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.estadosConservacao.atualizar(id, data);
   }
   async desativarEstadoConservacao(id: number) {
@@ -273,10 +344,13 @@ export class EquipamentosService {
   async listarTiposManutencao() {
     return this.tiposManutencao.listar();
   }
-  async criarTipoManutencao(data: any) {
+  async criarTipoManutencao(data: { nome: string; ordem?: number }) {
     return this.tiposManutencao.criar(data);
   }
-  async atualizarTipoManutencao(id: number, data: any) {
+  async atualizarTipoManutencao(
+    id: number,
+    data: { nome?: string; ordem?: number; ativo?: boolean },
+  ) {
     return this.tiposManutencao.atualizar(id, data);
   }
   async desativarTipoManutencao(id: number) {
@@ -340,7 +414,7 @@ export class EquipamentosService {
     return { codigo: calcularProximoCodigo(existentes, 'EQP-', 3) };
   }
 
-  async criar(data: any) {
+  async criar(data: EquipamentoCriarInput) {
     const payload = { ...data };
     delete payload.codigo;
 
@@ -360,7 +434,7 @@ export class EquipamentosService {
     );
   }
 
-  async atualizar(id: number, data: any) {
+  async atualizar(id: number, data: EquipamentoAtualizarInput) {
     await this.detalhar(id);
 
     const payload = { ...data };

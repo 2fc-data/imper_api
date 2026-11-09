@@ -10,9 +10,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { VeiculosService } from './veiculos.service.js';
+import {
+  type RegistroKmInput,
+  type VeiculoAtualizarInput,
+  type VeiculoCriarInput,
+  VeiculosService,
+} from './veiculos.service.js';
+
+interface RequestWithUser extends Request {
+  user?: { id: number };
+}
 
 @Controller('veiculos')
 @UseGuards(JwtAuthGuard)
@@ -21,7 +31,7 @@ export class VeiculosController {
 
   @Get()
   @Permissions('visualizar_frota', 'gerenciar_frota')
-  listar(@Query() query: any) {
+  listar(@Query() query: { q?: string; statusId?: number; tipoId?: number }) {
     return this.veiculosService.listar(query);
   }
 
@@ -68,19 +78,23 @@ export class VeiculosController {
 
   @Post()
   @Permissions('gerenciar_frota')
-  criar(@Body() dto: any) {
+  criar(@Body() dto: VeiculoCriarInput) {
     return this.veiculosService.criar(dto);
   }
 
   @Post(':id/km')
   @Permissions('registrar_km_frota', 'gerenciar_frota')
-  registrarKm(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+  registrarKm(
+    @Param('id') id: string,
+    @Body() dto: RegistroKmInput,
+    @Req() req: RequestWithUser,
+  ) {
     return this.veiculosService.registrarKm(Number(id), dto, req.user?.id);
   }
 
   @Put(':id')
   @Permissions('gerenciar_frota')
-  atualizar(@Param('id') id: string, @Body() dto: any) {
+  atualizar(@Param('id') id: string, @Body() dto: VeiculoAtualizarInput) {
     return this.veiculosService.atualizar(Number(id), dto);
   }
 

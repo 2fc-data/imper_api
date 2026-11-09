@@ -7,7 +7,9 @@ export class WhatsAppService {
 
   async enviarMensagem(telefone: string, mensagem: string): Promise<boolean> {
     if (!config.whatsappApiUrl) {
-      this.logger.log(`[WhatsApp DEV] Para: ${telefone} | Mensagem:\n${mensagem}`);
+      this.logger.log(
+        `[WhatsApp DEV] Para: ${telefone} | Mensagem:\n${mensagem}`,
+      );
       return true;
     }
 

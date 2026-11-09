@@ -37,6 +37,10 @@ import { salvarPlanejamentoSchema } from './dto/planejamento.dto.js';
 import { ObrasService } from './obras.service.js';
 import { PlanejamentoService } from './planejamento.service.js';
 
+interface RequestWithUser extends Request {
+  user: { id: number };
+}
+
 @Controller('obras')
 @UseGuards(JwtAuthGuard)
 export class ObrasController {
@@ -77,8 +81,8 @@ export class ObrasController {
 
   @Post(':id/concluir')
   @Permissions('editar_obra')
-  async concluir(@Param('id') id: string, @Req() req: Request) {
-    return this.obrasService.concluir(Number(id), (req as any).user.id);
+  async concluir(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.obrasService.concluir(Number(id), req.user.id);
   }
 
   @Post(':id/etapas')
@@ -140,14 +144,14 @@ export class ObrasController {
 
   @Post('/aditivos/:id/aprovar')
   @Permissions('aprovar_aditivo')
-  async aprovarAditivo(@Param('id') id: string, @Req() req: Request) {
-    return this.obrasService.aprovarAditivo(Number(id), (req as any).user.id);
+  async aprovarAditivo(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.obrasService.aprovarAditivo(Number(id), req.user.id);
   }
 
   @Post('/aditivos/:id/recusar')
   @Permissions('aprovar_aditivo')
-  async recusarAditivo(@Param('id') id: string, @Req() req: Request) {
-    return this.obrasService.recusarAditivo(Number(id), (req as any).user.id);
+  async recusarAditivo(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.obrasService.recusarAditivo(Number(id), req.user.id);
   }
 
   @Get(':id/planejamento')
@@ -162,12 +166,12 @@ export class ObrasController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(salvarPlanejamentoSchema))
     dto: SalvarPlanejamentoInput,
-    @Req() req: Request,
+    @Req() req: RequestWithUser,
   ) {
     return this.planejamentoService.salvarPlanejamento(
       Number(id),
       dto,
-      (req as any).user.id,
+      req.user.id,
     );
   }
 

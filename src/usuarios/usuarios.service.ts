@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../lib/errors.js';
 import { normalize } from '../lib/utils.js';
@@ -68,7 +69,7 @@ export class UsuariosService {
   }
 
   async buscar(q: string) {
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       OR: [
         { nome: { contains: q } },
         { email: { contains: q } },

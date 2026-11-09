@@ -84,13 +84,13 @@ export class AtendimentoService {
 
   async listar(params?: {
     q?: string;
-    status?: string;
+    status?: StatusAtendimento;
     criadoDe?: string;
     criadoAte?: string;
     atualizadoDe?: string;
     atualizadoAte?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.AtendimentoWhereInput = {};
 
     if (params?.q) {
       where.OR = [{ user: { nome: { contains: params.q } } }];
