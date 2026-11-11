@@ -49,14 +49,12 @@ export class ObrasController {
     private readonly planejamentoService: PlanejamentoService,
   ) {}
 
-  @Get()
+  @Get('em-andamento')
   @Permissions('ver_obras')
-  async listar(
-    @Query(new ZodValidationPipe(listarObrasQuerySchema))
-    query: ListarObrasQueryInput,
-  ) {
-    return this.obrasService.listar(query);
+  async listarEmAndamento() {
+    return this.obrasService.listarEmAndamento();
   }
+
 
   @Get(':id')
   @Permissions('ver_obras')

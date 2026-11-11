@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StatusObra } from '@prisma/client';
 import type {
   AtualizarAtividadeObraInput,
   AtualizarEtapaInput,
@@ -49,6 +50,20 @@ export class ObrasService {
     return { obras };
   }
 
+  // New method: list obras with status EM_ANDAMENTO
+  async listarEmAndamento() {
+    const obras = await this.prisma.obra.findMany({
+      where: { status: StatusObra.EM_EXECUCAO },
+      include: {
+        user: { select: { id: true, nome: true } },
+        endereco: { select: { cidade: true, estado: true } },
+        _count: { select: { etapas: true, aditivos: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { obras };
+  }
+
   async detalhar(id: number) {
     const obra = await this.prisma.obra.findUnique({
       where: { id },
@@ -84,9 +99,7 @@ export class ObrasService {
                   orderBy: { criadoEm: 'desc' },
                   include: {
                     checklist: true,
-                    separacoes: {
-                      include: { itens: true },
-                    },
+                    separacoes: { include: { itens: true } },
                   },
                 },
               },
@@ -95,9 +108,7 @@ export class ObrasService {
         },
         aditivos: {
           orderBy: { createdAt: 'desc' },
-          include: {
-            itens: { include: { servicoItem: true, unidade: true } },
-          },
+          include: { itens: { include: { servicoItem: true, unidade: true } } },
         },
       },
     });
@@ -398,9 +409,7 @@ export class ObrasService {
 
       await tx.obra.update({
         where: { id: aditivo.obraId },
-        data: {
-          valorContratado: { increment: aditivo.valor },
-        },
+        data: { valorContratado: { increment: aditivo.valor } },
       });
 
       return { aditivo: aprovado };
@@ -424,7 +433,6 @@ export class ObrasService {
         aprovadoEm: new Date(),
       },
     });
-
     return { aditivo: recusado };
   }
 }
