@@ -9,7 +9,6 @@
   "scripts": {
     "prebuild": "prisma generate",
     "build": "nest build",
-    "deploy": "nest deploy",
     "dev": "nest start --watch",
     "db:clear-operational": "npx tsx scripts/clear-operational-data.ts",
     "db:clear-users": "npx tsx scripts/clear-users-and-addresses.ts",
@@ -47,24 +46,23 @@
     "@nestjs/core": "^12.0.1",
     "@nestjs/jwt": "^12.0.0",
     "@nestjs/passport": "^12.0.0",
-    "@nestjs/platform-express": "^12.0.1",
+    "@nestjs/platform-express": "^12.5.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
-    "nodemailer": "^10.1.4",
+    "nodemailer": "^10.5.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "source-map-support": "^0.5.21",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.11",
-    "@nestjs/cli": "^12.0.0",
-    "@nestjs/mau": "^0.2.6",
-    "@nestjs/schematics": "^12.0.0",
+    "@nestjs/cli": "^12.0.12",
+    "@nestjs/schematics": "^12.0.13",
     "@nestjs/testing": "^12.0.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
@@ -72,16 +70,19 @@
     "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.0.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.12",
     "prisma": "^6.19.3",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.12"
   },
   "overrides": {
-    "multer": "^2.3.0",
     "deepmerge-ts": "^8.0.0",
-    "undici": "^6.27.0"
+    "minimatch": "11.0.8",
+    "brace-expansion": "5.0.13",
+    "fast-uri": "3.1.9",
+    "vite": "8.3.8",
+    "source-map-js": "1.2.2"
   }
 }

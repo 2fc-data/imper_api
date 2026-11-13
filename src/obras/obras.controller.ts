@@ -6,7 +6,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -21,7 +20,6 @@ import {
   criarAditivoSchema,
   criarAtividadeSchema,
   criarEtapaSchema,
-  listarObrasQuerySchema,
 } from '../schemas/obras.js';
 import type {
   AtualizarAtividadeObraInput,
@@ -30,7 +28,6 @@ import type {
   CriarAditivoInput,
   CriarAtividadeInput,
   CriarEtapaInput,
-  ListarObrasQueryInput,
 } from './dto/obras.dto.js';
 import type { SalvarPlanejamentoInput } from './dto/planejamento.dto.js';
 import { salvarPlanejamentoSchema } from './dto/planejamento.dto.js';
@@ -54,7 +51,6 @@ export class ObrasController {
   async listarEmAndamento() {
     return this.obrasService.listarEmAndamento();
   }
-
 
   @Get(':id')
   @Permissions('ver_obras')

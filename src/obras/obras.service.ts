@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { StatusObra } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { StatusObra } from '@prisma/client';
 import type {
   AtualizarAtividadeObraInput,
   AtualizarEtapaInput,
