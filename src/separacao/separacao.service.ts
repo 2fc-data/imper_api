@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../lib/errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -9,7 +10,30 @@ export class SeparacaoService {
   private includeComum = {
     executucaoAtividade: {
       include: {
-        atividade: { include: { obraEtapa: { select: { obraId: true } } } },
+        atividade: {
+          include: {
+            obraEtapa: {
+              select: {
+                obraId: true,
+                obra: {
+                  select: {
+                    id: true,
+                    codigo: true,
+                    user: { select: { nome: true } },
+                    endereco: {
+                      select: {
+                        logradouro: true,
+                        numero: true,
+                        bairro: true,
+                        cidade: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
     confirmadoPor: { select: { id: true, nome: true } },
@@ -18,7 +42,13 @@ export class SeparacaoService {
         material: true,
         epi: true,
         equipamento: true,
-        colaborador: { select: { id: true, nome: true } },
+        colaborador: {
+          select: {
+            id: true,
+            nome: true,
+            papeis: { select: { papel: { select: { nome: true } } } },
+          },
+        },
       },
     },
   } as const;
@@ -114,65 +144,19 @@ export class SeparacaoService {
       separacao.executucaoAtividade?.atividade?.obraEtapa?.obraId ?? null;
 
     return this.prisma.$transaction(async (tx) => {
-      if (item.materialId) {
-        const saldo = await tx.saldoEstoque.findUnique({
-          where: { materialId: item.materialId },
-        });
-        const saldoAtual = Number(saldo?.saldo ?? 0);
-        const qtd = Number(item.quantidadeNecessaria);
-        if (saldoAtual < qtd) {
-          throw new AppError(
-            409,
-            `Saldo insuficiente para material ${item.materialId}. Disponível: ${saldoAtual}`,
-          );
-        }
-        const novoSaldo = saldoAtual - qtd;
-        await tx.saldoEstoque.update({
-          where: { materialId: item.materialId },
-          data: { saldo: novoSaldo },
-        });
-        await tx.movimentoEstoque.create({
-          data: {
-            materialId: item.materialId,
-            tipo: 'SAIDA',
-            quantidade: qtd,
-            saldoApos: novoSaldo,
-            separacaoItemId: itemId,
-            obraId: obraId ?? undefined,
-            registradoPorId: dados.registradoPorId,
-            observacao:
-              dados.observacao ?? `Retirada - Separação ${separacaoId}`,
-          },
-        });
-      }
-
-      if (item.epiId) {
-        await tx.entregaEpi.create({
-          data: {
-            epiId: item.epiId,
-            colaboradorId: dados.colaboradorId,
-            quantidade: item.quantidadeNecessaria,
-            observacao: dados.observacao,
-            registradoPorId: dados.registradoPorId,
-            executucaoAtividadeId: separacao.executucaoAtividadeId,
-            separacaoId,
-            status: 'EM_USO',
-          },
-        });
-      }
-
-      if (item.equipamentoId) {
-        await tx.retiradaEquipamento.create({
-          data: {
-            equipamentoId: item.equipamentoId,
-            colaboradorId: dados.colaboradorId,
-            observacao: dados.observacao,
-            registradoPorId: dados.registradoPorId,
-            executucaoAtividadeId: separacao.executucaoAtividadeId,
-            status: 'EM_USO',
-          },
-        });
-      }
+      await this.baixarItemRetirada(tx, {
+        separacaoId,
+        itemId,
+        materialId: item.materialId,
+        epiId: item.epiId,
+        equipamentoId: item.equipamentoId,
+        quantidade: Number(item.quantidadeNecessaria),
+        obraId,
+        executucaoAtividadeId: separacao.executucaoAtividadeId,
+        colaboradorId: dados.colaboradorId,
+        registradoPorId: dados.registradoPorId,
+        observacao: dados.observacao,
+      });
 
       return tx.separacaoItem.update({
         where: { id: itemId },
@@ -185,6 +169,158 @@ export class SeparacaoService {
         },
       });
     });
+  }
+
+  async adicionarItem(
+    separacaoId: number,
+    dados: {
+      materialId?: number;
+      epiId?: number;
+      equipamentoId?: number;
+      quantidade: number;
+      colaboradorId?: number;
+      registradoPorId: number;
+      observacao?: string;
+    },
+  ) {
+    const separacao = await this.detalhar(separacaoId);
+
+    const materialId = dados.materialId ?? null;
+    const epiId = dados.epiId ?? null;
+    const equipamentoId = dados.equipamentoId ?? null;
+    const informados = [materialId, epiId, equipamentoId].filter(
+      (valor): valor is number => typeof valor === 'number' && valor > 0,
+    );
+    if (informados.length !== 1)
+      throw new AppError(
+        400,
+        'Informe exatamente um item: material, EPI ou equipamento',
+      );
+
+    const quantidade = Number(dados.quantidade);
+    if (!Number.isFinite(quantidade) || quantidade <= 0)
+      throw new AppError(400, 'Quantidade deve ser maior que zero');
+
+    if (equipamentoId && quantidade !== 1)
+      throw new AppError(400, 'Quantidade de equipamento deve ser 1');
+
+    const retirarAgora = Boolean(dados.colaboradorId);
+
+    const obraId =
+      separacao.executucaoAtividade?.atividade?.obraEtapa?.obraId ?? null;
+    const agora = new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.separacaoItem.create({
+        data: {
+          separacaoId,
+          materialId,
+          epiId,
+          equipamentoId,
+          quantidadeNecessaria: quantidade,
+          quantidadeSeparada: retirarAgora ? quantidade : 0,
+          status: retirarAgora ? 'RETIRADO' : 'PENDENTE',
+          colaboradorId: retirarAgora ? dados.colaboradorId : null,
+          retiradoPorId: retirarAgora ? dados.registradoPorId : null,
+          retiradoEm: retirarAgora ? agora : null,
+          observacao: dados.observacao ?? null,
+        },
+      });
+
+      if (retirarAgora) {
+        await this.baixarItemRetirada(tx, {
+          separacaoId,
+          itemId: item.id,
+          materialId,
+          epiId,
+          equipamentoId,
+          quantidade,
+          obraId,
+          executucaoAtividadeId: separacao.executucaoAtividadeId,
+          colaboradorId: dados.colaboradorId as number,
+          registradoPorId: dados.registradoPorId,
+          observacao: dados.observacao,
+        });
+      }
+
+      return item;
+    });
+  }
+
+  private async baixarItemRetirada(
+    tx: Prisma.TransactionClient,
+    dados: {
+      separacaoId: number;
+      itemId: number;
+      materialId: number | null;
+      epiId: number | null;
+      equipamentoId: number | null;
+      quantidade: number;
+      obraId: number | null;
+      executucaoAtividadeId: string | null;
+      colaboradorId: number;
+      registradoPorId: number;
+      observacao?: string;
+    },
+  ) {
+    if (dados.materialId) {
+      const saldo = await tx.saldoEstoque.findUnique({
+        where: { materialId: dados.materialId },
+      });
+      const saldoAtual = Number(saldo?.saldo ?? 0);
+      if (saldoAtual < dados.quantidade) {
+        throw new AppError(
+          409,
+          `Saldo insuficiente para material ${dados.materialId}. Disponível: ${saldoAtual}`,
+        );
+      }
+      const novoSaldo = saldoAtual - dados.quantidade;
+      await tx.saldoEstoque.update({
+        where: { materialId: dados.materialId },
+        data: { saldo: novoSaldo },
+      });
+      await tx.movimentoEstoque.create({
+        data: {
+          materialId: dados.materialId,
+          tipo: 'SAIDA',
+          quantidade: dados.quantidade,
+          saldoApos: novoSaldo,
+          separacaoItemId: dados.itemId,
+          obraId: dados.obraId ?? undefined,
+          registradoPorId: dados.registradoPorId,
+          observacao:
+            dados.observacao ?? `Retirada - Separação ${dados.separacaoId}`,
+        },
+      });
+    }
+
+    if (dados.epiId) {
+      await tx.entregaEpi.create({
+        data: {
+          epiId: dados.epiId,
+          colaboradorId: dados.colaboradorId,
+          quantidade: dados.quantidade,
+          observacao: dados.observacao,
+          registradoPorId: dados.registradoPorId,
+          executucaoAtividadeId: dados.executucaoAtividadeId,
+          separacaoId: dados.separacaoId,
+          status: 'EM_USO',
+        },
+      });
+    }
+
+    if (dados.equipamentoId) {
+      await tx.retiradaEquipamento.create({
+        data: {
+          equipamentoId: dados.equipamentoId,
+          colaboradorId: dados.colaboradorId,
+          observacao: dados.observacao,
+          registradoPorId: dados.registradoPorId,
+          executucaoAtividadeId: dados.executucaoAtividadeId,
+          status: 'EM_USO',
+        },
+      });
+    }
   }
 
   async registrarDevolucaoItem(
@@ -223,6 +359,7 @@ export class SeparacaoService {
       );
     const obraId =
       separacao.executucaoAtividade?.atividade?.obraEtapa?.obraId ?? null;
+    const agora = new Date();
 
     return this.prisma.$transaction(async (tx) => {
       if (item.materialId && statusFinal === 'DEVOLVIDO') {
@@ -262,7 +399,7 @@ export class SeparacaoService {
             where: { id: entrega.id },
             data: {
               status: statusFinal as 'DEVOLVIDO' | 'PERDIDO',
-              dataDevolucao: new Date(),
+              dataDevolucao: agora,
             },
           });
         }
@@ -281,7 +418,7 @@ export class SeparacaoService {
             where: { id: retirada.id },
             data: {
               status: statusFinal as 'DEVOLVIDO' | 'PERDIDO',
-              dataDevolucao: new Date(),
+              dataDevolucao: agora,
             },
           });
         }
@@ -292,9 +429,37 @@ export class SeparacaoService {
         data: {
           status: statusFinal,
           observacao: dados.observacao,
+          ...(statusFinal === 'DEVOLVIDO' ? { devolvidoEm: agora } : {}),
         },
       });
     });
+  }
+
+  async removerItem(separacaoId: number, itemId: number) {
+    const separacao = await this.detalhar(separacaoId);
+    const item = separacao.itens.find((i) => i.id === itemId);
+    if (!item)
+      throw new NotFoundException(
+        `Item ${itemId} não encontrado na separação ${separacaoId}`,
+      );
+
+    const statusRemoviveis = new Set(['PENDENTE', 'SEPARADO', 'EM_FALTA']);
+    if (!statusRemoviveis.has(item.status))
+      throw new AppError(
+        409,
+        'Só é possível excluir itens que ainda não foram retirados',
+      );
+
+    const movimentos = await this.prisma.movimentoEstoque.count({
+      where: { separacaoItemId: itemId },
+    });
+    if (movimentos > 0)
+      throw new AppError(
+        409,
+        'Item já possui movimentação de estoque e não pode ser excluído',
+      );
+
+    return this.prisma.separacaoItem.delete({ where: { id: itemId } });
   }
 
   async excluir(id: number) {

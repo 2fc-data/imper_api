@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -57,6 +58,27 @@ export class SeparacaoController {
     return this.service.registrarDevolucao(Number(id));
   }
 
+  @Post(':id/itens')
+  @Permissions('separar_item')
+  async adicionarItem(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      materialId?: number;
+      epiId?: number;
+      equipamentoId?: number;
+      quantidade: number;
+      colaboradorId?: number;
+      observacao?: string;
+    },
+    @CurrentUser() user: UsuarioReq,
+  ) {
+    return this.service.adicionarItem(Number(id), {
+      ...body,
+      registradoPorId: user.id,
+    });
+  }
+
   @Put(':id/itens/:itemId/retirar')
   @Permissions('separar_item')
   async registrarRetiradaItem(
@@ -83,6 +105,12 @@ export class SeparacaoController {
       ...body,
       registradoPorId: user.id,
     });
+  }
+
+  @Delete(':id/itens/:itemId')
+  @Permissions('separar_item')
+  async removerItem(@Param('id') id: string, @Param('itemId') itemId: string) {
+    return this.service.removerItem(Number(id), Number(itemId));
   }
 
   @Delete(':id')

@@ -38,48 +38,54 @@ export class EquipamentosService {
     private readonly prisma: PrismaService,
     private readonly lookup: LookupService,
   ) {
-    this.categorias = this.lookup.criarCrud(this.prisma.categoriaEquipamento, {
+    this.categorias = this.lookup.criarCrud(this.prisma.categoria, {
       labelSingular: 'Categoria',
       duplicateMessage: () => 'Categoria já cadastrada',
+      tipoInsumo: 'EQUIPAMENTO',
     });
-    this.subcategorias = this.lookup.criarCrud(
-      this.prisma.subcategoriaEquipamento,
-      {
-        labelSingular: 'Subcategoria',
-        duplicateMessage: () => 'Subcategoria já cadastrada',
-      },
-    );
+    this.subcategorias = this.lookup.criarCrud(this.prisma.subcategoria, {
+      labelSingular: 'Subcategoria',
+      duplicateMessage: () => 'Subcategoria já cadastrada',
+      tipoInsumo: 'EQUIPAMENTO',
+    });
     this.marcas = this.lookup.criarCrud(this.prisma.marca, {
       labelSingular: 'Marca',
       duplicateMessage: () => 'Marca já cadastrada',
+      tipoInsumo: 'EQUIPAMENTO',
     });
     this.fornecedores = this.lookup.criarCrud(this.prisma.fornecedor, {
       labelSingular: 'Fornecedor',
       duplicateMessage: () => 'Fornecedor já cadastrado',
+      tipoInsumo: 'EQUIPAMENTO',
     });
     this.localizacoes = this.lookup.criarCrud(this.prisma.localizacao, {
       labelSingular: 'Localização',
       duplicateMessage: () => 'Localização já cadastrada',
+      tipoInsumo: 'EQUIPAMENTO',
     });
     this.statuses = this.lookup.criarCrud(this.prisma.statusEquipamento, {
       labelSingular: 'Status',
       duplicateMessage: () => 'Status já cadastrado',
+      tipoInsumo: 'EQUIPAMENTO',
     });
     this.estadosConservacao = this.lookup.criarCrud(
       this.prisma.estadoConservacao,
       {
         labelSingular: 'Estado de conservação',
         duplicateMessage: () => 'Estado de conservação já cadastrado',
+        tipoInsumo: 'EQUIPAMENTO',
       },
     );
     this.tiposManutencao = this.lookup.criarCrud(this.prisma.tipoManutencao, {
       labelSingular: 'Tipo de manutenção',
       duplicateMessage: () => 'Tipo de manutenção já cadastrado',
+      tipoInsumo: 'EQUIPAMENTO',
     });
     this.unidadesMedida = this.lookup.criarCrud(this.prisma.unidadeMedida, {
       labelSingular: 'Unidade de medida',
       orderBy: 'ordem',
       duplicateMessage: () => 'Unidade de medida já cadastrada',
+      tipoInsumo: 'EQUIPAMENTO',
     });
   }
 
@@ -128,35 +134,35 @@ export class EquipamentosService {
       unidadesMedida,
     ] = await Promise.all([
       this.prisma.marca.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
-      this.prisma.categoriaEquipamento.findMany({
-        where: { ativo: true },
+      this.prisma.categoria.findMany({
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
-      this.prisma.subcategoriaEquipamento.findMany({
-        where: { ativo: true },
+      this.prisma.subcategoria.findMany({
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.localizacao.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.statusEquipamento.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.estadoConservacao.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.tipoManutencao.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
@@ -165,7 +171,7 @@ export class EquipamentosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.unidadeMedida.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
     ]);
@@ -212,8 +218,8 @@ export class EquipamentosService {
   }
 
   async listarSubcategorias() {
-    return this.prisma.subcategoriaEquipamento.findMany({
-      where: { ativo: true },
+    return this.prisma.subcategoria.findMany({
+      where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
       include: { categoria: true },
       orderBy: { nome: 'asc' },
     });

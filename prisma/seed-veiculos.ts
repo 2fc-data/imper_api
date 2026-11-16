@@ -27,12 +27,53 @@ type VeiculoSeed = {
 };
 
 const VEICULOS: VeiculoSeed[] = [
-  { nome: 'KOMBI', fabricante: 'VOLKSWAGEN', placa: 'HHE-8265', cor: 'Branca', combustivel: 'FLEX' },
-  { nome: 'PALIO', fabricante: 'FIAT', modelo: 'EX', placa: 'GXC-9853', cor: 'Cinza', combustivel: 'GASOLINA' },
-  { nome: 'FIORINO', fabricante: 'FIAT', modelo: '1.4', placa: 'PUP-3913', cor: 'Vermelha', combustivel: 'FLEX' },
-  { nome: 'FIORINO', fabricante: 'FIAT', modelo: 'IE', placa: 'GXC-9449', cor: 'Vermelha', combustivel: 'GASOLINA' },
-  { nome: 'UNO', fabricante: 'FIAT', modelo: 'MILLE FIRE', placa: 'HFH-3101', cor: 'Prata', combustivel: 'FLEX' },
-  { nome: 'UNO', fabricante: 'FIAT', modelo: 'MILLE WAY ECON', placa: 'GRR-7855', cor: 'Vermelha', combustivel: 'FLEX' },
+  {
+    nome: 'KOMBI',
+    fabricante: 'VOLKSWAGEN',
+    placa: 'HHE-8265',
+    cor: 'Branca',
+    combustivel: 'FLEX',
+  },
+  {
+    nome: 'PALIO',
+    fabricante: 'FIAT',
+    modelo: 'EX',
+    placa: 'GXC-9853',
+    cor: 'Cinza',
+    combustivel: 'GASOLINA',
+  },
+  {
+    nome: 'FIORINO',
+    fabricante: 'FIAT',
+    modelo: '1.4',
+    placa: 'PUP-3913',
+    cor: 'Vermelha',
+    combustivel: 'FLEX',
+  },
+  {
+    nome: 'FIORINO',
+    fabricante: 'FIAT',
+    modelo: 'IE',
+    placa: 'GXC-9449',
+    cor: 'Vermelha',
+    combustivel: 'GASOLINA',
+  },
+  {
+    nome: 'UNO',
+    fabricante: 'FIAT',
+    modelo: 'MILLE FIRE',
+    placa: 'HFH-3101',
+    cor: 'Prata',
+    combustivel: 'FLEX',
+  },
+  {
+    nome: 'UNO',
+    fabricante: 'FIAT',
+    modelo: 'MILLE WAY ECON',
+    placa: 'GRR-7855',
+    cor: 'Vermelha',
+    combustivel: 'FLEX',
+  },
 ];
 
 async function proximoCodigo(): Promise<string> {
@@ -51,33 +92,55 @@ async function proximoCodigo(): Promise<string> {
 
 async function main() {
   const tipo = await p.tipoVeiculo.findUnique({ where: { nome: 'CARRO' } });
-  if (!tipo) throw new Error('tipo_veiculo CARRO não encontrado (rode db:seed-frota)');
+  if (!tipo)
+    throw new Error('tipo_veiculo CARRO não encontrado (rode db:seed-frota)');
 
   const status = await p.statusVeiculo.findUnique({ where: { nome: 'ATIVO' } });
-  if (!status) throw new Error('status_veiculo ATIVO não encontrado (rode db:seed-frota)');
+  if (!status)
+    throw new Error('status_veiculo ATIVO não encontrado (rode db:seed-frota)');
 
   const cores = new Map<string, number>();
   for (const c of CORES) {
-    const existente = await p.cor.findFirst({ where: { nome: c.nome } });
+    const existente = await p.cor.findFirst({
+      where: { nome: c.nome, tipoInsumo: 'VEICULO' },
+    });
     const r = existente
-      ? await p.cor.update({ where: { id: existente.id }, data: { codigoHex: c.codigoHex, ativo: true } })
-      : await p.cor.create({ data: { nome: c.nome, codigoHex: c.codigoHex, ativo: true } });
+      ? await p.cor.update({
+          where: { id: existente.id },
+          data: { codigoHex: c.codigoHex, ativo: true },
+        })
+      : await p.cor.create({
+          data: {
+            nome: c.nome,
+            codigoHex: c.codigoHex,
+            ativo: true,
+            tipoInsumo: 'VEICULO',
+          },
+        });
     cores.set(c.nome, r.id);
   }
 
   const marcas = new Map<string, number>();
   for (const nome of MARCAS) {
-    const existente = await p.marca.findFirst({ where: { nome } });
+    const existente = await p.marca.findFirst({
+      where: { nome, tipoInsumo: 'VEICULO' },
+    });
     const r = existente
-      ? await p.marca.update({ where: { id: existente.id }, data: { ativo: true } })
-      : await p.marca.create({ data: { nome, ativo: true } });
+      ? await p.marca.update({
+          where: { id: existente.id },
+          data: { ativo: true },
+        })
+      : await p.marca.create({
+          data: { nome, ativo: true, tipoInsumo: 'VEICULO' },
+        });
     marcas.set(nome, r.id);
   }
 
   for (const v of VEICULOS) {
     const fabricanteId = marcas.get(v.fabricante);
     const corId = cores.get(v.cor);
-    if (!fabricanteId || !corId) throw new Error(`Lookup faltando para ${v.nome} ${v.placa}`);
+    if (!fabricanteId || !corId)
+      throw new Error(`Lookup faltando para ${v.nome} ${v.placa}`);
 
     const existente = await p.veiculo.findUnique({ where: { placa: v.placa } });
     const dados = {
@@ -91,16 +154,24 @@ async function main() {
       ativo: true,
     };
     const veiculo = existente
-      ? await p.veiculo.update({ where: { id: existente.id }, data: dados, select: { id: true, codigo: true, nome: true } })
+      ? await p.veiculo.update({
+          where: { id: existente.id },
+          data: dados,
+          select: { id: true, codigo: true, nome: true },
+        })
       : await p.veiculo.create({
           data: { ...dados, codigo: await proximoCodigo(), placa: v.placa },
           select: { id: true, codigo: true, nome: true },
         });
 
-    console.log(`✅ ${veiculo.codigo} ${veiculo.nome} ${v.placa} (${v.fabricante}${v.modelo ? ` ${v.modelo}` : ''})`);
+    console.log(
+      `✅ ${veiculo.codigo} ${veiculo.nome} ${v.placa} (${v.fabricante}${v.modelo ? ` ${v.modelo}` : ''})`,
+    );
   }
 
-  console.log(`\n🚗 ${VEICULOS.length} veículos, ${CORES.length} cores, ${MARCAS.length} marcas`);
+  console.log(
+    `\n🚗 ${VEICULOS.length} veículos, ${CORES.length} cores, ${MARCAS.length} marcas`,
+  );
 }
 
 main()

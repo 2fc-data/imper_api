@@ -61,12 +61,16 @@ async function main() {
   }
 
   for (const nome of TIPOS_MANUTENCAO_VEICULO) {
-    const existente = await p.tipoManutencao.findFirst({ where: { nome } });
+    const existente = await p.tipoManutencao.findFirst({
+      where: { nome, tipoInsumo: 'VEICULO' },
+    });
     if (existente) {
       existentes += 1;
       console.log(`tipo_manutencao: ${existente.id} ${nome} (já existe)`);
     } else {
-      const r = await p.tipoManutencao.create({ data: { nome, ativo: true } });
+      const r = await p.tipoManutencao.create({
+        data: { nome, ativo: true, tipoInsumo: 'VEICULO' },
+      });
       criados += 1;
       console.log(`tipo_manutencao: ${r.id} ${nome} (criado)`);
     }

@@ -10,14 +10,16 @@ async function count(label: string, fn: () => Promise<number>) {
 
 async function main() {
   console.log('--- Contagens dos catálogos ---');
-  await count('categoriaEpi', () => p.categoriaEpi.count());
-  await count('categoriaEquipamento', () => p.categoriaEquipamento.count());
-  await count('categoriaMaterial', () => p.categoriaMaterial.count());
-  await count('subcategoriaEpi', () => p.subcategoriaEpi.count());
-  await count('subcategoriaEquipamento', () =>
-    p.subcategoriaEquipamento.count(),
-  );
-  await count('subcategoriaMaterial', () => p.subcategoriaMaterial.count());
+  await count('categoria', () => p.categoria.count());
+  await count('subcategoria', () => p.subcategoria.count());
+  for (const tipoInsumo of ['EQUIPAMENTO', 'EPI', 'MATERIAL'] as const) {
+    await count(`categoria ${tipoInsumo}`, () =>
+      p.categoria.count({ where: { tipoInsumo } }),
+    );
+    await count(`subcategoria ${tipoInsumo}`, () =>
+      p.subcategoria.count({ where: { tipoInsumo } }),
+    );
+  }
   await count('localizacao', () => p.localizacao.count());
   await count('estadoConservacao', () => p.estadoConservacao.count());
   await count('statusEquipamento', () => p.statusEquipamento.count());

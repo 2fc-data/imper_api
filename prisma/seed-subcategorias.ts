@@ -1,13 +1,13 @@
 /**
- * Seed de subcategorias — EPI (categoriaEpi), equipamentos (categoriaEquipamento)
- * e materiais (categoriaMaterial).
- * Resolve categorias por NOME (sem IDs fixos) e é idempotente (upsert por nome+categoria).
+ * Seed de subcategorias — EPI, equipamentos e materiais.
+ * Resolve categorias por NOME + tipoInsumo (sem IDs fixos) e é idempotente
+ * (upsert por categoriaId+nome).
  *
  * Requer: prisma/seed-cadastros.ts executado antes (cria as categorias).
  *
  * Uso: npx tsx prisma/seed-subcategorias.ts
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type TipoInsumo } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -186,23 +186,23 @@ const subcategorias: SubcategoriaInput[] = [
   ]),
 ];
 
+const TIPO_INSUMO: Record<Tipo, TipoInsumo> = {
+  epi: 'EPI',
+  equipamento: 'EQUIPAMENTO',
+  material: 'MATERIAL',
+};
+
 async function main() {
   console.log('┌─────────────────────────────────────────────┐');
-  console.log('│  Seed: Subcategorias (EPI/Equip/Materiais)         │');
+  console.log('│  Seed: Subcategorias (EPI/Equip/Materiais)  │');
   console.log('└─────────────────────────────────────────────┘\n');
 
-  const catsEpi = await prisma.categoriaEpi.findMany({
-    select: { id: true, nome: true },
+  const categorias = await prisma.categoria.findMany({
+    select: { id: true, nome: true, tipoInsumo: true },
   });
-  const catsEqp = await prisma.categoriaEquipamento.findMany({
-    select: { id: true, nome: true },
-  });
-  const catsMat = await prisma.categoriaMaterial.findMany({
-    select: { id: true, nome: true },
-  });
-  const catEpiMap = new Map(catsEpi.map((c) => [c.nome, c.id]));
-  const catEqpMap = new Map(catsEqp.map((c) => [c.nome, c.id]));
-  const catMatMap = new Map(catsMat.map((c) => [c.nome, c.id]));
+  const catMap = new Map(
+    categorias.map((c) => [`${c.tipoInsumo}:${c.nome}`, c.id]),
+  );
 
   // agrupar por tipo+categoria para log
   const grupos = new Map<string, SubcategoriaInput[]>();
@@ -218,13 +218,8 @@ async function main() {
   const pendentes: string[] = [];
 
   for (const [key, lista] of grupos) {
-    const [tipo, nomeCat] = key.split(/:(.+)/);
-    const catId =
-      tipo === 'epi'
-        ? catEpiMap.get(nomeCat)
-        : tipo === 'material'
-          ? catMatMap.get(nomeCat)
-          : catEqpMap.get(nomeCat);
+    const [tipo, nomeCat] = key.split(/:(.+)/) as [Tipo, string];
+    const catId = catMap.get(`${TIPO_INSUMO[tipo]}:${nomeCat}`);
 
     if (!catId) {
       pendentes.push(`${nomeCat} (${tipo})`);
@@ -236,83 +231,36 @@ async function main() {
 
     console.log(`\n  ${nomeCat} [${tipo}] (id=${catId})`);
     for (const s of lista) {
-      if (tipo === 'epi') {
-        const existente = await prisma.subcategoriaEpi.findFirst({
-          where: { categoriaId: catId, nome: s.nome },
+      const existente = await prisma.subcategoria.findFirst({
+        where: { categoriaId: catId, nome: s.nome },
+      });
+      if (existente) {
+        await prisma.subcategoria.update({
+          where: { id: existente.id },
+          data: { ordem: s.ordem, ativo: true },
         });
-        if (existente) {
-          await prisma.subcategoriaEpi.update({
-            where: { id: existente.id },
-            data: { ordem: s.ordem, ativo: true },
-          });
-          atualizadas += 1;
-          console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
-        } else {
-          await prisma.subcategoriaEpi.create({
-            data: {
-              categoriaId: catId,
-              nome: s.nome,
-              ordem: s.ordem,
-              ativo: true,
-            },
-          });
-          criadas += 1;
-          console.log(`    ✓ ${s.ordem}. ${s.nome}`);
-        }
-      } else if (tipo === 'material') {
-        const existente = await prisma.subcategoriaMaterial.findFirst({
-          where: { categoriaId: catId, nome: s.nome },
-        });
-        if (existente) {
-          await prisma.subcategoriaMaterial.update({
-            where: { id: existente.id },
-            data: { ordem: s.ordem, ativo: true },
-          });
-          atualizadas += 1;
-          console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
-        } else {
-          await prisma.subcategoriaMaterial.create({
-            data: {
-              categoriaId: catId,
-              nome: s.nome,
-              ordem: s.ordem,
-              ativo: true,
-            },
-          });
-          criadas += 1;
-          console.log(`    ✓ ${s.ordem}. ${s.nome}`);
-        }
+        atualizadas += 1;
+        console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
       } else {
-        const existente = await prisma.subcategoriaEquipamento.findFirst({
-          where: { categoriaId: catId, nome: s.nome },
+        await prisma.subcategoria.create({
+          data: {
+            categoriaId: catId,
+            nome: s.nome,
+            ordem: s.ordem,
+            ativo: true,
+            tipoInsumo: TIPO_INSUMO[tipo],
+          },
         });
-        if (existente) {
-          await prisma.subcategoriaEquipamento.update({
-            where: { id: existente.id },
-            data: { ordem: s.ordem, ativo: true },
-          });
-          atualizadas += 1;
-          console.log(`    = ${s.ordem}. ${s.nome} (existente)`);
-        } else {
-          await prisma.subcategoriaEquipamento.create({
-            data: {
-              categoriaId: catId,
-              nome: s.nome,
-              ordem: s.ordem,
-              ativo: true,
-            },
-          });
-          criadas += 1;
-          console.log(`    ✓ ${s.ordem}. ${s.nome}`);
-        }
+        criadas += 1;
+        console.log(`    ✓ ${s.ordem}. ${s.nome}`);
       }
     }
   }
 
   const [totalEpi, totalEqp, totalMat] = await Promise.all([
-    prisma.subcategoriaEpi.count(),
-    prisma.subcategoriaEquipamento.count(),
-    prisma.subcategoriaMaterial.count(),
+    prisma.subcategoria.count({ where: { tipoInsumo: 'EPI' } }),
+    prisma.subcategoria.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
+    prisma.subcategoria.count({ where: { tipoInsumo: 'MATERIAL' } }),
   ]);
 
   console.log(`\n┌─────────────────────────────────────────────┐`);

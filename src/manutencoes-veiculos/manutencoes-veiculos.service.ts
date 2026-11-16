@@ -56,7 +56,9 @@ export class ManutencoesVeiculosService {
         where: { ativo: true },
         select: { id: true, codigo: true, nome: true, placa: true },
       }),
-      this.prisma.tipoManutencao.findMany({ where: { ativo: true } }),
+      this.prisma.tipoManutencao.findMany({
+        where: { ativo: true, tipoInsumo: 'VEICULO' },
+      }),
       this.prisma.user.findMany({
         where: {
           ativo: true,

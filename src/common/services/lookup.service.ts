@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { TipoInsumo } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { normalize } from '../../lib/utils.js';
 
@@ -28,15 +29,19 @@ export class LookupService {
       labelPlural?: string;
       orderBy?: string;
       duplicateMessage?: (nome: string) => string;
+      tipoInsumo?: TipoInsumo;
     },
   ): LookupCrud {
     const label = opts.labelSingular;
     const orderBy = opts.orderBy || 'nome';
+    const escopo = opts.tipoInsumo
+      ? { tipoInsumo: opts.tipoInsumo }
+      : undefined;
 
     return {
       listar: () =>
         model.findMany({
-          where: { ativo: true },
+          where: { ativo: true, ...escopo },
           orderBy: { [orderBy]: 'asc' },
         }),
 
@@ -44,14 +49,16 @@ export class LookupService {
         const nomeUpper =
           typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
         const exists = await model.findFirst({
-          where: { nome: normalize(nomeUpper) },
+          where: { nome: normalize(nomeUpper), ...escopo },
         });
         if (exists)
           throw new AppError(
             409,
             opts.duplicateMessage?.(nomeUpper) ?? `${label} já cadastrado`,
           );
-        return model.create({ data: { ...data, nome: nomeUpper } });
+        return model.create({
+          data: { ...data, nome: nomeUpper, ...escopo },
+        });
       },
 
       atualizar: async (id: number, data: LookupAtualizacao) => {
@@ -59,7 +66,7 @@ export class LookupService {
           data.nome =
             typeof data.nome === 'string' ? data.nome.toUpperCase() : data.nome;
           const exists = await model.findFirst({
-            where: { nome: normalize(data.nome), NOT: { id } },
+            where: { nome: normalize(data.nome), NOT: { id }, ...escopo },
           });
           if (exists)
             throw new AppError(

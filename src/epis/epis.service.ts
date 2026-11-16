@@ -34,33 +34,40 @@ export class EpisService {
     private readonly prisma: PrismaService,
     private readonly lookup: LookupService,
   ) {
-    this.categorias = this.lookup.criarCrud(this.prisma.categoriaEpi, {
+    this.categorias = this.lookup.criarCrud(this.prisma.categoria, {
       labelSingular: 'Categoria',
       duplicateMessage: () => 'Categoria já cadastrada',
+      tipoInsumo: 'EPI',
     });
-    this.subcategorias = this.lookup.criarCrud(this.prisma.subcategoriaEpi, {
+    this.subcategorias = this.lookup.criarCrud(this.prisma.subcategoria, {
       labelSingular: 'Subcategoria',
       duplicateMessage: () => 'Subcategoria já cadastrada',
+      tipoInsumo: 'EPI',
     });
     this.marcas = this.lookup.criarCrud(this.prisma.marca, {
       labelSingular: 'Marca',
       duplicateMessage: () => 'Marca já cadastrada',
+      tipoInsumo: 'EPI',
     });
     this.fornecedores = this.lookup.criarCrud(this.prisma.fornecedor, {
       labelSingular: 'Fornecedor',
       duplicateMessage: () => 'Fornecedor já cadastrado',
+      tipoInsumo: 'EPI',
     });
     this.localizacoes = this.lookup.criarCrud(this.prisma.localizacao, {
       labelSingular: 'Localização',
       duplicateMessage: () => 'Localização já cadastrada',
+      tipoInsumo: 'EPI',
     });
     this.cores = this.lookup.criarCrud(this.prisma.cor, {
       labelSingular: 'Cor',
       duplicateMessage: () => 'Cor já cadastrada',
+      tipoInsumo: 'EPI',
     });
     this.tamanhos = this.lookup.criarCrud(this.prisma.tamanhoEquipamento, {
       labelSingular: 'Tamanho',
       duplicateMessage: () => 'Tamanho já cadastrado',
+      tipoInsumo: 'EPI',
     });
   }
 
@@ -101,31 +108,31 @@ export class EpisService {
       colaboradores,
     ] = await Promise.all([
       this.prisma.marca.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
-      this.prisma.categoriaEpi.findMany({
-        where: { ativo: true },
+      this.prisma.categoria.findMany({
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
-      this.prisma.subcategoriaEpi.findMany({
-        where: { ativo: true },
+      this.prisma.subcategoria.findMany({
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.cor.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.tamanhoEquipamento.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.localizacao.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'EPI' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
@@ -152,8 +159,8 @@ export class EpisService {
   }
 
   async listarSubcategorias() {
-    return this.prisma.subcategoriaEpi.findMany({
-      where: { ativo: true },
+    return this.prisma.subcategoria.findMany({
+      where: { ativo: true, tipoInsumo: 'EPI' },
       include: { categoria: true },
       orderBy: { nome: 'asc' },
     });
@@ -180,23 +187,23 @@ export class EpisService {
   }
 
   async listarColaboradores() {
-    const clientes = await this.prisma.papelRbac.findMany({
-      where: { nome: 'CLIENTE' },
-      select: { id: true },
-    });
-    const clienteIds = clientes.map((c) => c.id);
-
     return this.prisma.user.findMany({
       where: {
         ativo: true,
-        OR: [
-          { papeis: { none: {} } },
-          {
-            papeis: {
-              some: { papelId: { notIn: clienteIds } },
+        papeis: {
+          some: {
+            papel: {
+              nome: {
+                in: [
+                  'COLABORADOR',
+                  'Colaborador',
+                  'Colaboradores',
+                  'COLABORADORES',
+                ],
+              },
             },
           },
-        ],
+        },
       },
       select: { id: true, nome: true },
       orderBy: { nome: 'asc' },
@@ -204,7 +211,10 @@ export class EpisService {
   }
 
   async listarUnidadesMedida() {
-    return this.prisma.unidadeMedida.findMany({ orderBy: { nome: 'asc' } });
+    return this.prisma.unidadeMedida.findMany({
+      where: { tipoInsumo: 'EPI' },
+      orderBy: { nome: 'asc' },
+    });
   }
 
   async detalhar(id: number) {

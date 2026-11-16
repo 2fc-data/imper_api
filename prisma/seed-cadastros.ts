@@ -5,7 +5,7 @@
  *
  * Uso: npx tsx prisma/seed-cadastros.ts
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, TipoInsumo } from '@prisma/client';
 
 const p = new PrismaClient();
 
@@ -57,38 +57,60 @@ type NomeOrdem = { nome: string; ordem: number };
 const comOrdem = (lista: string[]): NomeOrdem[] =>
   lista.map((nome, i) => ({ nome, ordem: i + 1 }));
 
-async function upsertPorNome(
-  model:
-    | 'categoriaEpi'
-    | 'categoriaEquipamento'
-    | 'categoriaMaterial'
-    | 'localizacao'
-    | 'estadoConservacao',
+async function upsertCategoria(
+  tipoInsumo: TipoInsumo,
   item: NomeOrdem,
 ): Promise<number> {
-  const prisma = p[model] as {
-    findFirst(args: {
-      where: { nome: string };
-    }): Promise<{ id: number } | null>;
-    create(args: {
-      data: { nome: string; ordem: number };
-    }): Promise<{ id: number }>;
-    update(args: {
-      where: { id: number };
-      data: { ordem: number; ativo: boolean };
-    }): Promise<{ id: number }>;
-  };
-
-  const existente = await prisma.findFirst({ where: { nome: item.nome } });
+  const existente = await p.categoria.findFirst({
+    where: { nome: item.nome, tipoInsumo },
+  });
   if (existente) {
-    await prisma.update({
+    await p.categoria.update({
       where: { id: existente.id },
       data: { ordem: item.ordem, ativo: true },
     });
     return existente.id;
   }
-  const criado = await prisma.create({
-    data: { nome: item.nome, ordem: item.ordem },
+  const criado = await p.categoria.create({
+    data: { nome: item.nome, ordem: item.ordem, tipoInsumo },
+  });
+  return criado.id;
+}
+
+async function upsertLocalizacao(item: NomeOrdem): Promise<number> {
+  const existente = await p.localizacao.findFirst({
+    where: { nome: item.nome, tipoInsumo: 'EQUIPAMENTO' },
+  });
+  if (existente) {
+    await p.localizacao.update({
+      where: { id: existente.id },
+      data: { ordem: item.ordem, ativo: true },
+    });
+    return existente.id;
+  }
+  const criado = await p.localizacao.create({
+    data: { nome: item.nome, ordem: item.ordem, tipoInsumo: 'EQUIPAMENTO' },
+  });
+  return criado.id;
+}
+
+async function upsertEstadoConservacao(item: NomeOrdem): Promise<number> {
+  const existente = await p.estadoConservacao.findFirst({
+    where: { nome: item.nome, tipoInsumo: 'EQUIPAMENTO' },
+  });
+  if (existente) {
+    await p.estadoConservacao.update({
+      where: { id: existente.id },
+      data: { ordem: item.ordem, ativo: true },
+    });
+    return existente.id;
+  }
+  const criado = await p.estadoConservacao.create({
+    data: {
+      nome: item.nome,
+      ordem: item.ordem,
+      tipoInsumo: 'EQUIPAMENTO',
+    },
   });
   return criado.id;
 }
@@ -98,48 +120,50 @@ async function main() {
   console.log('│  Seed: Cadastros gerais (catálogos)         │');
   console.log('└─────────────────────────────────────────────┘\n');
 
-  const grupos: Array<
-    [string, Parameters<typeof upsertPorNome>[0], NomeOrdem[]]
-  > = [
-    ['Categorias de EPI', 'categoriaEpi', comOrdem(CATEGORIAS_EPI)],
+  const gruposCategoria: Array<[string, TipoInsumo, NomeOrdem[]]> = [
+    ['Categorias de EPI', 'EPI', comOrdem(CATEGORIAS_EPI)],
     [
       'Categorias de equipamento',
-      'categoriaEquipamento',
+      'EQUIPAMENTO',
       comOrdem(CATEGORIAS_EQUIPAMENTO),
     ],
-    [
-      'Categorias de material',
-      'categoriaMaterial',
-      comOrdem(CATEGORIAS_MATERIAL),
-    ],
-    ['Localizações', 'localizacao', comOrdem(LOCALIZACOES)],
-    [
-      'Estados de conservação',
-      'estadoConservacao',
-      comOrdem(ESTADOS_CONSERVACAO),
-    ],
+    ['Categorias de material', 'MATERIAL', comOrdem(CATEGORIAS_MATERIAL)],
   ];
 
-  for (const [titulo, model, itens] of grupos) {
+  for (const [titulo, tipo, itens] of gruposCategoria) {
     console.log(`--- ${titulo} (${itens.length}) ---`);
     for (const item of itens) {
-      const id = await upsertPorNome(model, item);
+      const id = await upsertCategoria(tipo, item);
       console.log(`  ✓ [${id}] ${item.nome} (ordem=${item.ordem})`);
     }
     console.log('');
   }
 
+  console.log(`--- Localizações (${LOCALIZACOES.length}) ---`);
+  for (const item of comOrdem(LOCALIZACOES)) {
+    const id = await upsertLocalizacao(item);
+    console.log(`  ✓ [${id}] ${item.nome} (ordem=${item.ordem})`);
+  }
+  console.log('');
+
+  console.log(`--- Estados de conservação (${ESTADOS_CONSERVACAO.length}) ---`);
+  for (const item of comOrdem(ESTADOS_CONSERVACAO)) {
+    const id = await upsertEstadoConservacao(item);
+    console.log(`  ✓ [${id}] ${item.nome} (ordem=${item.ordem})`);
+  }
+  console.log('');
+
   const [catsEpi, catsEqp, catsMat, locs, ests] = await Promise.all([
-    p.categoriaEpi.count(),
-    p.categoriaEquipamento.count(),
-    p.categoriaMaterial.count(),
-    p.localizacao.count(),
-    p.estadoConservacao.count(),
+    p.categoria.count({ where: { tipoInsumo: 'EPI' } }),
+    p.categoria.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
+    p.categoria.count({ where: { tipoInsumo: 'MATERIAL' } }),
+    p.localizacao.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
+    p.estadoConservacao.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
   ]);
 
   console.log(
-    `OK — categoria_epis=${catsEpi}, categoria_equipamentos=${catsEqp}, ` +
-      `categoria_materiais=${catsMat}, localizacoes=${locs}, estados_conservacao=${ests}`,
+    `OK — categorias EPI=${catsEpi}, EQUIPAMENTO=${catsEqp}, ` +
+      `MATERIAL=${catsMat}, localizacoes=${locs}, estados_conservacao=${ests}`,
   );
 }
 

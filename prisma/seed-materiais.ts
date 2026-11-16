@@ -394,18 +394,29 @@ MC PROOF DF 8 (Manta acrílica impermeável altamente flexível - 12 Kg)	BALDE	M
 
 // ── Normalização ──────────────────────────────────────────────────
 const UNIT_MAP: Record<string, string> = {
-  'CAIXA': 'CX', 'CAIXA 15KG': 'CX', 'CAIXA 18 KG': 'CX',
+  CAIXA: 'CX',
+  'CAIXA 15KG': 'CX',
+  'CAIXA 18 KG': 'CX',
   'M²': 'M2',
-  'Metro': 'METRO', 'METRO LINEAR': 'METRO',
-  'Unidade': 'UNIDADE',
-  '1 L': 'L', '5 L': 'L', '18 L': 'L',
-  'GALÃO 4 KG': 'GALÃO', 'GALÃO 3,6 L': 'GALÃO',
-  'BALDE 18 L': 'BALDE', 'BALDE 3,6L': 'BALDE', 'BALDE 12K': 'BALDE', 'BALDE 4,5': 'BALDE',
-  'BALDE 18L': 'BALDE', 'BALDE 3,6L': 'BALDE', 'BALDE 12K': 'BALDE', 'BALDE 4,5': 'BALDE',
+  Metro: 'METRO',
+  'METRO LINEAR': 'METRO',
+  Unidade: 'UNIDADE',
+  '1 L': 'L',
+  '5 L': 'L',
+  '18 L': 'L',
+  'GALÃO 4 KG': 'GALÃO',
+  'GALÃO 3,6 L': 'GALÃO',
+  'BALDE 18 L': 'BALDE',
+  'BALDE 3,6L': 'BALDE',
+  'BALDE 12K': 'BALDE',
+  'BALDE 4,5': 'BALDE',
+  'BALDE 18L': 'BALDE',
   'LATA 0,9L': 'LATA',
-  'CONJUNTO 3,5': 'CONJUNTO', 'CONJUNTO 3,6': 'CONJUNTO', 'CONJUNTO 18KG': 'CONJUNTO',
-  'Galão': 'GALÃO',
-  'BALDINHO': 'BALDE',
+  'CONJUNTO 3,5': 'CONJUNTO',
+  'CONJUNTO 3,6': 'CONJUNTO',
+  'CONJUNTO 18KG': 'CONJUNTO',
+  Galão: 'GALÃO',
+  BALDINHO: 'BALDE',
 };
 
 // Catálogo de marcas (upsert distinto, sem auto-link posicional aos materiais)
@@ -430,26 +441,26 @@ const FORN_MAP: Record<string, string> = {
   'MC - BALCHEMIE': 'Mc - Balchemie',
   'MC- BALCHEMIE': 'Mc - Balchemie',
   'MC-BALCHEMIE': 'Mc - Balchemie',
-  'CENTERGEO': 'Centergeo',
-  'AXTON': 'Feruni Axton',
-  'DENVER': 'Denver',
-  'VIAPOL': 'Viapol',
-  'MERCANTIL': 'Mercantil',
-  'DISTRIMAC': 'Distrimac',
-  'MACFEX': 'Macfex',
-  'MACCAFERRY': 'Maccaferry',
-  'SACHI': 'Sachi',
-  'SIKA': 'Sika',
-  'SOPREMA': 'Soprema',
-  'SUPERMERCADO': 'Supermercado',
+  CENTERGEO: 'Centergeo',
+  AXTON: 'Feruni Axton',
+  DENVER: 'Denver',
+  VIAPOL: 'Viapol',
+  MERCANTIL: 'Mercantil',
+  DISTRIMAC: 'Distrimac',
+  MACFEX: 'Macfex',
+  MACCAFERRY: 'Maccaferry',
+  SACHI: 'Sachi',
+  SIKA: 'Sika',
+  SOPREMA: 'Soprema',
+  SUPERMERCADO: 'Supermercado',
   'CASA DUARTE': 'Casa Duarte',
   'CASA SÃO JULIÃO': 'Casa São Julião',
   'PAPELARIA REAL': 'Papelaria Real',
   'IRMÃO ALMEIDA': 'Irmão Almeida',
   'CASA DAS EMBALAGENS': 'Casa das Embalagens',
   'UNIÃO AGROPECUARIA': 'União Agropecuária',
-  'ERNETEX': 'Ernetex',
-  'CENTERGEL': 'Centergel',
+  ERNETEX: 'Ernetex',
+  CENTERGEL: 'Centergel',
 };
 
 function normUnit(raw: string): string {
@@ -502,20 +513,20 @@ async function main() {
     console.log('Rollback: removendo materiais criados pelo seed-materiais...');
     // Materiais sem código EPI- nem PAT- são os nossos
     const del = await p.material.deleteMany({
-      where: { nome: { in: ROWS.map(r => r.nome) } },
+      where: { nome: { in: ROWS.map((r) => r.nome) } },
     });
     console.log(`Removidos: ${del.count} materiais`);
     return;
   }
 
   // 1. Unidades de medida
-  const allUnits = [...new Set(ROWS.map(r => r.unidade))];
+  const allUnits = [...new Set(ROWS.map((r) => r.unidade))];
   console.log(`--- Unidades de medida (${allUnits.length}) ---`);
   const umMap: Record<string, number> = {};
   for (const nome of allUnits) {
     const rec = await p.unidadeMedida.upsert({
-      where: { nome },
-      create: { nome },
+      where: { nome_tipoInsumo: { nome, tipoInsumo: 'MATERIAL' } },
+      create: { nome, tipoInsumo: 'MATERIAL' },
       update: {},
     });
     umMap[nome] = rec.id;
@@ -523,16 +534,22 @@ async function main() {
   }
 
   // 2. Fornecedores
-  const allForn = [...new Set(ROWS.filter(r => r.fornecedor).map(r => r.fornecedor!))];
+  const allForn = [
+    ...new Set(ROWS.filter((r) => r.fornecedor).map((r) => r.fornecedor!)),
+  ];
   console.log(`\n--- Fornecedores (${allForn.length}) ---`);
   const fornMap: Record<string, number> = {};
   for (const nome of allForn) {
-    const existing = await p.fornecedor.findFirst({ where: { nome } });
+    const existing = await p.fornecedor.findFirst({
+      where: { nome, tipoInsumo: 'MATERIAL' },
+    });
     if (existing) {
       fornMap[nome] = existing.id;
       console.log(`  ${existing.nome} (id=${existing.id}) [existente]`);
     } else {
-      const rec = await p.fornecedor.create({ data: { nome } });
+      const rec = await p.fornecedor.create({
+        data: { nome, tipoInsumo: 'MATERIAL' },
+      });
       fornMap[nome] = rec.id;
       console.log(`  ${rec.nome} (id=${rec.id}) [criado]`);
     }
@@ -541,8 +558,12 @@ async function main() {
   // 2.5. Catálogo de marcas (upsert distinto, sem auto-link posicional)
   console.log(`\n--- Marcas (${MARCAS.length}) ---`);
   for (const nome of MARCAS) {
-    const existing = await p.marca.findFirst({ where: { nome } });
-    const rec = existing ?? (await p.marca.create({ data: { nome } }));
+    const existing = await p.marca.findFirst({
+      where: { nome, tipoInsumo: 'MATERIAL' },
+    });
+    const rec =
+      existing ??
+      (await p.marca.create({ data: { nome, tipoInsumo: 'MATERIAL' } }));
     console.log(`  ${rec.nome} (id=${rec.id})`);
   }
 
@@ -569,7 +590,9 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Seed materiais: ${criados} criados, ${erros} erros/duplicados.`);
+  console.log(
+    `\n✅ Seed materiais: ${criados} criados, ${erros} erros/duplicados.`,
+  );
 }
 
 main()

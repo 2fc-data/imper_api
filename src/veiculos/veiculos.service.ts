@@ -135,15 +135,15 @@ export class VeiculosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.marca.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'VEICULO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.cor.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'VEICULO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.tipoManutencao.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'VEICULO' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
@@ -828,19 +828,19 @@ export class VeiculosService {
     }
     if (data.marcaId !== undefined) {
       const marca = await this.prisma.marca.findFirst({
-        where: { id: data.marcaId, ativo: true },
+        where: { id: data.marcaId, ativo: true, tipoInsumo: 'VEICULO' },
       });
       if (!marca) throw new AppError(422, 'Marca inválida');
     }
     if (data.corId !== undefined) {
       const cor = await this.prisma.cor.findFirst({
-        where: { id: data.corId, ativo: true },
+        where: { id: data.corId, ativo: true, tipoInsumo: 'VEICULO' },
       });
       if (!cor) throw new AppError(422, 'Cor inválida');
     }
     if (data.fabricanteId !== undefined) {
       const marca = await this.prisma.marca.findFirst({
-        where: { id: data.fabricanteId, ativo: true },
+        where: { id: data.fabricanteId, ativo: true, tipoInsumo: 'VEICULO' },
       });
       if (!marca) throw new AppError(422, 'Fabricante inválido');
     }

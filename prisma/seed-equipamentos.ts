@@ -390,12 +390,22 @@ async function main() {
     console.log('Rollback: removendo equipamentos EQP-* sem movimentação...');
     const all = await p.equipamento.findMany({
       where: { codigo: { startsWith: 'EQP-' } },
-      select: { id: true, codigo: true, _count: { select: { manutencoes: true, retiradas: true } } },
+      select: {
+        id: true,
+        codigo: true,
+        _count: { select: { manutencoes: true, retiradas: true } },
+      },
     });
-    const removiveis = all.filter((e) => e._count.manutencoes === 0 && e._count.retiradas === 0);
+    const removiveis = all.filter(
+      (e) => e._count.manutencoes === 0 && e._count.retiradas === 0,
+    );
     if (removiveis.length > 0) {
-      const del = await p.equipamento.deleteMany({ where: { id: { in: removiveis.map((e) => e.id) } } });
-      console.log(`  Removidos: ${del.count} (os demais têm movimentação e foram mantidos)`);
+      const del = await p.equipamento.deleteMany({
+        where: { id: { in: removiveis.map((e) => e.id) } },
+      });
+      console.log(
+        `  Removidos: ${del.count} (os demais têm movimentação e foram mantidos)`,
+      );
     } else {
       console.log('  Nenhum equipamento EQP-* sem movimentação.');
     }
@@ -406,10 +416,14 @@ async function main() {
   console.log('--- Status de equipamento ---');
   const statusMap: Record<string, number> = {};
   for (const s of STATUS) {
-    const existing = await p.statusEquipamento.findFirst({ where: { nome: s.nome } });
+    const existing = await p.statusEquipamento.findFirst({
+      where: { nome: s.nome, tipoInsumo: 'EQUIPAMENTO' },
+    });
     const rec =
       existing ??
-      (await p.statusEquipamento.create({ data: { nome: s.nome, ordem: s.ordem } }));
+      (await p.statusEquipamento.create({
+        data: { nome: s.nome, ordem: s.ordem, tipoInsumo: 'EQUIPAMENTO' },
+      }));
     statusMap[s.nome] = rec.id;
     console.log(`  ${rec.nome} (id=${rec.id})`);
   }
@@ -417,8 +431,10 @@ async function main() {
 
   // 2. Unidade de medida
   const um = await p.unidadeMedida.upsert({
-    where: { nome: 'UNIDADE' },
-    create: { nome: 'UNIDADE' },
+    where: {
+      nome_tipoInsumo: { nome: 'UNIDADE', tipoInsumo: 'EQUIPAMENTO' },
+    },
+    create: { nome: 'UNIDADE', tipoInsumo: 'EQUIPAMENTO' },
     update: {},
   });
   console.log(`\n--- Unidade: ${um.nome} (id=${um.id}) ---`);
@@ -426,7 +442,9 @@ async function main() {
   // 3. Dedup estático + existentes no banco
   console.log('\n--- Inserindo equipamentos ---');
   const seen = new Set<string>();
-  const existentes = await p.equipamento.findMany({ select: { descricao: true } });
+  const existentes = await p.equipamento.findMany({
+    select: { descricao: true },
+  });
   for (const e of existentes) seen.add(normalize(e.descricao));
 
   let criados = 0;
@@ -451,7 +469,9 @@ async function main() {
     criados++;
   }
 
-  console.log(`\n✅ Seed equipamentos: ${criados} criados, ${pulados} já existentes/pulados.`);
+  console.log(
+    `\n✅ Seed equipamentos: ${criados} criados, ${pulados} já existentes/pulados.`,
+  );
 }
 
 main()

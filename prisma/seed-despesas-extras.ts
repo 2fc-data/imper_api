@@ -79,13 +79,16 @@ async function main() {
   const tiposMap = new Map<string, number>();
   for (const t of TIPOS_PADRAO) {
     const tipo = await p.tipoDespesa.upsert({
-      where: { nome: t.nome },
+      where: {
+        nome_tipoInsumo: { nome: t.nome, tipoInsumo: 'DESPESAS_EXTRAS' },
+      },
       create: {
         nome: t.nome,
         descricao: t.descricao,
         requerObra: t.requerObra,
         ativo: true,
         ordem: t.ordem,
+        tipoInsumo: 'DESPESAS_EXTRAS',
       },
       update: {
         descricao: t.descricao,
@@ -94,13 +97,17 @@ async function main() {
       },
     });
     tiposMap.set(t.nome, tipo.id);
-    console.log(`  🏷️  Tipo: ${t.nome} (ID: ${tipo.id}, requerObra: ${t.requerObra})`);
+    console.log(
+      `  🏷️  Tipo: ${t.nome} (ID: ${tipo.id}, requerObra: ${t.requerObra})`,
+    );
   }
 
   // Garante unidade de medida padrão
   const um = await p.unidadeMedida.upsert({
-    where: { nome: 'UNIDADE' },
-    create: { nome: 'UNIDADE' },
+    where: {
+      nome_tipoInsumo: { nome: 'UNIDADE', tipoInsumo: 'MATERIAL' },
+    },
+    create: { nome: 'UNIDADE', tipoInsumo: 'MATERIAL' },
     update: {},
   });
 
@@ -133,7 +140,9 @@ async function main() {
     console.log(`  ✅ ${nome}`);
   }
 
-  console.log(`\n✅ Seed despesas extras concluído: ${criados} criados, ${existentes} já existiam.`);
+  console.log(
+    `\n✅ Seed despesas extras concluído: ${criados} criados, ${existentes} já existiam.`,
+  );
 }
 
 main()

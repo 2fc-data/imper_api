@@ -50,28 +50,30 @@ export class MateriaisService {
     private readonly prisma: PrismaService,
     private readonly lookup: LookupService,
   ) {
-    this.categorias = this.lookup.criarCrud(this.prisma.categoriaMaterial, {
+    this.categorias = this.lookup.criarCrud(this.prisma.categoria, {
       labelSingular: 'Categoria',
       duplicateMessage: () => 'Categoria já cadastrada',
+      tipoInsumo: 'MATERIAL',
     });
-    this.subcategorias = this.lookup.criarCrud(
-      this.prisma.subcategoriaMaterial,
-      {
-        labelSingular: 'Subcategoria',
-        duplicateMessage: () => 'Subcategoria já cadastrada',
-      },
-    );
+    this.subcategorias = this.lookup.criarCrud(this.prisma.subcategoria, {
+      labelSingular: 'Subcategoria',
+      duplicateMessage: () => 'Subcategoria já cadastrada',
+      tipoInsumo: 'MATERIAL',
+    });
     this.marcas = this.lookup.criarCrud(this.prisma.marca, {
       labelSingular: 'Marca',
       duplicateMessage: () => 'Marca já cadastrada',
+      tipoInsumo: 'MATERIAL',
     });
     this.cores = this.lookup.criarCrud(this.prisma.cor, {
       labelSingular: 'Cor',
       duplicateMessage: () => 'Cor já cadastrada',
+      tipoInsumo: 'MATERIAL',
     });
     this.unidadesMedida = this.lookup.criarCrud(this.prisma.unidadeMedida, {
       labelSingular: 'Unidade de medida',
       duplicateMessage: () => 'Unidade de medida já cadastrada',
+      tipoInsumo: 'MATERIAL',
     });
   }
 
@@ -79,7 +81,10 @@ export class MateriaisService {
 
   async listarTiposDespesas(ativo?: boolean) {
     return this.prisma.tipoDespesa.findMany({
-      where: ativo === undefined ? {} : { ativo },
+      where: {
+        tipoInsumo: 'DESPESAS_EXTRAS',
+        ...(ativo === undefined ? {} : { ativo }),
+      },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
     });
   }
@@ -92,7 +97,7 @@ export class MateriaisService {
   }) {
     const nomeTrim = data.nome.trim();
     const exists = await this.prisma.tipoDespesa.findFirst({
-      where: { nome: normalize(nomeTrim) },
+      where: { nome: normalize(nomeTrim), tipoInsumo: 'DESPESAS_EXTRAS' },
     });
     if (exists) throw new AppError(409, 'Tipo de despesa já cadastrado');
 
@@ -103,6 +108,7 @@ export class MateriaisService {
         requerObra: !!data.requerObra,
         ordem: data.ordem ?? 0,
         ativo: true,
+        tipoInsumo: 'DESPESAS_EXTRAS',
       },
     });
   }
@@ -120,7 +126,11 @@ export class MateriaisService {
     if (data.nome) {
       const nomeTrim = data.nome.trim();
       const exists = await this.prisma.tipoDespesa.findFirst({
-        where: { nome: normalize(nomeTrim), NOT: { id } },
+        where: {
+          nome: normalize(nomeTrim),
+          tipoInsumo: 'DESPESAS_EXTRAS',
+          NOT: { id },
+        },
       });
       if (exists) throw new AppError(409, 'Tipo de despesa já cadastrado');
       data.nome = nomeTrim;
@@ -219,29 +229,29 @@ export class MateriaisService {
       tiposDespesas,
       obras,
     ] = await Promise.all([
-      this.prisma.categoriaMaterial.findMany({
-        where: { ativo: true },
+      this.prisma.categoria.findMany({
+        where: { ativo: true, tipoInsumo: 'MATERIAL' },
         orderBy: { nome: 'asc' },
       }),
-      this.prisma.subcategoriaMaterial.findMany({
-        where: { ativo: true },
+      this.prisma.subcategoria.findMany({
+        where: { ativo: true, tipoInsumo: 'MATERIAL' },
         include: { categoria: true },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.marca.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'MATERIAL' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.cor.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'MATERIAL' },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.unidadeMedida.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'MATERIAL' },
         orderBy: { ordem: 'asc' },
       }),
       this.prisma.tipoDespesa.findMany({
-        where: { ativo: true },
+        where: { ativo: true, tipoInsumo: 'DESPESAS_EXTRAS' },
         orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       }),
       this.prisma.obra.findMany({
@@ -484,8 +494,8 @@ export class MateriaisService {
   }
 
   async listarSubcategorias() {
-    return this.prisma.subcategoriaMaterial.findMany({
-      where: { ativo: true },
+    return this.prisma.subcategoria.findMany({
+      where: { ativo: true, tipoInsumo: 'MATERIAL' },
       include: { categoria: true },
       orderBy: { nome: 'asc' },
     });
