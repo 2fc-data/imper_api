@@ -334,7 +334,7 @@ export class MateriaisService {
   async criar(dto: MaterialInputDto) {
     const nomeUpper = dto.nome.toUpperCase();
     const exists = await this.prisma.material.findFirst({
-      where: { nome: normalize(nomeUpper) },
+      where: { nome: normalize(nomeUpper), status: 'ATIVO' },
     });
     if (exists) throw new AppError(409, 'Material já cadastrado');
 
@@ -387,7 +387,7 @@ export class MateriaisService {
     if (dto.nome) {
       const nomeUpper = dto.nome.toUpperCase();
       const exists = await this.prisma.material.findFirst({
-        where: { nome: normalize(nomeUpper), NOT: { id } },
+        where: { nome: normalize(nomeUpper), NOT: { id }, status: 'ATIVO' },
       });
       if (exists) throw new AppError(409, 'Material já cadastrado');
     }
@@ -585,10 +585,7 @@ export class MateriaisService {
 
   async excluir(id: number) {
     await this.detalhar(id);
-    return this.prisma.material.update({
-      where: { id },
-      data: { status: 'INATIVO' },
-    });
+    return this.prisma.material.delete({ where: { id } });
   }
 
   async registrarSaida(id: number, dto: MaterialMovimentoDto, userId?: number) {

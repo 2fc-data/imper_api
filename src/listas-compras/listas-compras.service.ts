@@ -4,16 +4,29 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Buffer } from 'node:buffer';
+import { extname } from 'node:path';
 import type { Prisma, SetorCompra, TipoListaCompra } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { SalvarItensListaInput } from '../schemas/listas-compras.js';
+import type {
+  ComprarItemInput,
+  SalvarItensListaInput,
+} from '../schemas/listas-compras.js';
+import { notificarUsuarios } from '../lib/notificacao';
 
 export const TRAVADOS = ['ENVIADA', 'APROVADA', 'COMPRADA'] as const;
 
 const INCLUDE_ITEM: Prisma.ListaCompraItemInclude = {
-  material: { include: { unidade: true, saldo: true } },
+  material: {
+    include: {
+      unidade: true,
+      saldo: true,
+      fornecedor: { select: { id: true, nome: true } },
+    },
+  },
   epi: { include: { unidadeMedida: true } },
   equipamento: { include: { unidadeMedida: true } },
+  fornecedor: { select: { id: true, nome: true } },
   adicionadoPor: { select: { id: true, nome: true } },
   compradoPor: { select: { id: true, nome: true } },
 };
@@ -89,16 +102,24 @@ export class ListasComprasService {
       );
     }
 
+    await this.validarFornecedores(input.itens);
+
     const resolvidos: {
       materialId?: number;
       epiId?: number;
       equipamentoId?: number;
       quantidade: number;
+      fornecedorId: number | null;
+      valorUnitario: number | null;
+      dataCompra: Date | null;
     }[] = [];
     for (const item of input.itens) {
       resolvidos.push({
         ...(await this.resolverItem(tipo, item.itemId)),
         quantidade: item.quantidade,
+        fornecedorId: item.fornecedorId ?? null,
+        valorUnitario: item.valorUnitario ?? null,
+        dataCompra: this.parseDataCompra(item.dataCompra),
       });
     }
 
@@ -123,6 +144,9 @@ export class ListasComprasService {
             epiId: r.epiId ?? null,
             equipamentoId: r.equipamentoId ?? null,
             quantidade: r.quantidade,
+            fornecedorId: r.fornecedorId,
+            valorUnitario: r.valorUnitario,
+            dataCompra: r.dataCompra,
             adicionadoPorId: usuarioId,
           })),
         }),
@@ -207,6 +231,7 @@ export class ListasComprasService {
       data: {
         status: 'PENDENTE',
         custoReal: null,
+        dataCompra: null,
         compradoPorId: null,
         compradoEm: null,
       },
@@ -303,7 +328,7 @@ export class ListasComprasService {
   async comprarItem(
     listaId: number,
     itemId: number,
-    custoReal: number | undefined,
+    input: ComprarItemInput,
     usuarioId: number,
   ) {
     const lista = await this.buscarOuFalhar(listaId);
@@ -312,11 +337,32 @@ export class ListasComprasService {
         'Compras só em listas aprovadas (ou enviadas)',
       );
     }
+    const item = lista.itens.find((i) => i.id === itemId);
+    if (!item) {
+      throw new BadRequestException('Item não pertence à lista');
+    }
+    const quantidade = Number(item.quantidade);
+    const valorUnitario =
+      input.valorUnitario ??
+      (item.valorUnitario != null ? Number(item.valorUnitario) : null);
+    const custoReal =
+      input.custoReal ??
+      (valorUnitario != null
+        ? Number((valorUnitario * quantidade).toFixed(2))
+        : null);
+    const fornecedorId =
+      input.fornecedorId !== undefined ? input.fornecedorId : item.fornecedorId;
+    const dataCompra = input.dataCompra
+      ? new Date(input.dataCompra)
+      : (item.dataCompra ?? new Date());
     const r = await this.prisma.listaCompraItem.updateMany({
       where: { id: itemId, listaId, status: { not: 'COMPRADO' } },
       data: {
         status: 'COMPRADO',
-        custoReal: custoReal ?? null,
+        valorUnitario,
+        custoReal,
+        fornecedorId,
+        dataCompra,
         compradoPorId: usuarioId,
         compradoEm: new Date(),
       },
@@ -326,6 +372,34 @@ export class ListasComprasService {
     }
     await this.marcarCompradaSeNecessario(listaId);
     return this.buscarOuFalhar(listaId);
+  }
+
+  private parseDataCompra(valor: string | null | undefined): Date | null {
+    if (!valor) return null;
+    const data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  private async validarFornecedores(
+    itens: { fornecedorId?: number | null }[],
+  ): Promise<void> {
+    const ids = [
+      ...new Set(
+        itens
+          .map((i) => i.fornecedorId)
+          .filter((id): id is number => typeof id === 'number'),
+      ),
+    ];
+    if (ids.length === 0) return;
+    const encontrados = await this.prisma.fornecedor.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    });
+    const existentes = new Set(encontrados.map((f) => f.id));
+    const ausente = ids.find((id) => !existentes.has(id));
+    if (ausente != null) {
+      throw new BadRequestException(`Fornecedor #${ausente} não encontrado`);
+    }
   }
 
   private async itensSemPendencia(listaId: number) {

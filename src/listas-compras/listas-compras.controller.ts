@@ -131,7 +131,7 @@ export class ListasComprasController {
     return this.service.comprarItem(
       Number(id),
       Number(itemId),
-      body.custoReal,
+      body,
       req.user?.id ?? 0,
     );
   }

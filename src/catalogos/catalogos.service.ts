@@ -287,10 +287,19 @@ export class CatalogosService {
   ) {
     recurso = this.resolverRecurso(recurso);
     const def = this.definicao(recurso);
-    this.validarTipo(recurso, tipo);
+
+    if (data.tipoInsumo !== undefined && typeof data.tipoInsumo !== 'string') {
+      throw new AppError(400, 'Tipo de insumo inválido');
+    }
+    const tipoCorpo =
+      typeof data.tipoInsumo === 'string'
+        ? this.parseTipo(data.tipoInsumo)
+        : undefined;
+    const tipoNovo = tipoCorpo ?? tipo;
+    this.validarTipo(recurso, tipoNovo);
 
     if (recurso === 'subcategorias') {
-      return this.atualizarSubcategoria(id, data, def.fixo ?? tipo);
+      return this.atualizarSubcategoria(id, data, def.fixo ?? tipoNovo);
     }
 
     const dados = this.sanitizar(def, data);
@@ -298,7 +307,58 @@ export class CatalogosService {
       throw new AppError(400, 'Informe o nome');
     }
 
-    return this.crud(recurso, def.fixo ?? tipo).atualizar(id, dados);
+    let tipoEfetivo = def.fixo ?? tipoNovo;
+
+    if (recurso === 'fornecedores') {
+      const atual = await this.prisma.fornecedor.findUnique({
+        where: { id },
+        select: { tipoInsumo: true, cnpj: true },
+      });
+      if (!atual) throw new AppError(404, 'Fornecedor não encontrado');
+      tipoEfetivo = tipoEfetivo ?? atual.tipoInsumo;
+      const cnpj = 'cnpj' in dados ? dados.cnpj : atual.cnpj;
+      if (cnpj) {
+        const conflito = await this.prisma.fornecedor.findFirst({
+          where: {
+            cnpj: String(cnpj),
+            tipoInsumo: tipoEfetivo,
+            NOT: { id },
+          },
+          select: { id: true },
+        });
+        if (conflito) {
+          throw new AppError(
+            409,
+            `Já existe fornecedor com este CNPJ para ${tipoEfetivo}`,
+          );
+        }
+      }
+    }
+
+    if (recurso === 'categorias' && tipoNovo) {
+      const atual = await this.prisma.categoria.findUnique({
+        where: { id },
+        select: { tipoInsumo: true },
+      });
+      if (!atual) throw new AppError(404, 'Categoria não encontrada');
+      if (atual.tipoInsumo !== tipoNovo) {
+        const filhas = await this.prisma.subcategoria.count({
+          where: { categoriaId: id },
+        });
+        if (filhas > 0) {
+          throw new AppError(
+            409,
+            `Não é possível alterar o tipo: existem ${filhas} subcategoria(s) vinculada(s). Mova ou remova antes.`,
+          );
+        }
+      }
+    }
+
+    if (tipoNovo && tipoNovo !== def.fixo) {
+      dados.tipoInsumo = tipoNovo;
+    }
+
+    return this.crud(recurso, tipoEfetivo).atualizar(id, dados);
   }
 
   async desativar(recurso: RecursoCatalogos, id: number) {

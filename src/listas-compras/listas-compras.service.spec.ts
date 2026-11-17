@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { TipoListaCompra } from '@prisma/client';
 import { ListasComprasService } from './listas-compras.service.js';
 
@@ -26,6 +30,7 @@ const mockPrisma = {
   material: { findFirst: vi.fn() },
   epi: { findFirst: vi.fn() },
   equipamento: { findFirst: vi.fn() },
+  fornecedor: { findMany: vi.fn() },
 };
 
 function servico() {
@@ -92,11 +97,85 @@ describe('ListasComprasService — salvarItens', () => {
           epiId: null,
           equipamentoId: null,
           quantidade: 2,
+          fornecedorId: null,
+          valorUnitario: null,
+          dataCompra: null,
           adicionadoPorId: 99,
         },
       ],
     });
     expect(r.id).toBe(1);
+  });
+
+  it('persiste fornecedor, valor unitário e data do item', async () => {
+    mockPrisma.listaCompra.findFirst.mockResolvedValue({
+      id: 5,
+      status: 'ABERTA',
+    });
+    mockPrisma.listaCompra.findUnique.mockResolvedValue({
+      id: 5,
+      status: 'ABERTA',
+    });
+    mockPrisma.material.findFirst.mockResolvedValue({ id: 7 });
+    mockPrisma.fornecedor.findMany.mockResolvedValue([{ id: 2 }]);
+    mockPrisma.listaCompraItem.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.listaCompraItem.createMany.mockResolvedValue({ count: 1 });
+
+    await servico().salvarItens(
+      'MATERIAL',
+      'LOJA',
+      3,
+      2026,
+      {
+        itens: [
+          {
+            itemId: 7,
+            quantidade: 2,
+            fornecedorId: 2,
+            valorUnitario: 9.9,
+            dataCompra: '2026-11-10',
+          },
+        ],
+      },
+      42,
+    );
+
+    expect(mockPrisma.fornecedor.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [2] } },
+      select: { id: true },
+    });
+    expect(mockPrisma.listaCompraItem.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          listaId: 5,
+          materialId: 7,
+          epiId: null,
+          equipamentoId: null,
+          quantidade: 2,
+          fornecedorId: 2,
+          valorUnitario: 9.9,
+          dataCompra: new Date('2026-11-10'),
+          adicionadoPorId: 42,
+        },
+      ],
+    });
+  });
+
+  it('rejeita fornecedor inexistente', async () => {
+    mockPrisma.listaCompra.findFirst.mockResolvedValue(null);
+    mockPrisma.material.findFirst.mockResolvedValue({ id: 7 });
+    mockPrisma.fornecedor.findMany.mockResolvedValue([]);
+
+    await expect(
+      servico().salvarItens(
+        'MATERIAL',
+        'LOJA',
+        3,
+        2026,
+        { itens: [{ itemId: 7, quantidade: 1, fornecedorId: 99 }] },
+        1,
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('rejeita itemId inexistente para o domínio', async () => {
@@ -160,6 +239,9 @@ describe('ListasComprasService — salvarItens', () => {
           epiId: 3,
           equipamentoId: null,
           quantidade: 10,
+          fornecedorId: null,
+          valorUnitario: null,
+          dataCompra: null,
           adicionadoPorId: 42,
         },
       ],
@@ -200,6 +282,7 @@ describe('transições', () => {
       data: {
         status: 'PENDENTE',
         custoReal: null,
+        dataCompra: null,
         compradoPorId: null,
         compradoEm: null,
       },
@@ -281,22 +364,37 @@ describe('transições', () => {
     });
   });
 
-  it('comprarItem: marca COMPRADO com custo e avalia COMPRADA automática', async () => {
+  it('comprarItem: calcula o total pelo valor unitário e avalia COMPRADA automática', async () => {
     mockPrisma.listaCompra.findUnique
-      .mockResolvedValueOnce({ id: 5, status: 'APROVADA' })
+      .mockResolvedValueOnce({
+        id: 5,
+        status: 'APROVADA',
+        itens: [
+          {
+            id: 11,
+            quantidade: 2,
+            valorUnitario: null,
+            fornecedorId: null,
+            dataCompra: null,
+          },
+        ],
+      })
       .mockResolvedValueOnce({ id: 5, status: 'APROVADA' });
     mockPrisma.listaCompraItem.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.listaCompraItem.findMany.mockResolvedValue([
       { id: 1, status: 'COMPRADO' },
     ]);
 
-    await servico().comprarItem(5, 11, 12.5, 9);
+    await servico().comprarItem(5, 11, { valorUnitario: 12.5 }, 9);
 
     expect(mockPrisma.listaCompraItem.updateMany).toHaveBeenCalledWith({
       where: { id: 11, listaId: 5, status: { not: 'COMPRADO' } },
       data: {
         status: 'COMPRADO',
-        custoReal: 12.5,
+        valorUnitario: 12.5,
+        custoReal: 25,
+        fornecedorId: null,
+        dataCompra: expect.any(Date),
         compradoPorId: 9,
         compradoEm: expect.any(Date),
       },
@@ -304,6 +402,48 @@ describe('transições', () => {
     expect(mockPrisma.listaCompra.updateMany).toHaveBeenCalledWith({
       where: { id: 5, status: 'APROVADA' },
       data: { status: 'COMPRADA' },
+    });
+  });
+
+  it('comprarItem: aceita custoReal explícito e data informada', async () => {
+    mockPrisma.listaCompra.findUnique
+      .mockResolvedValueOnce({
+        id: 5,
+        status: 'APROVADA',
+        itens: [
+          {
+            id: 11,
+            quantidade: 3,
+            valorUnitario: 4,
+            fornecedorId: 2,
+            dataCompra: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ id: 5, status: 'APROVADA' });
+    mockPrisma.listaCompraItem.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.listaCompraItem.findMany.mockResolvedValue([
+      { id: 11, status: 'COMPRADO' },
+    ]);
+
+    await servico().comprarItem(
+      5,
+      11,
+      { custoReal: 10, dataCompra: '2026-11-10' },
+      9,
+    );
+
+    expect(mockPrisma.listaCompraItem.updateMany).toHaveBeenCalledWith({
+      where: { id: 11, listaId: 5, status: { not: 'COMPRADO' } },
+      data: {
+        status: 'COMPRADO',
+        valorUnitario: 4,
+        custoReal: 10,
+        fornecedorId: 2,
+        dataCompra: new Date('2026-11-10'),
+        compradoPorId: 9,
+        compradoEm: expect.any(Date),
+      },
     });
   });
 
