@@ -150,7 +150,8 @@ export class EquipamentosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
-        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
+        where: { ativo: true },
+        distinct: ['nome'],
         orderBy: { nome: 'asc' },
       }),
       this.prisma.statusEquipamento.findMany({
@@ -166,12 +167,16 @@ export class EquipamentosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
-        where: { ativo: true },
+        where: {
+          ativo: true,
+          papeis: { none: { papel: { nome: 'CLIENTE' } } },
+        },
         select: { id: true, nome: true },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.unidadeMedida.findMany({
-        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
+        where: { ativo: true },
+        distinct: ['nome'],
         orderBy: { nome: 'asc' },
       }),
     ]);
@@ -264,7 +269,11 @@ export class EquipamentosService {
   }
 
   async listarFornecedores() {
-    return this.fornecedores.listar();
+    return this.prisma.fornecedor.findMany({
+      where: { ativo: true },
+      distinct: ['nome'],
+      orderBy: { nome: 'asc' },
+    });
   }
   async criarFornecedor(data: {
     nome: string;
@@ -418,6 +427,51 @@ export class EquipamentosService {
     });
 
     return { codigo: calcularProximoCodigo(existentes, 'EQP-', 3) };
+  }
+
+  async patrimoniosDisponiveis(): Promise<{
+    disponiveis: number[];
+    proximo: number;
+    existentes: number[];
+  }> {
+    const equipamentos = await this.prisma.equipamento.findMany({
+      where: { numeroPatrimonio: { not: null } },
+      select: { numeroPatrimonio: true },
+    });
+
+    const numerosExistentes = new Set<number>();
+    for (const eq of equipamentos) {
+      if (!eq.numeroPatrimonio) continue;
+      const num = parseInt(eq.numeroPatrimonio.trim(), 10);
+      if (!Number.isNaN(num) && num > 0) {
+        numerosExistentes.add(num);
+      }
+    }
+
+    if (numerosExistentes.size === 0) {
+      return {
+        disponiveis: [],
+        proximo: 1,
+        existentes: [],
+      };
+    }
+
+    const ordenados = Array.from(numerosExistentes).sort((a, b) => a - b);
+    const max = ordenados[ordenados.length - 1]!;
+    const proximo = max + 1;
+
+    const lacunas: number[] = [];
+    for (let i = 1; i <= max; i++) {
+      if (!numerosExistentes.has(i)) {
+        lacunas.push(i);
+      }
+    }
+
+    return {
+      disponiveis: lacunas,
+      proximo,
+      existentes: ordenados,
+    };
   }
 
   async criar(data: EquipamentoCriarInput) {

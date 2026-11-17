@@ -32,13 +32,36 @@ const PERMISSOES = [
   },
 ];
 
-// ADMIN recebe as 5 (inclui aprovar_aditivo); SUPERVISOR recebe 4 (sem aprovar_aditivo)
+// ADMIN/ADMINISTRATIVO recebe as 5 (inclui aprovar_aditivo); SUPERVISOR/SUPERVISOR OBRAS recebe 4 (sem aprovar_aditivo)
 const VINCULOS: Record<string, string[]> = {
-  ver_obras: ['ADMIN', 'SUPERVISOR'],
-  editar_obra: ['ADMIN', 'SUPERVISOR'],
-  criar_aditivo: ['ADMIN', 'SUPERVISOR'],
-  aprovar_aditivo: ['ADMIN'],
-  criar_execucao: ['ADMIN', 'SUPERVISOR'],
+  ver_obras: [
+    'ADMIN',
+    'ADMINISTRATIVO',
+    'SUPERVISOR',
+    'SUPERVISOR OBRAS',
+    'FINANCEIRO',
+    'CONTABIL',
+    'VENDAS',
+    'ATENDIMENTO',
+    'ALMOXARIFE',
+    'COLABORADOR',
+  ],
+  editar_obra: ['ADMIN', 'ADMINISTRATIVO', 'SUPERVISOR', 'SUPERVISOR OBRAS'],
+  criar_aditivo: [
+    'ADMIN',
+    'ADMINISTRATIVO',
+    'SUPERVISOR',
+    'SUPERVISOR OBRAS',
+    'FINANCEIRO',
+  ],
+  aprovar_aditivo: ['ADMIN', 'ADMINISTRATIVO', 'FINANCEIRO'],
+  criar_execucao: [
+    'ADMIN',
+    'ADMINISTRATIVO',
+    'SUPERVISOR',
+    'SUPERVISOR OBRAS',
+    'ATENDIMENTO',
+  ],
 };
 
 async function main() {

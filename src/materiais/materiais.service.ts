@@ -17,6 +17,7 @@ export interface MaterialInputDto {
   tipo: TipoMaterial;
   categoriaId?: number | null;
   unidadeId: number;
+  fornecedorId?: number | null;
   obraId?: number | null;
   quantidadeMinima?: number | null;
   custoUnitario?: number | null;
@@ -27,6 +28,7 @@ export interface MaterialUpdateDto {
   tipo?: TipoMaterial;
   categoriaId?: number | null;
   unidadeId?: number;
+  fornecedorId?: number | null;
   obraId?: number | null;
   quantidadeMinima?: number | null;
   custoUnitario?: number | null;
@@ -191,6 +193,7 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
+        fornecedor: true,
         obra: {
           select: {
             id: true,
@@ -226,6 +229,7 @@ export class MateriaisService {
       marcas,
       cores,
       unidadesMedida,
+      fornecedores,
       tiposDespesas,
       obras,
     ] = await Promise.all([
@@ -247,8 +251,14 @@ export class MateriaisService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.unidadeMedida.findMany({
-        where: { ativo: true, tipoInsumo: 'MATERIAL' },
-        orderBy: { ordem: 'asc' },
+        where: { ativo: true },
+        distinct: ['nome'],
+        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      }),
+      this.prisma.fornecedor.findMany({
+        where: { ativo: true },
+        distinct: ['nome'],
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.tipoDespesa.findMany({
         where: { ativo: true, tipoInsumo: 'DESPESAS_EXTRAS' },
@@ -275,6 +285,7 @@ export class MateriaisService {
       marcas,
       cores,
       unidadesMedida,
+      fornecedores,
       tiposDespesas,
       obras,
     };
@@ -287,6 +298,7 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
+        fornecedor: true,
         obra: {
           select: {
             id: true,
@@ -334,6 +346,7 @@ export class MateriaisService {
         tipo: dto.tipo,
         categoriaId: dto.categoriaId ?? null,
         unidadeId: dto.unidadeId,
+        fornecedorId: dto.fornecedorId !== undefined ? dto.fornecedorId : null,
         obraId: dto.obraId ?? null,
         quantidadeMinima:
           dto.quantidadeMinima !== undefined ? dto.quantidadeMinima : null,
@@ -349,6 +362,7 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
+        fornecedor: true,
         obra: {
           select: {
             id: true,
@@ -392,6 +406,9 @@ export class MateriaisService {
           categoriaId: dto.categoriaId ?? null,
         }),
         ...(dto.unidadeId !== undefined && { unidadeId: dto.unidadeId }),
+        ...(dto.fornecedorId !== undefined && {
+          fornecedorId: dto.fornecedorId,
+        }),
         ...(dto.obraId !== undefined && {
           obraId: dto.obraId ?? null,
         }),
@@ -407,6 +424,7 @@ export class MateriaisService {
         saldo: true,
         categoria: true,
         unidade: true,
+        fornecedor: true,
         obra: {
           select: {
             id: true,

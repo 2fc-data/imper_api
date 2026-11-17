@@ -77,7 +77,6 @@ const DEFS: Record<RecursoCatalogos, DefinicaoRecurso> = {
     label: 'Unidade de medida',
     duplicateMessage: 'Unidade de medida já cadastrada',
     campos: ['nome', 'ordem'],
-    orderBy: 'ordem',
   },
   cores: {
     label: 'Cor',
@@ -106,7 +105,6 @@ const DEFS: Record<RecursoCatalogos, DefinicaoRecurso> = {
     label: 'Tipo de manutenção',
     duplicateMessage: 'Tipo de manutenção já cadastrado',
     campos: ['nome', 'ordem'],
-    fixo: 'EQUIPAMENTO',
   },
   'tipos-despesas': {
     label: 'Tipo de despesa',
@@ -162,16 +160,16 @@ export class CatalogosService {
     ] = await Promise.all([
       this.prisma.categoria.findMany({
         where: { ativo: true, ...dinamico },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.subcategoria.findMany({
         where: { ativo: true, ...dinamico },
         include: { categoria: true },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.marca.findMany({
         where: { ativo: true, ...dinamico },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
         where: { ativo: true, ...dinamico },
@@ -179,44 +177,44 @@ export class CatalogosService {
       }),
       this.prisma.localizacao.findMany({
         where: { ativo: true, ...dinamico },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.unidadeMedida.findMany({
         where: { ativo: true, ...dinamico },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.cor.findMany({
         where: { ativo: true, ...dinamico },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       }),
       compativel('EPI')
         ? this.prisma.tamanhoEquipamento.findMany({
             where: { ativo: true, tipoInsumo: 'EPI' },
-            orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+            orderBy: { nome: 'asc' },
           })
         : [],
       compativel('EQUIPAMENTO')
         ? this.prisma.statusEquipamento.findMany({
             where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
-            orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+            orderBy: { nome: 'asc' },
           })
         : [],
       compativel('EQUIPAMENTO')
         ? this.prisma.estadoConservacao.findMany({
             where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
-            orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+            orderBy: { nome: 'asc' },
           })
         : [],
       compativel('EQUIPAMENTO')
         ? this.prisma.tipoManutencao.findMany({
             where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
-            orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+            orderBy: { nome: 'asc' },
           })
         : [],
       compativel('DESPESAS_EXTRAS')
         ? this.prisma.tipoDespesa.findMany({
             where: { ativo: true, tipoInsumo: 'DESPESAS_EXTRAS' },
-            orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+            orderBy: { nome: 'asc' },
           })
         : [],
     ]);
@@ -249,7 +247,7 @@ export class CatalogosService {
           ...(tipo ? { tipoInsumo: tipo } : {}),
         },
         include: { categoria: true },
-        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        orderBy: { nome: 'asc' },
       });
     }
 

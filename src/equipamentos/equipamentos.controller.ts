@@ -298,6 +298,12 @@ export class EquipamentosController {
     return this.equipamentosService.proximoCodigo();
   }
 
+  @Get('patrimonios-disponiveis')
+  @Permissions('gerenciar_equipamentos')
+  patrimoniosDisponiveis() {
+    return this.equipamentosService.patrimoniosDisponiveis();
+  }
+
   @Get(':id')
   async detalhar(@Param('id') id: string) {
     return this.equipamentosService.detalhar(Number(id));

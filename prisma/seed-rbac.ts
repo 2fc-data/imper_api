@@ -185,7 +185,50 @@ const PERMISSOES = [
 
 // ── Mapeamento papel → permissões concedidas ────────────────────────────────
 const PAPEL_PERMISSOES: Record<string, string[]> = {
-  ADMINISTRATIVO: PERMISSOES.map((p) => p.chave), // ADMINISTRATIVO tem tudo
+  ADMINISTRATIVO: PERMISSOES.map((p) => p.chave), // ADMINISTRATIVO tem tudo (todas as 34)
+
+  'SUPERVISOR OBRAS': [
+    // Obras & Execução
+    'ver_obras',
+    'editar_obra',
+    'criar_aditivo',
+    'criar_execucao',
+    'editar_execucao',
+    'iniciar_execucao',
+    'concluir_execucao',
+    'gerenciar_execucao',
+    // Insumos & Materiais
+    'separar_item',
+    'gerenciar_equipamentos',
+    'gerenciar_epis',
+    // Atendimentos (vistorias técnicas em campo)
+    'criar_atendimento',
+    'editar_atendimento',
+    // Frota
+    'visualizar_frota',
+    'registrar_km_frota',
+    // Catálogo
+    'gerenciar_catalogo',
+  ],
+
+  SUPERVISOR: [
+    'ver_obras',
+    'editar_obra',
+    'criar_aditivo',
+    'criar_execucao',
+    'editar_execucao',
+    'iniciar_execucao',
+    'concluir_execucao',
+    'gerenciar_execucao',
+    'separar_item',
+    'gerenciar_equipamentos',
+    'gerenciar_epis',
+    'criar_atendimento',
+    'editar_atendimento',
+    'visualizar_frota',
+    'registrar_km_frota',
+    'gerenciar_catalogo',
+  ],
 
   FINANCEIRO: [
     'ver_financeiro',
@@ -193,16 +236,33 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'aprovar_orcamento',
     'criar_lista_compras',
     'aprovar_lista_compras',
+    'ver_obras',
+    'criar_aditivo',
+    'aprovar_aditivo',
+    'visualizar_frota',
     'ativar_usuario',
   ],
 
-  CONTABIL: ['ver_financeiro', 'ativar_usuario'],
+  CONTABIL: [
+    'ver_financeiro',
+    'aprovar_lista_compras',
+    'ver_obras',
+    'visualizar_frota',
+    'ativar_usuario',
+  ],
 
-  VENDAS: ['criar_atendimento', 'editar_atendimento', 'ver_obras'],
+  VENDAS: [
+    'criar_atendimento',
+    'editar_atendimento',
+    'ver_financeiro',
+    'ver_obras',
+    'visualizar_frota',
+  ],
 
   ATENDIMENTO: [
     'criar_atendimento',
     'editar_atendimento',
+    'ver_financeiro',
     'criar_execucao',
     'editar_execucao',
     'ver_obras',
@@ -216,6 +276,7 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'separar_item',
     'gerenciar_equipamentos',
     'gerenciar_epis',
+    'gerenciar_catalogo',
     'ver_obras',
     'visualizar_frota',
     'registrar_km_frota',
@@ -230,6 +291,8 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'concluir_execucao',
     'gerenciar_execucao',
     'ver_obras',
+    'visualizar_frota',
+    'registrar_km_frota',
   ],
 
   CLIENTE: [], // sem permissões internas — usa apenas o portal
@@ -238,7 +301,7 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
 // ── Usuários dev e seus papéis ──────────────────────────────────────────────
 const DEV_USERS: Record<string, string> = {
   'admin@imper.local': 'ADMINISTRATIVO',
-  'supervisor@imper.local': 'VENDAS',
+  'supervisor@imper.local': 'SUPERVISOR OBRAS',
   'tecnico@imper.local': 'COLABORADOR',
   'almoxarife@imper.local': 'ALMOXARIFE',
   'atendente@imper.local': 'ATENDIMENTO',
@@ -247,6 +310,8 @@ const DEV_USERS: Record<string, string> = {
 // Rótulo exibido na descrição do papel (mantém "Perfil X" em todos)
 const ROTULO_PAPEL: Record<string, string> = {
   ADMINISTRATIVO: 'Administrativo',
+  'SUPERVISOR OBRAS': 'Supervisor de Obras',
+  SUPERVISOR: 'Supervisor de Obras',
   FINANCEIRO: 'Financeiro',
   CONTABIL: 'Contábil',
   VENDAS: 'Vendas',

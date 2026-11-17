@@ -40,6 +40,33 @@ describe('EquipamentosService', () => {
     });
   });
 
+  describe('patrimoniosDisponiveis', () => {
+    it('retorna lacunas e próximo quando há patrimônios cadastrados', async () => {
+      mockPrisma.equipamento.findMany.mockResolvedValue([
+        { numeroPatrimonio: '2' },
+        { numeroPatrimonio: '5' },
+      ]);
+
+      const res = await servico().patrimoniosDisponiveis();
+      expect(res).toEqual({
+        disponiveis: [1, 3, 4],
+        proximo: 6,
+        existentes: [2, 5],
+      });
+    });
+
+    it('retorna proximo=1 quando não há patrimônios cadastrados', async () => {
+      mockPrisma.equipamento.findMany.mockResolvedValue([]);
+
+      const res = await servico().patrimoniosDisponiveis();
+      expect(res).toEqual({
+        disponiveis: [],
+        proximo: 1,
+        existentes: [],
+      });
+    });
+  });
+
   describe('criar', () => {
     it('gera o código e ignora o código enviado pelo cliente', async () => {
       mockPrisma.equipamento.findFirst.mockResolvedValue(null);

@@ -58,13 +58,14 @@ export class ManutencoesVeiculosService {
       }),
       this.prisma.tipoManutencao.findMany({
         where: { ativo: true, tipoInsumo: 'VEICULO' },
+        orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
         where: {
           ativo: true,
           papeis: {
-            some: {
-              papel: { nome: { not: 'CLIENTE' } },
+            none: {
+              papel: { nome: 'CLIENTE' },
             },
           },
         },

@@ -98,17 +98,21 @@ export class EpisService {
 
   async lookups() {
     const [
-      marcas,
+      marcasRaw,
       categorias,
       subcategorias,
       cores,
       tamanhos,
-      localizacoes,
+      localizacoesRaw,
       fornecedores,
       colaboradores,
+      unidadesMedida,
     ] = await Promise.all([
       this.prisma.marca.findMany({
-        where: { ativo: true, tipoInsumo: 'EPI' },
+        where: {
+          ativo: true,
+          tipoInsumo: { in: ['EPI', 'EQUIPAMENTO', 'MATERIAL'] },
+        },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.categoria.findMany({
@@ -128,11 +132,15 @@ export class EpisService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.localizacao.findMany({
-        where: { ativo: true, tipoInsumo: 'EPI' },
+        where: {
+          ativo: true,
+          tipoInsumo: { in: ['EPI', 'EQUIPAMENTO'] },
+        },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
-        where: { ativo: true, tipoInsumo: 'EPI' },
+        where: { ativo: true },
+        distinct: ['nome'],
         orderBy: { nome: 'asc' },
       }),
       this.prisma.user.findMany({
@@ -140,7 +148,34 @@ export class EpisService {
         select: { id: true, nome: true },
         orderBy: { nome: 'asc' },
       }),
+      this.prisma.unidadeMedida.findMany({
+        where: { ativo: true },
+        distinct: ['nome'],
+        orderBy: { nome: 'asc' },
+      }),
     ]);
+
+    const marcasMap = new Map<string, (typeof marcasRaw)[0]>();
+    for (const m of marcasRaw) {
+      const key = m.nome.trim().toUpperCase();
+      if (!marcasMap.has(key) || m.tipoInsumo === 'EPI') {
+        marcasMap.set(key, m);
+      }
+    }
+    const marcas = Array.from(marcasMap.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome),
+    );
+
+    const localizacoesMap = new Map<string, (typeof localizacoesRaw)[0]>();
+    for (const l of localizacoesRaw) {
+      const key = l.nome.trim().toUpperCase();
+      if (!localizacoesMap.has(key) || l.tipoInsumo === 'EPI') {
+        localizacoesMap.set(key, l);
+      }
+    }
+    const localizacoes = Array.from(localizacoesMap.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome),
+    );
 
     return {
       marcas,
@@ -151,6 +186,7 @@ export class EpisService {
       localizacoes,
       fornecedores,
       colaboradores,
+      unidadesMedida,
     };
   }
 
@@ -167,15 +203,51 @@ export class EpisService {
   }
 
   async listarMarcas() {
-    return this.marcas.listar();
+    const raw = await this.prisma.marca.findMany({
+      where: {
+        ativo: true,
+        tipoInsumo: { in: ['EPI', 'EQUIPAMENTO', 'MATERIAL'] },
+      },
+      orderBy: { nome: 'asc' },
+    });
+    const map = new Map<string, (typeof raw)[0]>();
+    for (const m of raw) {
+      const key = m.nome.trim().toUpperCase();
+      if (!map.has(key) || m.tipoInsumo === 'EPI') {
+        map.set(key, m);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome),
+    );
   }
 
   async listarFornecedores() {
-    return this.fornecedores.listar();
+    return this.prisma.fornecedor.findMany({
+      where: { ativo: true },
+      distinct: ['nome'],
+      orderBy: { nome: 'asc' },
+    });
   }
 
   async listarLocalizacoes() {
-    return this.localizacoes.listar();
+    const raw = await this.prisma.localizacao.findMany({
+      where: {
+        ativo: true,
+        tipoInsumo: { in: ['EPI', 'EQUIPAMENTO'] },
+      },
+      orderBy: { nome: 'asc' },
+    });
+    const map = new Map<string, (typeof raw)[0]>();
+    for (const l of raw) {
+      const key = l.nome.trim().toUpperCase();
+      if (!map.has(key) || l.tipoInsumo === 'EPI') {
+        map.set(key, l);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome),
+    );
   }
 
   async listarCores() {
@@ -212,7 +284,8 @@ export class EpisService {
 
   async listarUnidadesMedida() {
     return this.prisma.unidadeMedida.findMany({
-      where: { tipoInsumo: 'EPI' },
+      where: { ativo: true },
+      distinct: ['nome'],
       orderBy: { nome: 'asc' },
     });
   }

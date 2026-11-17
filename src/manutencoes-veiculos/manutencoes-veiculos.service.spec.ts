@@ -112,8 +112,8 @@ describe('ManutencoesVeiculosService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             papeis: {
-              some: {
-                papel: { nome: { not: 'CLIENTE' } },
+              none: {
+                papel: { nome: 'CLIENTE' },
               },
             },
           }),

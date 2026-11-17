@@ -385,8 +385,11 @@ export class VeiculosService {
     });
   }
 
-  async listarRegistrosKm(veiculoId: number, mes?: number, ano?: number) {
-    const where: Prisma.RegistroKmVeiculoWhereInput = { veiculoId };
+  async listarRegistrosKm(veiculoId?: number, mes?: number, ano?: number) {
+    const where: Prisma.RegistroKmVeiculoWhereInput = {};
+    if (veiculoId) {
+      where.veiculoId = veiculoId;
+    }
     if (mes && ano) {
       const inicio = new Date(ano, mes - 1, 1);
       const fim = new Date(ano, mes, 0);
@@ -395,6 +398,7 @@ export class VeiculosService {
     return this.prisma.registroKmVeiculo.findMany({
       where,
       include: {
+        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
         registradoPor: { select: { id: true, nome: true } },
         colaborador: { select: { id: true, nome: true } },
       },
