@@ -1432,6 +1432,7 @@ model OrcamentoAtividade {
   orcamentoId      Int
   etapaId          Int
   subServicoId     Int
+  titulo           String?                      @db.VarChar(200)
   descricao        String                       @db.VarChar(1000)
   verboId          Int
   objetoId         Int

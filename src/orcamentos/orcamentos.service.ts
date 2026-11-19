@@ -537,6 +537,7 @@ export class OrcamentosService {
         return {
           etapaId: a.etapaId,
           subServicoId: a.subServicoId,
+          titulo: l.titulo ?? null,
           descricao: l.descricao,
           verboId: l.verboId,
           objetoId: l.objetoId,
