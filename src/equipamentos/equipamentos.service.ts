@@ -457,7 +457,7 @@ export class EquipamentosService {
     }
 
     const ordenados = Array.from(numerosExistentes).sort((a, b) => a - b);
-    const max = ordenados[ordenados.length - 1]!;
+    const max = ordenados.at(-1) ?? 0;
     const proximo = max + 1;
 
     const lacunas: number[] = [];

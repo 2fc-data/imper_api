@@ -14,6 +14,7 @@ const mockPrisma = {
   listaCompra: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
@@ -48,15 +49,100 @@ describe('ListasComprasService — obter', () => {
     mockPrisma.listaCompra.findFirst.mockResolvedValue(null);
     const r = await servico().obter(SUPERMERCADO, 'LOJA', 3, 2026);
     expect(r).toBeNull();
-    expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledWith({
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenNthCalledWith(1, {
       where: {
         tipo: 'SUPERMERCADO',
         setor: 'LOJA',
         mes: 3,
         ano: 2026,
+        status: { not: 'COMPRADA' },
       },
+      orderBy: { id: 'desc' },
       include: INCLUDE_LISTA,
     });
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenNthCalledWith(2, {
+      where: { tipo: 'SUPERMERCADO', setor: 'LOJA', mes: 3, ano: 2026 },
+      orderBy: { id: 'desc' },
+      include: INCLUDE_LISTA,
+    });
+  });
+
+  it('prefere a rodada mais recente que não está comprada', async () => {
+    mockPrisma.listaCompra.findFirst.mockResolvedValueOnce({
+      id: 8,
+      status: 'APROVADA',
+    });
+    const r = await servico().obter('MATERIAL', 'LOJA', 3, 2026);
+    expect(r).toEqual({ id: 8, status: 'APROVADA' });
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it('cai na COMPRADA mais recente quando todas as rodadas estão compradas', async () => {
+    mockPrisma.listaCompra.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 8, status: 'COMPRADA' });
+    const r = await servico().obter('MATERIAL', 'LOJA', 3, 2026);
+    expect(r).toEqual({ id: 8, status: 'COMPRADA' });
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledTimes(2);
+  });
+
+  it('devolve null para DESPESAS_EXTRAS sem tipoDespesaId', async () => {
+    const r = await servico().obter('DESPESAS_EXTRAS', 'LOJA', 3, 2026);
+    expect(r).toBeNull();
+    expect(mockPrisma.listaCompra.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('ListasComprasService — listarRodadas', () => {
+  it('lista as rodadas em ordem cronológica com o total de itens', async () => {
+    mockPrisma.listaCompra.findMany.mockResolvedValue([
+      {
+        id: 3,
+        status: 'COMPRADA',
+        createdAt: new Date('2026-11-02T10:00:00Z'),
+        _count: { itens: 4 },
+      },
+      {
+        id: 9,
+        status: 'ABERTA',
+        createdAt: new Date('2026-11-18T10:00:00Z'),
+        _count: { itens: 0 },
+      },
+    ]);
+
+    const r = await servico().listarRodadas('MATERIAL', 'LOJA', 11, 2026);
+
+    expect(mockPrisma.listaCompra.findMany).toHaveBeenCalledWith({
+      where: { tipo: 'MATERIAL', setor: 'LOJA', mes: 11, ano: 2026 },
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { itens: true } },
+      },
+    });
+    expect(r).toEqual([
+      {
+        id: 3,
+        status: 'COMPRADA',
+        createdAt: new Date('2026-11-02T10:00:00Z'),
+        totalItens: 4,
+      },
+      {
+        id: 9,
+        status: 'ABERTA',
+        createdAt: new Date('2026-11-18T10:00:00Z'),
+        totalItens: 0,
+      },
+    ]);
+  });
+
+  it('devolve [] para DESPESAS_EXTRAS sem tipoDespesaId', async () => {
+    const r = await servico().listarRodadas('DESPESAS_EXTRAS', 'LOJA', 11, 2026);
+    expect(r).toEqual([]);
+    expect(mockPrisma.listaCompra.findMany).not.toHaveBeenCalled();
   });
 });
 
@@ -204,6 +290,39 @@ describe('ListasComprasService — salvarItens', () => {
       servico().salvarItens('MATERIAL', 'LOJA', 3, 2026, { itens: [] }, 1),
     ).rejects.toThrow(ConflictException);
     expect(mockPrisma.listaCompraItem.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('cria uma nova rodada quando a rodada anterior já foi comprada', async () => {
+    mockPrisma.listaCompra.findFirst.mockResolvedValueOnce(null);
+    mockPrisma.listaCompra.create.mockResolvedValue({ id: 11 });
+    mockPrisma.listaCompra.findUnique.mockResolvedValueOnce({
+      id: 11,
+      status: 'ABERTA',
+    });
+
+    const r = await servico().salvarItens(
+      'MATERIAL',
+      'LOJA',
+      3,
+      2026,
+      { itens: [] },
+      7,
+    );
+
+    expect(mockPrisma.listaCompra.findFirst).toHaveBeenCalledWith({
+      where: {
+        tipo: 'MATERIAL',
+        setor: 'LOJA',
+        mes: 3,
+        ano: 2026,
+        status: { not: 'COMPRADA' },
+      },
+      orderBy: { id: 'desc' },
+      include: INCLUDE_LISTA,
+    });
+    expect(mockPrisma.listaCompra.create).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.listaCompraItem.deleteMany).not.toHaveBeenCalled();
+    expect(r.id).toBe(11);
   });
 
   it('substitui itens (deleteMany + createMany) em lista ABERTA', async () => {

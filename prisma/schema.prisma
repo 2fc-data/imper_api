@@ -27,67 +27,67 @@ model UnidadeMedida {
 }
 
 model User {
-  id                          Int                     @id @default(autoincrement())
-  nome                        String                  @db.VarChar(120)
-  email                       String?                 @unique @db.VarChar(120)
-  cpfCnpj                     String?                 @unique @db.VarChar(20)
-  rg                          String?                 @db.VarChar(20)
-  senhaHash                   String                  @db.VarChar(255)
-  ativo                       Boolean                 @default(false)
-  cargoId                     Int?
-  telefone                    String?                 @db.VarChar(20)
-  createdAt                   DateTime                @default(now())
-  updatedAt                   DateTime                @updatedAt
-  acessosUser                 AcessoUser[]
-  agendamentosCriados         Agendamento[]           @relation("AgendamentoCriadoPor")
-  agendamentosUser            Agendamento[]           @relation("AgendamentoUser")
-  atendimentos                Atendimento[]           @relation("AtendimentoAtendente")
-  atendimentosUser            Atendimento[]           @relation("AtendimentoUser")
-  atendimentosLog             AtendimentoLog[]        @relation("AtendimentoLogAtendente")
-  checklistAtividades         ChecklistAtividade[]
-  comprasAprovadas            Compra[]                @relation("CompraAprovador")
-  comprasCriadas              Compra[]                @relation("CompraCriador")
-  enderecos                   Endereco[]
-  entregasEpiRecebidas        EntregaEpi[]            @relation("EpiColaborador")
-  entregasEpiRegistradas      EntregaEpi[]            @relation("EntregaEpiRegistradoPor")
-  equipamentosResponsaveis    Equipamento[]           @relation("EquipamentoResponsavel")
-  execucoesCriadas            ExecucaoAtividade[]     @relation("ExecucaoCriador")
-  execucoesAtribuidas         ExecucaoAtividade[]     @relation("ExecucaoAtribuidoA")
-  lancamentos                 LancamentoFinanceiro[]  @relation("LancamentoCriadoPor")
-  manutencoesResponsaveis     Manutencao[]            @relation("ManutencaoResponsavel")
-  movimentos                  MovimentoEstoque[]      @relation("MovimentoRegistradoPor")
-  notificacoes                Notificacao[]
-  orcamentosUser              Orcamento[]             @relation("OrcamentoUser")
-  orcamentosAprovados         Orcamento[]             @relation("OrcamentoAprovador")
-  orcamentosCriados           Orcamento[]             @relation("OrcamentoCriador")
-  obrasCriadas                Obra[]                  @relation("ObraUser")
-  obrasAprovadas              Obra[]                  @relation("ObraAprovador")
-  pagamentosRegistrados       PagamentoObra[]         @relation("PagamentoRegistradoPor")
-  passwordResetTokens         PasswordResetToken[]
-  retiradasColaborador        RetiradaEquipamento[]   @relation("EquipamentoColaborador")
-  retiradasRegistradas        RetiradaEquipamento[]   @relation("RetiradaRegistradoPor")
-  itensConferidos             SeparacaoItem[]         @relation("ItemSepConferidoPor")
-  itensRetirados              SeparacaoItem[]         @relation("ItemSepRetiradoPor")
-  ItemSepColaborador          SeparacaoItem[]         @relation("ItemSepColaborador")
-  separacoesConfirmadas       Separacao[]             @relation("SeparacaoConfirmadoPor")
-  separacoesCriadas           Separacao[]             @relation("SeparacaoCriador")
-  uploads                     Upload[]                @relation("UploadUploader")
-  cargo                       Cargo?                  @relation(fields: [cargoId], references: [id])
-  papeis                      UsuarioPapel[]
-  disponibilidadePadroes      DisponibilidadePadrao[]
-  disponibilidadeDatas        DisponibilidadeData[]
-  visitas                     VisitaTecnica[]         @relation("TecnicoVisita")
-  veiculosResponsaveis        Veiculo[]
-  registrosKmVeiculos         RegistroKmVeiculo[]     @relation("RegistroKmRegistradoPor")
-  registrosKmColaborador      RegistroKmVeiculo[]     @relation("RegistroKmColaborador")
-  abastecimentosVeiculos      AbastecimentoVeiculo[]  @relation("AbastecimentoRegistradoPor")
-  abastecimentosMotorista     AbastecimentoVeiculo[]  @relation("AbastecimentoMotorista")
-  manutencoesVeiculos         ManutencaoVeiculo[]
-  listasCompraEnviadas        ListaCompra[]           @relation("ListaCompraEnviadoPor")
-  listasCompraAprovadas       ListaCompra[]           @relation("ListaCompraAprovadoPor")
-  notasFiscalEnviadasListaCompra ListaCompra[]      @relation("NotaFiscalEnviadoPor")
-  itensListaCompraAdicionados ListaCompraItem[]       @relation("ListaItemAdicionadoPor")
-  itensListaCompraComprados   ListaCompraItem[]       @relation("ListaItemCompradoPor")
+  id                             Int                     @id @default(autoincrement())
+  nome                           String                  @db.VarChar(120)
+  email                          String?                 @unique @db.VarChar(120)
+  cpfCnpj                        String?                 @unique @db.VarChar(20)
+  rg                             String?                 @db.VarChar(20)
+  senhaHash                      String                  @db.VarChar(255)
+  ativo                          Boolean                 @default(false)
+  cargoId                        Int?
+  telefone                       String?                 @db.VarChar(20)
+  createdAt                      DateTime                @default(now())
+  updatedAt                      DateTime                @updatedAt
+  acessosUser                    AcessoUser[]
+  agendamentosCriados            Agendamento[]           @relation("AgendamentoCriadoPor")
+  agendamentosUser               Agendamento[]           @relation("AgendamentoUser")
+  atendimentos                   Atendimento[]           @relation("AtendimentoAtendente")
+  atendimentosUser               Atendimento[]           @relation("AtendimentoUser")
+  atendimentosLog                AtendimentoLog[]        @relation("AtendimentoLogAtendente")
+  checklistAtividades            ChecklistAtividade[]
+  comprasAprovadas               Compra[]                @relation("CompraAprovador")
+  comprasCriadas                 Compra[]                @relation("CompraCriador")
+  enderecos                      Endereco[]
+  entregasEpiRecebidas           EntregaEpi[]            @relation("EpiColaborador")
+  entregasEpiRegistradas         EntregaEpi[]            @relation("EntregaEpiRegistradoPor")
+  equipamentosResponsaveis       Equipamento[]           @relation("EquipamentoResponsavel")
+  execucoesCriadas               ExecucaoAtividade[]     @relation("ExecucaoCriador")
+  execucoesAtribuidas            ExecucaoAtividade[]     @relation("ExecucaoAtribuidoA")
+  lancamentos                    LancamentoFinanceiro[]  @relation("LancamentoCriadoPor")
+  manutencoesResponsaveis        Manutencao[]            @relation("ManutencaoResponsavel")
+  movimentos                     MovimentoEstoque[]      @relation("MovimentoRegistradoPor")
+  notificacoes                   Notificacao[]
+  orcamentosUser                 Orcamento[]             @relation("OrcamentoUser")
+  orcamentosAprovados            Orcamento[]             @relation("OrcamentoAprovador")
+  orcamentosCriados              Orcamento[]             @relation("OrcamentoCriador")
+  obrasCriadas                   Obra[]                  @relation("ObraUser")
+  obrasAprovadas                 Obra[]                  @relation("ObraAprovador")
+  pagamentosRegistrados          PagamentoObra[]         @relation("PagamentoRegistradoPor")
+  passwordResetTokens            PasswordResetToken[]
+  retiradasColaborador           RetiradaEquipamento[]   @relation("EquipamentoColaborador")
+  retiradasRegistradas           RetiradaEquipamento[]   @relation("RetiradaRegistradoPor")
+  itensConferidos                SeparacaoItem[]         @relation("ItemSepConferidoPor")
+  itensRetirados                 SeparacaoItem[]         @relation("ItemSepRetiradoPor")
+  ItemSepColaborador             SeparacaoItem[]         @relation("ItemSepColaborador")
+  separacoesConfirmadas          Separacao[]             @relation("SeparacaoConfirmadoPor")
+  separacoesCriadas              Separacao[]             @relation("SeparacaoCriador")
+  uploads                        Upload[]                @relation("UploadUploader")
+  cargo                          Cargo?                  @relation(fields: [cargoId], references: [id])
+  papeis                         UsuarioPapel[]
+  disponibilidadePadroes         DisponibilidadePadrao[]
+  disponibilidadeDatas           DisponibilidadeData[]
+  visitas                        VisitaTecnica[]         @relation("TecnicoVisita")
+  veiculosResponsaveis           Veiculo[]
+  registrosKmVeiculos            RegistroKmVeiculo[]     @relation("RegistroKmRegistradoPor")
+  registrosKmColaborador         RegistroKmVeiculo[]     @relation("RegistroKmColaborador")
+  abastecimentosVeiculos         AbastecimentoVeiculo[]  @relation("AbastecimentoRegistradoPor")
+  abastecimentosMotorista        AbastecimentoVeiculo[]  @relation("AbastecimentoMotorista")
+  manutencoesVeiculos            ManutencaoVeiculo[]
+  listasCompraEnviadas           ListaCompra[]           @relation("ListaCompraEnviadoPor")
+  listasCompraAprovadas          ListaCompra[]           @relation("ListaCompraAprovadoPor")
+  notasFiscalEnviadasListaCompra ListaCompra[]           @relation("NotaFiscalEnviadoPor")
+  itensListaCompraAdicionados    ListaCompraItem[]       @relation("ListaItemAdicionadoPor")
+  itensListaCompraComprados      ListaCompraItem[]       @relation("ListaItemCompradoPor")
 
   @@index([cargoId], map: "users_cargoId_fkey")
   @@map("users")
@@ -993,6 +993,9 @@ model Manutencao {
   data                    DateTime
   descricao               String           @db.VarChar(500)
   custo                   Decimal?         @db.Decimal(12, 2)
+  custoPecas              Decimal          @default(0) @db.Decimal(12, 2)
+  custoMaoDeObra          Decimal          @default(0) @db.Decimal(12, 2)
+  dataSaida               DateTime?        @db.Date
   status                  StatusManutencao @default(PENDENTE)
   responsavelManutencaoId Int?
   proximaManutencao       DateTime?
@@ -1001,12 +1004,29 @@ model Manutencao {
   equipamento             Equipamento      @relation(fields: [equipamentoId], references: [id], onDelete: Cascade)
   responsavelManutencao   User?            @relation("ManutencaoResponsavel", fields: [responsavelManutencaoId], references: [id])
   tipo                    TipoManutencao   @relation(fields: [tipoId], references: [id])
+  pecas                   ManutencaoPeca[]
 
   @@index([equipamentoId])
   @@index([status])
   @@index([responsavelManutencaoId], map: "manutencoes_responsavelManutencaoId_fkey")
   @@index([tipoId], map: "manutencoes_tipoId_fkey")
   @@map("manutencoes")
+}
+
+model ManutencaoPeca {
+  id           Int                   @id @default(autoincrement())
+  manutencaoId Int
+  descricao    String                @db.VarChar(200)
+  acao         AcaoPecaManutencao
+  origem       OrigemPecaManutencao?
+  valor        Decimal               @default(0) @db.Decimal(12, 2)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  manutencao Manutencao @relation(fields: [manutencaoId], references: [id], onDelete: Cascade)
+
+  @@index([manutencaoId])
+  @@map("manutencoes_pecas")
 }
 
 model Epi {
@@ -1057,32 +1077,32 @@ model Epi {
 }
 
 model ListaCompra {
-  id            Int               @id @default(autoincrement())
-  tipo          TipoListaCompra
-  setor         SetorCompra
-  mes           Int
-  ano           Int
-  status        StatusListaCompra @default(ABERTA)
-  motivoRecusa  String?           @db.VarChar(255)
-  notaFiscalUrl      String?           @db.VarChar(255)
-  notaFiscalNome      String?           @db.VarChar(255)
-  notaFiscalEnviadaEm DateTime?
+  id                     Int               @id @default(autoincrement())
+  tipo                   TipoListaCompra
+  setor                  SetorCompra
+  mes                    Int
+  ano                    Int
+  status                 StatusListaCompra @default(ABERTA)
+  motivoRecusa           String?           @db.VarChar(255)
+  notaFiscalUrl          String?           @db.VarChar(255)
+  notaFiscalNome         String?           @db.VarChar(255)
+  notaFiscalEnviadaEm    DateTime?
   notaFiscalEnviadaPorId Int?
-  enviadoPorId  Int?
-  enviadoEm     DateTime?
-  aprovadoPorId Int?
-  aprovadoEm    DateTime?
-  tipoDespesaId Int?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  enviadoPorId           Int?
+  enviadoEm              DateTime?
+  aprovadoPorId          Int?
+  aprovadoEm             DateTime?
+  tipoDespesaId          Int?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
-  tipoDespesa TipoDespesa?      @relation(fields: [tipoDespesaId], references: [id])
-  itens       ListaCompraItem[]
-  enviadoPor  User?             @relation("ListaCompraEnviadoPor", fields: [enviadoPorId], references: [id])
-  aprovadoPor User?             @relation("ListaCompraAprovadoPor", fields: [aprovadoPorId], references: [id])
-  notaFiscalEnviadaPor User?         @relation("NotaFiscalEnviadoPor", fields: [notaFiscalEnviadaPorId], references: [id])
+  tipoDespesa          TipoDespesa?      @relation(fields: [tipoDespesaId], references: [id])
+  itens                ListaCompraItem[]
+  enviadoPor           User?             @relation("ListaCompraEnviadoPor", fields: [enviadoPorId], references: [id])
+  aprovadoPor          User?             @relation("ListaCompraAprovadoPor", fields: [aprovadoPorId], references: [id])
+  notaFiscalEnviadaPor User?             @relation("NotaFiscalEnviadoPor", fields: [notaFiscalEnviadaPorId], references: [id])
 
-  @@unique([tipo, setor, mes, ano, tipoDespesaId])
+  @@index([tipo, setor, mes, ano, tipoDespesaId])
   @@index([ano, mes])
   @@index([tipoDespesaId])
   @@map("listas_compras")
@@ -1654,6 +1674,8 @@ model RegistroKmVeiculo {
   odometro     Decimal  @db.Decimal(7, 1)
   kmPercorrido Decimal  @db.Decimal(9, 2)
   observacao   String?  @db.VarChar(500)
+  numeroCupon  String?  @db.VarChar(60)
+  numeroSerie  String?  @db.VarChar(120)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1707,19 +1729,37 @@ model ManutencaoVeiculo {
   custoTotal        Decimal          @default(0) @db.Decimal(12, 2)
   status            StatusManutencao @default(PENDENTE)
   proximaManutencao DateTime?        @db.Date
+  dataSaida         DateTime?        @db.Date
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   veiculoId               Int
-  veiculo                 Veiculo        @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  veiculo                 Veiculo                 @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
   tipoId                  Int
-  tipo                    TipoManutencao @relation(fields: [tipoId], references: [id])
+  tipo                    TipoManutencao          @relation(fields: [tipoId], references: [id])
   responsavelManutencaoId Int?
-  responsavelManutencao   User?          @relation(fields: [responsavelManutencaoId], references: [id])
+  responsavelManutencao   User?                   @relation(fields: [responsavelManutencaoId], references: [id])
+  pecas                   ManutencaoVeiculoPeca[]
 
   @@index([veiculoId])
   @@index([status])
   @@map("manutencoes_veiculo")
+}
+
+model ManutencaoVeiculoPeca {
+  id           Int                   @id @default(autoincrement())
+  manutencaoId Int
+  descricao    String                @db.VarChar(200)
+  acao         AcaoPecaManutencao
+  origem       OrigemPecaManutencao?
+  valor        Decimal               @default(0) @db.Decimal(12, 2)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  manutencao ManutencaoVeiculo @relation(fields: [manutencaoId], references: [id], onDelete: Cascade)
+
+  @@index([manutencaoId])
+  @@map("manutencoes_veiculo_pecas")
 }
 
 enum CanalAtendimento {
@@ -1882,6 +1922,18 @@ enum StatusManutencao {
   EM_ANDAMENTO
   CONCLUIDA
   CANCELADA
+}
+
+enum AcaoPecaManutencao {
+  TROCADA
+  CONSERTADA
+}
+
+enum OrigemPecaManutencao {
+  ORIGINAL_NOVA
+  ORIGINAL_USADA
+  GENERICA_NOVA
+  GENERICA_USADA
 }
 
 enum EnumStatusExecucaoAtividade {

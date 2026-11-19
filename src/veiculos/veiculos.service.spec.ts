@@ -431,6 +431,32 @@ describe('VeiculosService', () => {
       });
     });
 
+    it('deve registrar km com numeroCupon e numeroSerie', async () => {
+      const veiculo = { id: 1, odometroAtual: 1000 };
+      mockPrisma.veiculo.findUnique.mockResolvedValue(veiculo);
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(null);
+      mockPrisma.registroKmVeiculo.create.mockResolvedValue({ id: 1 });
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      await servico().registrarKm(
+        1,
+        {
+          data: '2026-10-01',
+          odometro: 1050,
+          numeroCupon: 'CUP-1',
+          numeroSerie: 'SER-9',
+        },
+        1,
+      );
+
+      expect(mockPrisma.registroKmVeiculo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          numeroCupon: 'CUP-1',
+          numeroSerie: 'SER-9',
+        }),
+      });
+    });
+
     it('deve lançar AppError 409 se já existe registro no mesmo dia', async () => {
       mockPrisma.veiculo.findUnique.mockResolvedValue({
         id: 1,
@@ -484,7 +510,14 @@ describe('VeiculosService', () => {
         id: 9,
         odometro: 1000,
       });
-      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([]);
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
+        {
+          id: 1,
+          data: new Date('2026-10-05'),
+          odometro: 1060,
+          kmPercorrido: 60,
+        },
+      ]);
       mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
       mockPrisma.veiculo.update.mockResolvedValue({});
 
@@ -520,6 +553,12 @@ describe('VeiculosService', () => {
       });
       mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
         {
+          id: 1,
+          data: new Date('2026-10-05'),
+          odometro: 1060,
+          kmPercorrido: 60,
+        },
+        {
           id: 2,
           data: new Date('2026-10-06'),
           odometro: 1080,
@@ -529,7 +568,7 @@ describe('VeiculosService', () => {
           id: 3,
           data: new Date('2026-10-07'),
           odometro: 1130,
-          kmPercorrido: 50,
+          kmPercorrido: 40,
         },
       ]);
       mockPrisma.registroKmVeiculo.update.mockResolvedValue({});
@@ -595,7 +634,14 @@ describe('VeiculosService', () => {
         id: 9,
         odometro: 1000,
       });
-      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([]);
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
+        {
+          id: 1,
+          data: new Date('2026-10-05'),
+          odometro: 1050,
+          kmPercorrido: 50,
+        },
+      ]);
       mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
       mockPrisma.veiculo.update.mockResolvedValue({});
 
@@ -607,6 +653,118 @@ describe('VeiculosService', () => {
       expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: expect.objectContaining({ colaboradorId: 42 }),
+      });
+    });
+
+    it('deve atualizar numeroCupon e numeroSerie do registro', async () => {
+      const registro = {
+        id: 1,
+        veiculoId: 1,
+        data: new Date('2026-10-05'),
+        odometro: 1050,
+        kmPercorrido: 50,
+      };
+      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(registro);
+      mockPrisma.veiculo.findUnique.mockResolvedValue({
+        id: 1,
+        odometroAtual: 1050,
+      });
+      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
+        id: 9,
+        odometro: 1000,
+      });
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
+        {
+          id: 1,
+          data: new Date('2026-10-05'),
+          odometro: 1050,
+          kmPercorrido: 50,
+        },
+      ]);
+      mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      await servico().atualizarRegistroKm(1, {
+        odometro: 1050,
+        numeroCupon: 'CUP-1',
+        numeroSerie: 'SER-9',
+      });
+
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: expect.objectContaining({
+          numeroCupon: 'CUP-1',
+          numeroSerie: 'SER-9',
+        }),
+      });
+    });
+
+    it('deve recalcular km ao mover a data do registro', async () => {
+      const registro = {
+        id: 2,
+        veiculoId: 1,
+        data: new Date('2026-10-06'),
+        odometro: 1080,
+        kmPercorrido: 30,
+      };
+      mockPrisma.registroKmVeiculo.findUnique
+        .mockResolvedValueOnce(registro)
+        .mockResolvedValueOnce(null);
+      mockPrisma.veiculo.findUnique.mockResolvedValue({
+        id: 1,
+        odometroAtual: 1130,
+      });
+      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
+        id: 3,
+        odometro: 1130,
+      });
+      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
+        {
+          id: 1,
+          data: new Date('2026-10-05'),
+          odometro: 1000,
+          kmPercorrido: 50,
+        },
+        {
+          id: 3,
+          data: new Date('2026-10-07'),
+          odometro: 1130,
+          kmPercorrido: 130,
+        },
+        {
+          id: 2,
+          data: new Date('2026-10-08'),
+          odometro: 1140,
+          kmPercorrido: 10,
+        },
+      ]);
+      mockPrisma.registroKmVeiculo.update.mockResolvedValue({});
+      mockPrisma.veiculo.update.mockResolvedValue({});
+
+      await servico().atualizarRegistroKm(2, {
+        odometro: 1140,
+        data: '2026-10-08',
+      });
+
+      expect(mockPrisma.registroKmVeiculo.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { not: 2 },
+            data: { lt: new Date('2026-10-08') },
+          }),
+        }),
+      );
+      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
+        where: { id: 2 },
+        data: expect.objectContaining({
+          data: new Date('2026-10-08'),
+          odometro: 1140,
+          kmPercorrido: 10,
+        }),
+      });
+      expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { odometroAtual: 1140 },
       });
     });
 

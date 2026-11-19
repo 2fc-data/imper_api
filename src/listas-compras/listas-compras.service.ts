@@ -4,15 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Buffer } from 'node:buffer';
-import { extname } from 'node:path';
 import type { Prisma, SetorCompra, TipoListaCompra } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   ComprarItemInput,
   SalvarItensListaInput,
 } from '../schemas/listas-compras.js';
-import { notificarUsuarios } from '../lib/notificacao';
 
 export const TRAVADOS = ['ENVIADA', 'APROVADA', 'COMPRADA'] as const;
 
@@ -42,6 +39,19 @@ const INCLUDE_LISTA: Prisma.ListaCompraInclude = {
 export class ListasComprasService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private filtroChave(
+    tipo: TipoListaCompra,
+    setor: SetorCompra,
+    mes: number,
+    ano: number,
+    tipoDespesaId?: number,
+  ): Prisma.ListaCompraWhereInput | null {
+    if (tipo === 'DESPESAS_EXTRAS') {
+      return tipoDespesaId ? { tipo, setor, mes, ano, tipoDespesaId } : null;
+    }
+    return { tipo, setor, mes, ano };
+  }
+
   async obter(
     tipo: TipoListaCompra,
     setor: SetorCompra,
@@ -49,17 +59,60 @@ export class ListasComprasService {
     ano: number,
     tipoDespesaId?: number,
   ) {
-    if (tipo === 'DESPESAS_EXTRAS') {
-      if (tipoDespesaId) {
-        return this.prisma.listaCompra.findFirst({
-          where: { tipo, setor, mes, ano, tipoDespesaId },
-          include: INCLUDE_LISTA,
-        });
-      }
-      return null;
-    }
+    const where = this.filtroChave(tipo, setor, mes, ano, tipoDespesaId);
+    if (!where) return null;
+    const atual = await this.prisma.listaCompra.findFirst({
+      where: { ...where, status: { not: 'COMPRADA' } },
+      orderBy: { id: 'desc' },
+      include: INCLUDE_LISTA,
+    });
+    if (atual) return atual;
     return this.prisma.listaCompra.findFirst({
-      where: { tipo, setor, mes, ano },
+      where,
+      orderBy: { id: 'desc' },
+      include: INCLUDE_LISTA,
+    });
+  }
+
+  async listarRodadas(
+    tipo: TipoListaCompra,
+    setor: SetorCompra,
+    mes: number,
+    ano: number,
+    tipoDespesaId?: number,
+  ) {
+    const where = this.filtroChave(tipo, setor, mes, ano, tipoDespesaId);
+    if (!where) return [];
+    const rodadas = await this.prisma.listaCompra.findMany({
+      where,
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { itens: true } },
+      },
+    });
+    return rodadas.map((r) => ({
+      id: r.id,
+      status: r.status,
+      createdAt: r.createdAt,
+      totalItens: r._count.itens,
+    }));
+  }
+
+  private async buscarEditavel(
+    tipo: TipoListaCompra,
+    setor: SetorCompra,
+    mes: number,
+    ano: number,
+    tipoDespesaId?: number,
+  ) {
+    const where = this.filtroChave(tipo, setor, mes, ano, tipoDespesaId);
+    if (!where) return null;
+    return this.prisma.listaCompra.findFirst({
+      where: { ...where, status: { not: 'COMPRADA' } },
+      orderBy: { id: 'desc' },
       include: INCLUDE_LISTA,
     });
   }
@@ -86,7 +139,7 @@ export class ListasComprasService {
       tipo === 'DESPESAS_EXTRAS'
         ? (tipoDespesaId ?? input.tipoDespesaId ?? null)
         : null;
-    const existente = await this.obter(
+    const existente = await this.buscarEditavel(
       tipo,
       setor,
       mes,

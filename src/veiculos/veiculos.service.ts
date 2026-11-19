@@ -45,6 +45,8 @@ export type RegistroKmInput = {
   odometro: number | string;
   data?: string | number;
   observacao?: string | null;
+  numeroCupon?: string | null;
+  numeroSerie?: string | null;
   colaboradorId?: number | null;
 };
 
@@ -373,6 +375,8 @@ export class VeiculosService {
           kmPercorrido,
           odometro: odometroInformado,
           observacao: data.observacao || null,
+          numeroCupon: data.numeroCupon || null,
+          numeroSerie: data.numeroSerie || null,
           registradoPorId: registradoPorId || null,
           colaboradorId: data.colaboradorId || null,
         },
@@ -398,7 +402,9 @@ export class VeiculosService {
     return this.prisma.registroKmVeiculo.findMany({
       where,
       include: {
-        veiculo: { select: { id: true, codigo: true, nome: true, placa: true } },
+        veiculo: {
+          select: { id: true, codigo: true, nome: true, placa: true },
+        },
         registradoPor: { select: { id: true, nome: true } },
         colaborador: { select: { id: true, nome: true } },
       },
@@ -423,11 +429,16 @@ export class VeiculosService {
       );
     }
 
+    const dataEfetiva =
+      data.data !== undefined ? new Date(data.data) : registro.data;
+
     if (data.data !== undefined) {
-      const novaData = new Date(data.data);
       const outro = await this.prisma.registroKmVeiculo.findUnique({
         where: {
-          veiculoId_data: { veiculoId: registro.veiculoId, data: novaData },
+          veiculoId_data: {
+            veiculoId: registro.veiculoId,
+            data: dataEfetiva,
+          },
         },
       });
       if (outro && outro.id !== id) {
@@ -437,11 +448,12 @@ export class VeiculosService {
 
     const odometroNovo = Number(data.odometro);
 
-    // Registro imediatamente anterior (mesmo veículo, data < esta, mais recente)
+    // Registro imediatamente anterior (mesmo veículo, data < data efetiva)
     const anterior = await this.prisma.registroKmVeiculo.findFirst({
       where: {
         veiculoId: registro.veiculoId,
-        data: { lt: registro.data },
+        id: { not: id },
+        data: { lt: dataEfetiva },
       },
       orderBy: { data: 'desc' },
     });
@@ -458,21 +470,18 @@ export class VeiculosService {
 
     const kmPercorridoNovo = odometroNovo - odometroAnterior;
 
-    // Registros posteriores (mesmo veículo, data > esta, em ordem)
-    const posteriores = await this.prisma.registroKmVeiculo.findMany({
-      where: {
-        veiculoId: registro.veiculoId,
-        data: { gt: registro.data },
-      },
-      orderBy: { data: 'asc' },
-    });
-
     return this.prisma.$transaction(async (tx) => {
       const atualizado = await tx.registroKmVeiculo.update({
         where: { id },
         data: {
-          ...(data.data !== undefined && { data: new Date(data.data) }),
+          ...(data.data !== undefined && { data: dataEfetiva }),
           ...(data.observacao !== undefined && { observacao: data.observacao }),
+          ...(data.numeroCupon !== undefined && {
+            numeroCupon: data.numeroCupon,
+          }),
+          ...(data.numeroSerie !== undefined && {
+            numeroSerie: data.numeroSerie,
+          }),
           ...(data.colaboradorId !== undefined && {
             colaboradorId: data.colaboradorId,
           }),
@@ -481,26 +490,39 @@ export class VeiculosService {
         },
       });
 
-      // Recalcular em cascata os registros posteriores
-      let odometroBase = odometroNovo;
-      for (const p of posteriores) {
-        const pOdometro = Number(p.odometro);
-        const pKmNovo = pOdometro - odometroBase;
-        await tx.registroKmVeiculo.update({
-          where: { id: p.id },
-          data: { kmPercorrido: pKmNovo },
-        });
-        odometroBase = pOdometro;
+      // Recalcular kmPercorrido de todos os registros do veículo em ordem de data.
+      const registros = await tx.registroKmVeiculo.findMany({
+        where: { veiculoId: registro.veiculoId },
+        orderBy: { data: 'asc' },
+      });
+
+      const primeiro = registros[0];
+      let odometroBase = Number(primeiro.odometro);
+
+      for (let i = 1; i < registros.length; i += 1) {
+        const r = registros[i];
+        const odometro = Number(r.odometro);
+        const kmNovo = odometro - odometroBase;
+        if (kmNovo < 0) {
+          throw new AppError(
+            422,
+            `Odômetro do registro de ${r.data.toISOString().slice(0, 10)} ficou menor que o registro anterior; ajuste a ordem das datas`,
+          );
+        }
+        if (kmNovo !== Number(r.kmPercorrido)) {
+          await tx.registroKmVeiculo.update({
+            where: { id: r.id },
+            data: { kmPercorrido: kmNovo },
+          });
+        }
+        odometroBase = odometro;
       }
 
       // Atualizar odômetro atual do veículo para o último registro
-      const ultimo =
-        posteriores.length > 0
-          ? Number(posteriores[posteriores.length - 1].odometro)
-          : odometroNovo;
+      const ultimo = registros[registros.length - 1];
       await tx.veiculo.update({
         where: { id: registro.veiculoId },
-        data: { odometroAtual: ultimo },
+        data: { odometroAtual: Number(ultimo.odometro) },
       });
 
       return atualizado;

@@ -49,6 +49,25 @@ export class ListasComprasController {
     );
   }
 
+  @Get('rodadas')
+  async listarRodadas(
+    @Query(new ZodValidationPipe(listarListaComprasQuerySchema))
+    query: ListarListaComprasQueryInput,
+  ) {
+    return this.service.listarRodadas(
+      query.tipo,
+      query.setor,
+      query.mes,
+      query.ano,
+      query.tipoDespesaId,
+    );
+  }
+
+  @Get(':id')
+  async buscar(@Param('id') id: string) {
+    return this.service.buscarOuFalhar(Number(id));
+  }
+
   @Put(':tipo/:setor/:mes/:ano/itens')
   @Permissions('criar_lista_compras')
   async salvarItens(
