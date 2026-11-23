@@ -47,7 +47,16 @@ const includeDetalhe = {
         include: { material: { select: { id: true, nome: true } } },
       },
       epis: {
-        include: { epi: { select: { id: true, nome: true, codigo: true } } },
+        include: {
+          epi: {
+            select: {
+              id: true,
+              nome: true,
+              codigo: true,
+              numeroPatrimonio: true,
+            },
+          },
+        },
       },
     },
   },

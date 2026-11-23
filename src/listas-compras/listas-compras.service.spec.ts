@@ -21,6 +21,7 @@ const mockPrisma = {
   },
   listaCompraItem: {
     findMany: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
@@ -507,7 +508,11 @@ describe('transições', () => {
     await servico().comprarItem(5, 11, { valorUnitario: 12.5 }, 9);
 
     expect(mockPrisma.listaCompraItem.updateMany).toHaveBeenCalledWith({
-      where: { id: 11, listaId: 5, status: { not: 'COMPRADO' } },
+      where: {
+        id: 11,
+        listaId: 5,
+        status: { notIn: ['COMPRADO', 'CONFERIDO'] },
+      },
       data: {
         status: 'COMPRADO',
         valorUnitario: 12.5,
@@ -553,7 +558,11 @@ describe('transições', () => {
     );
 
     expect(mockPrisma.listaCompraItem.updateMany).toHaveBeenCalledWith({
-      where: { id: 11, listaId: 5, status: { not: 'COMPRADO' } },
+      where: {
+        id: 11,
+        listaId: 5,
+        status: { notIn: ['COMPRADO', 'CONFERIDO'] },
+      },
       data: {
         status: 'COMPRADO',
         valorUnitario: 4,
@@ -599,5 +608,40 @@ describe('transições', () => {
       ConflictException,
     );
     expect(mockPrisma.listaCompra.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('conferirItem: exige item COMPRADO e atualiza para CONFERIDO', async () => {
+    mockPrisma.listaCompraItem.findFirst.mockResolvedValue({
+      id: 11,
+      listaId: 5,
+      status: 'COMPRADO',
+    });
+    mockPrisma.listaCompraItem.update.mockResolvedValue({ id: 11, status: 'CONFERIDO' });
+    mockPrisma.listaCompraItem.findMany.mockResolvedValue([{ id: 11, status: 'CONFERIDO' }]);
+    mockPrisma.listaCompra.findUnique.mockResolvedValue({ id: 5, status: 'APROVADA' });
+
+    await servico().conferirItem(5, 11, 9);
+
+    expect(mockPrisma.listaCompraItem.update).toHaveBeenCalledWith({
+      where: { id: 11 },
+      data: { status: 'CONFERIDO' },
+    });
+  });
+
+  it('reverterConferenciaItem: exige item CONFERIDO e volta para COMPRADO', async () => {
+    mockPrisma.listaCompraItem.findFirst.mockResolvedValue({
+      id: 11,
+      listaId: 5,
+      status: 'CONFERIDO',
+    });
+    mockPrisma.listaCompraItem.update.mockResolvedValue({ id: 11, status: 'COMPRADO' });
+    mockPrisma.listaCompra.findUnique.mockResolvedValue({ id: 5, status: 'APROVADA' });
+
+    await servico().reverterConferenciaItem(5, 11);
+
+    expect(mockPrisma.listaCompraItem.update).toHaveBeenCalledWith({
+      where: { id: 11 },
+      data: { status: 'COMPRADO' },
+    });
   });
 });

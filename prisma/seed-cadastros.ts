@@ -41,15 +41,6 @@ const CATEGORIAS_MATERIAL = [
   'Diversos',
 ];
 
-const LOCALIZACOES = [
-  'Almoxarifado',
-  'Oficina',
-  'Escritório',
-  'Obra – Obra 1',
-  'Veículo',
-  'Cliente',
-];
-
 const ESTADOS_CONSERVACAO = ['Bom', 'Regular', 'Ruim'];
 
 type NomeOrdem = { nome: string; ordem: number };
@@ -73,23 +64,6 @@ async function upsertCategoria(
   }
   const criado = await p.categoria.create({
     data: { nome: item.nome, ordem: item.ordem, tipoInsumo },
-  });
-  return criado.id;
-}
-
-async function upsertLocalizacao(item: NomeOrdem): Promise<number> {
-  const existente = await p.localizacao.findFirst({
-    where: { nome: item.nome, tipoInsumo: 'EQUIPAMENTO' },
-  });
-  if (existente) {
-    await p.localizacao.update({
-      where: { id: existente.id },
-      data: { ordem: item.ordem, ativo: true },
-    });
-    return existente.id;
-  }
-  const criado = await p.localizacao.create({
-    data: { nome: item.nome, ordem: item.ordem, tipoInsumo: 'EQUIPAMENTO' },
   });
   return criado.id;
 }
@@ -139,13 +113,6 @@ async function main() {
     console.log('');
   }
 
-  console.log(`--- Localizações (${LOCALIZACOES.length}) ---`);
-  for (const item of comOrdem(LOCALIZACOES)) {
-    const id = await upsertLocalizacao(item);
-    console.log(`  ✓ [${id}] ${item.nome} (ordem=${item.ordem})`);
-  }
-  console.log('');
-
   console.log(`--- Estados de conservação (${ESTADOS_CONSERVACAO.length}) ---`);
   for (const item of comOrdem(ESTADOS_CONSERVACAO)) {
     const id = await upsertEstadoConservacao(item);
@@ -153,17 +120,16 @@ async function main() {
   }
   console.log('');
 
-  const [catsEpi, catsEqp, catsMat, locs, ests] = await Promise.all([
+  const [catsEpi, catsEqp, catsMat, ests] = await Promise.all([
     p.categoria.count({ where: { tipoInsumo: 'EPI' } }),
     p.categoria.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
     p.categoria.count({ where: { tipoInsumo: 'MATERIAL' } }),
-    p.localizacao.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
     p.estadoConservacao.count({ where: { tipoInsumo: 'EQUIPAMENTO' } }),
   ]);
 
   console.log(
     `OK — categorias EPI=${catsEpi}, EQUIPAMENTO=${catsEqp}, ` +
-      `MATERIAL=${catsMat}, localizacoes=${locs}, estados_conservacao=${ests}`,
+      `MATERIAL=${catsMat}, estados_conservacao=${ests}`,
   );
 }
 
