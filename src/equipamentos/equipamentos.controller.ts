@@ -166,36 +166,6 @@ export class EquipamentosController {
     return this.equipamentosService.desativarFornecedor(Number(id));
   }
 
-  @Get('lookups/localizacoes')
-  async listarLocalizacoes() {
-    return this.equipamentosService.listarLocalizacoes();
-  }
-  @Post('lookups/localizacoes')
-  @Permissions('gerenciar_catalogo')
-  async criarLocalizacao(
-    @Body() dto: { nome: string; descricao?: string; ordem?: number },
-  ) {
-    return this.equipamentosService.criarLocalizacao(dto);
-  }
-  @Put('lookups/localizacoes/:id')
-  @Permissions('gerenciar_catalogo')
-  async atualizarLocalizacao(
-    @Param('id') id: string,
-    @Body() dto: {
-      nome?: string;
-      descricao?: string;
-      ordem?: number;
-      ativo?: boolean;
-    },
-  ) {
-    return this.equipamentosService.atualizarLocalizacao(Number(id), dto);
-  }
-  @Delete('lookups/localizacoes/:id')
-  @Permissions('gerenciar_catalogo')
-  async desativarLocalizacao(@Param('id') id: string) {
-    return this.equipamentosService.desativarLocalizacao(Number(id));
-  }
-
   @Get('lookups/status')
   async listarStatus() {
     return this.equipamentosService.listarStatus();

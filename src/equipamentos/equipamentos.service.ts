@@ -28,7 +28,6 @@ export class EquipamentosService {
   private readonly subcategorias: LookupCrud;
   private readonly marcas: LookupCrud;
   private readonly fornecedores: LookupCrud;
-  private readonly localizacoes: LookupCrud;
   private readonly statuses: LookupCrud;
   private readonly estadosConservacao: LookupCrud;
   private readonly tiposManutencao: LookupCrud;
@@ -56,11 +55,6 @@ export class EquipamentosService {
     this.fornecedores = this.lookup.criarCrud(this.prisma.fornecedor, {
       labelSingular: 'Fornecedor',
       duplicateMessage: () => 'Fornecedor já cadastrado',
-      tipoInsumo: 'EQUIPAMENTO',
-    });
-    this.localizacoes = this.lookup.criarCrud(this.prisma.localizacao, {
-      labelSingular: 'Localização',
-      duplicateMessage: () => 'Localização já cadastrada',
       tipoInsumo: 'EQUIPAMENTO',
     });
     this.statuses = this.lookup.criarCrud(this.prisma.statusEquipamento, {
@@ -110,7 +104,6 @@ export class EquipamentosService {
         marca: true,
         categoria: true,
         subcategoria: true,
-        localizacao: true,
         fornecedor: true,
         status: true,
         estadoConservacao: true,
@@ -125,7 +118,6 @@ export class EquipamentosService {
       marcas,
       categorias,
       subcategorias,
-      localizacoes,
       fornecedores,
       statusList,
       estadosConservacao,
@@ -142,10 +134,6 @@ export class EquipamentosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.subcategoria.findMany({
-        where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
-        orderBy: { nome: 'asc' },
-      }),
-      this.prisma.localizacao.findMany({
         where: { ativo: true, tipoInsumo: 'EQUIPAMENTO' },
         orderBy: { nome: 'asc' },
       }),
@@ -185,7 +173,6 @@ export class EquipamentosService {
       marcas,
       categorias,
       subcategorias,
-      localizacoes,
       fornecedores,
       statuses: statusList,
       estadosConservacao,
@@ -299,31 +286,6 @@ export class EquipamentosService {
     return this.fornecedores.desativar(id);
   }
 
-  async listarLocalizacoes() {
-    return this.localizacoes.listar();
-  }
-  async criarLocalizacao(data: {
-    nome: string;
-    descricao?: string;
-    ordem?: number;
-  }) {
-    return this.localizacoes.criar(data);
-  }
-  async atualizarLocalizacao(
-    id: number,
-    data: {
-      nome?: string;
-      descricao?: string;
-      ordem?: number;
-      ativo?: boolean;
-    },
-  ) {
-    return this.localizacoes.atualizar(id, data);
-  }
-  async desativarLocalizacao(id: number) {
-    return this.localizacoes.desativar(id);
-  }
-
   async listarStatus() {
     return this.statuses.listar();
   }
@@ -399,7 +361,6 @@ export class EquipamentosService {
         marca: true,
         categoria: true,
         subcategoria: true,
-        localizacao: true,
         fornecedor: true,
         status: true,
         estadoConservacao: true,

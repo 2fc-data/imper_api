@@ -409,7 +409,7 @@ export class ListasComprasService {
       ? new Date(input.dataCompra)
       : (item.dataCompra ?? new Date());
     const r = await this.prisma.listaCompraItem.updateMany({
-      where: { id: itemId, listaId, status: { not: 'COMPRADO' } },
+      where: { id: itemId, listaId, status: { notIn: ['COMPRADO', 'CONFERIDO'] } },
       data: {
         status: 'COMPRADO',
         valorUnitario,
@@ -424,6 +424,45 @@ export class ListasComprasService {
       throw new BadRequestException('Item já comprado ou não pertence à lista');
     }
     await this.marcarCompradaSeNecessario(listaId);
+    return this.buscarOuFalhar(listaId);
+  }
+
+  async conferirItem(listaId: number, itemId: number, _usuarioId?: number) {
+    const item = await this.prisma.listaCompraItem.findFirst({
+      where: { id: itemId, listaId },
+    });
+    if (!item) {
+      throw new NotFoundException('Item não encontrado');
+    }
+    if (item.status !== 'COMPRADO') {
+      throw new BadRequestException(
+        'Apenas itens com status COMPRADO podem ser conferidos',
+      );
+    }
+    await this.prisma.listaCompraItem.update({
+      where: { id: itemId },
+      data: { status: 'CONFERIDO' },
+    });
+    await this.marcarCompradaSeNecessario(listaId);
+    return this.buscarOuFalhar(listaId);
+  }
+
+  async reverterConferenciaItem(listaId: number, itemId: number) {
+    const item = await this.prisma.listaCompraItem.findFirst({
+      where: { id: itemId, listaId },
+    });
+    if (!item) {
+      throw new NotFoundException('Item não encontrado');
+    }
+    if (item.status !== 'CONFERIDO') {
+      throw new BadRequestException(
+        'Apenas itens com status CONFERIDO podem ter a conferência revertida',
+      );
+    }
+    await this.prisma.listaCompraItem.update({
+      where: { id: itemId },
+      data: { status: 'COMPRADO' },
+    });
     return this.buscarOuFalhar(listaId);
   }
 

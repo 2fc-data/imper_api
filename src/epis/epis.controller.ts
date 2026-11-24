@@ -58,11 +58,6 @@ export class EpisController {
     return this.episService.listarFornecedores();
   }
 
-  @Get('lookups/localizacoes')
-  async listarLocalizacoes() {
-    return this.episService.listarLocalizacoes();
-  }
-
   @Get('lookups/cores')
   async listarCores() {
     return this.episService.listarCores();
@@ -188,27 +183,6 @@ export class EpisController {
   @Permissions('gerenciar_catalogo')
   async desativarTamanho(@Param('id') id: string) {
     return this.episService.desativarTamanho(Number(id));
-  }
-
-  @Post('lookups/localizacoes')
-  @Permissions('gerenciar_catalogo')
-  async criarLocalizacao(@Body() body: { nome: string; descricao?: string }) {
-    return this.episService.criarLocalizacao(body);
-  }
-
-  @Put('lookups/localizacoes/:id')
-  @Permissions('gerenciar_catalogo')
-  async atualizarLocalizacao(
-    @Param('id') id: string,
-    @Body() body: { nome?: string; ativo?: boolean },
-  ) {
-    return this.episService.atualizarLocalizacao(Number(id), body);
-  }
-
-  @Delete('lookups/localizacoes/:id')
-  @Permissions('gerenciar_catalogo')
-  async desativarLocalizacao(@Param('id') id: string) {
-    return this.episService.desativarLocalizacao(Number(id));
   }
 
   @Post('lookups/fornecedores')

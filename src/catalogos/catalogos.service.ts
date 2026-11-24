@@ -22,7 +22,6 @@ export type RecursoCatalogos =
   | 'subcategorias'
   | 'marcas'
   | 'fornecedores'
-  | 'localizacoes'
   | 'unidades-medida'
   | 'cores'
   | 'tamanhos'
@@ -67,11 +66,6 @@ const DEFS: Record<RecursoCatalogos, DefinicaoRecurso> = {
     label: 'Fornecedor',
     duplicateMessage: 'Fornecedor já cadastrado',
     campos: ['nome', 'cnpj', 'telefone', 'email'],
-  },
-  localizacoes: {
-    label: 'Localização',
-    duplicateMessage: 'Localização já cadastrada',
-    campos: ['nome', 'descricao', 'ordem'],
   },
   'unidades-medida': {
     label: 'Unidade de medida',
@@ -149,7 +143,6 @@ export class CatalogosService {
       subcategorias,
       marcas,
       fornecedores,
-      localizacoes,
       unidadesMedida,
       cores,
       tamanhos,
@@ -172,10 +165,6 @@ export class CatalogosService {
         orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
-        where: { ativo: true, ...dinamico },
-        orderBy: { nome: 'asc' },
-      }),
-      this.prisma.localizacao.findMany({
         where: { ativo: true, ...dinamico },
         orderBy: { nome: 'asc' },
       }),
@@ -224,7 +213,6 @@ export class CatalogosService {
       subcategorias,
       marcas,
       fornecedores,
-      localizacoes,
       unidadesMedida,
       cores,
       tamanhos,
@@ -531,8 +519,6 @@ export class CatalogosService {
         return this.prisma.marca;
       case 'fornecedores':
         return this.prisma.fornecedor;
-      case 'localizacoes':
-        return this.prisma.localizacao;
       case 'unidades-medida':
         return this.prisma.unidadeMedida;
       case 'cores':

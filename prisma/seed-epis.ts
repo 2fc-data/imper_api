@@ -490,7 +490,6 @@ async function main() {
         numeroPatrimonio: r.numeroPatrimonio,
         unidadeMedidaId: umMap[r.unidade],
         fornecedorId: r.fornecedor ? (fornMap[r.fornecedor] ?? null) : null,
-        quantidade: 0,
       },
     });
     criados++;

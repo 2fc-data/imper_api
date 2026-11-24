@@ -95,4 +95,4 @@ export type StatusListaCompra =
   | 'RECUSADA'
   | 'COMPRADA';
 
-export type StatusItemLista = 'PENDENTE' | 'RECUSADO' | 'COMPRADO';
+export type StatusItemLista = 'PENDENTE' | 'RECUSADO' | 'COMPRADO' | 'CONFERIDO';

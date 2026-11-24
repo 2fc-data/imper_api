@@ -154,6 +154,27 @@ export class ListasComprasController {
       req.user?.id ?? 0,
     );
   }
+
+  @Post(':id/itens/:itemId/conferir')
+  async conferirItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.service.conferirItem(
+      Number(id),
+      Number(itemId),
+      req.user?.id ?? 0,
+    );
+  }
+
+  @Post(':id/itens/:itemId/desfazer-conferencia')
+  async desfazerConferenciaItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.service.reverterConferenciaItem(Number(id), Number(itemId));
+  }
 }
 
 type TipoParam =

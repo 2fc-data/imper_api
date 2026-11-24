@@ -26,7 +26,6 @@ export class EpisService {
   private readonly subcategorias: LookupCrud;
   private readonly marcas: LookupCrud;
   private readonly fornecedores: LookupCrud;
-  private readonly localizacoes: LookupCrud;
   private readonly cores: LookupCrud;
   private readonly tamanhos: LookupCrud;
 
@@ -54,11 +53,6 @@ export class EpisService {
       duplicateMessage: () => 'Fornecedor já cadastrado',
       tipoInsumo: 'EPI',
     });
-    this.localizacoes = this.lookup.criarCrud(this.prisma.localizacao, {
-      labelSingular: 'Localização',
-      duplicateMessage: () => 'Localização já cadastrada',
-      tipoInsumo: 'EPI',
-    });
     this.cores = this.lookup.criarCrud(this.prisma.cor, {
       labelSingular: 'Cor',
       duplicateMessage: () => 'Cor já cadastrada',
@@ -81,7 +75,7 @@ export class EpisService {
     }
     if (params?.categoriaId) where.categoriaId = params.categoriaId;
 
-    return this.prisma.epi.findMany({
+    const itens = await this.prisma.epi.findMany({
       where,
       include: {
         marca: true,
@@ -89,10 +83,25 @@ export class EpisService {
         subcategoria: true,
         cor: true,
         tamanho: true,
-        localizacao: true,
         fornecedor: true,
+        itensListaCompra: {
+          where: { status: 'CONFERIDO' },
+          select: { quantidade: true },
+        },
       },
       orderBy: { nome: 'asc' },
+    });
+
+    return itens.map((e) => {
+      const totalConferido =
+        e.itensListaCompra?.reduce((acc, i) => acc + Number(i.quantidade), 0) ?? 0;
+      const estoqueAtual =
+        (e.quantidadeMinima != null ? Number(e.quantidadeMinima) : 0) + totalConferido;
+      return {
+        ...e,
+        totalConferido,
+        estoqueAtual,
+      };
     });
   }
 
@@ -103,7 +112,6 @@ export class EpisService {
       subcategorias,
       cores,
       tamanhos,
-      localizacoesRaw,
       fornecedores,
       colaboradores,
       unidadesMedida,
@@ -129,13 +137,6 @@ export class EpisService {
       }),
       this.prisma.tamanhoEquipamento.findMany({
         where: { ativo: true, tipoInsumo: 'EPI' },
-        orderBy: { nome: 'asc' },
-      }),
-      this.prisma.localizacao.findMany({
-        where: {
-          ativo: true,
-          tipoInsumo: { in: ['EPI', 'EQUIPAMENTO'] },
-        },
         orderBy: { nome: 'asc' },
       }),
       this.prisma.fornecedor.findMany({
@@ -166,24 +167,12 @@ export class EpisService {
       a.nome.localeCompare(b.nome),
     );
 
-    const localizacoesMap = new Map<string, (typeof localizacoesRaw)[0]>();
-    for (const l of localizacoesRaw) {
-      const key = l.nome.trim().toUpperCase();
-      if (!localizacoesMap.has(key) || l.tipoInsumo === 'EPI') {
-        localizacoesMap.set(key, l);
-      }
-    }
-    const localizacoes = Array.from(localizacoesMap.values()).sort((a, b) =>
-      a.nome.localeCompare(b.nome),
-    );
-
     return {
       marcas,
       categorias,
       subcategorias,
       cores,
       tamanhos,
-      localizacoes,
       fornecedores,
       colaboradores,
       unidadesMedida,
@@ -228,26 +217,6 @@ export class EpisService {
       distinct: ['nome'],
       orderBy: { nome: 'asc' },
     });
-  }
-
-  async listarLocalizacoes() {
-    const raw = await this.prisma.localizacao.findMany({
-      where: {
-        ativo: true,
-        tipoInsumo: { in: ['EPI', 'EQUIPAMENTO'] },
-      },
-      orderBy: { nome: 'asc' },
-    });
-    const map = new Map<string, (typeof raw)[0]>();
-    for (const l of raw) {
-      const key = l.nome.trim().toUpperCase();
-      if (!map.has(key) || l.tipoInsumo === 'EPI') {
-        map.set(key, l);
-      }
-    }
-    return Array.from(map.values()).sort((a, b) =>
-      a.nome.localeCompare(b.nome),
-    );
   }
 
   async listarCores() {
@@ -299,17 +268,28 @@ export class EpisService {
         subcategoria: true,
         cor: true,
         tamanho: true,
-        localizacao: true,
         fornecedor: true,
         entregas: {
           take: 10,
           orderBy: { data: 'desc' },
           include: { colaborador: { select: { id: true, nome: true } } },
         },
+        itensListaCompra: {
+          where: { status: 'CONFERIDO' },
+          select: { quantidade: true },
+        },
       },
     });
     if (!epi) throw new NotFoundException(`EPI ${id} não encontrado`);
-    return epi;
+    const totalConferido =
+      epi.itensListaCompra?.reduce((acc, i) => acc + Number(i.quantidade), 0) ?? 0;
+    const estoqueAtual =
+      (epi.quantidadeMinima != null ? Number(epi.quantidadeMinima) : 0) + totalConferido;
+    return {
+      ...epi,
+      totalConferido,
+      estoqueAtual,
+    };
   }
 
   async proximoCodigo(): Promise<{ codigo: string }> {
@@ -436,19 +416,6 @@ export class EpisService {
   }
   async desativarTamanho(id: number) {
     return this.tamanhos.desativar(id);
-  }
-
-  async criarLocalizacao(data: { nome: string; descricao?: string }) {
-    return this.localizacoes.criar(data);
-  }
-  async atualizarLocalizacao(
-    id: number,
-    data: { nome?: string; ativo?: boolean },
-  ) {
-    return this.localizacoes.atualizar(id, data);
-  }
-  async desativarLocalizacao(id: number) {
-    return this.localizacoes.desativar(id);
   }
 
   async criarFornecedor(data: { nome: string; cnpj?: string }) {

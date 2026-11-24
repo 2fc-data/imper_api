@@ -20,6 +20,7 @@ const epiLinha = z.object({
 });
 
 const linhaSchema = cascataIds.extend({
+  titulo: z.string().trim().max(200).nullable().optional(),
   descricao: z.string().trim().max(1000).default(''),
   unidadeId: z.number().int().nullable().optional(),
   quantidade: z.number().positive().nullable().optional(),

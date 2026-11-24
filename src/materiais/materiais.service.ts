@@ -187,7 +187,7 @@ export class MateriaisService {
       where.obraId = params.obraId;
     }
 
-    return this.prisma.material.findMany({
+    const itens = await this.prisma.material.findMany({
       where,
       include: {
         saldo: true,
@@ -217,8 +217,24 @@ export class MateriaisService {
             },
           },
         },
+        itensListaCompra: {
+          where: { status: 'CONFERIDO' },
+          select: { quantidade: true },
+        },
       },
       orderBy: { nome: 'asc' },
+    });
+
+    return itens.map((m) => {
+      const totalConferido =
+        m.itensListaCompra?.reduce((acc, i) => acc + Number(i.quantidade), 0) ?? 0;
+      const estoqueAtual =
+        (m.quantidadeMinima != null ? Number(m.quantidadeMinima) : 0) + totalConferido;
+      return {
+        ...m,
+        totalConferido,
+        estoqueAtual,
+      };
     });
   }
 
@@ -321,14 +337,23 @@ export class MateriaisService {
             },
           },
         },
+        itensListaCompra: {
+          where: { status: 'CONFERIDO' },
+          select: { quantidade: true },
+        },
       },
     });
 
-    if (!material) {
-      throw new NotFoundException(`Material com ID ${id} não encontrado`);
-    }
-
-    return material;
+    if (!material) return null;
+    const totalConferido =
+      material.itensListaCompra?.reduce((acc, i) => acc + Number(i.quantidade), 0) ?? 0;
+    const estoqueAtual =
+      (material.quantidadeMinima != null ? Number(material.quantidadeMinima) : 0) + totalConferido;
+    return {
+      ...material,
+      totalConferido,
+      estoqueAtual,
+    };
   }
 
   async criar(dto: MaterialInputDto) {
@@ -383,6 +408,9 @@ export class MateriaisService {
 
   async atualizar(id: number, dto: MaterialUpdateDto) {
     const atual = await this.detalhar(id);
+    if (!atual) {
+      throw new NotFoundException(`Material com ID ${id} não encontrado`);
+    }
 
     if (dto.nome) {
       const nomeUpper = dto.nome.toUpperCase();

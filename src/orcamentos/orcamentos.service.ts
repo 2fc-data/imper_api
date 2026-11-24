@@ -47,7 +47,16 @@ const includeDetalhe = {
         include: { material: { select: { id: true, nome: true } } },
       },
       epis: {
-        include: { epi: { select: { id: true, nome: true, codigo: true } } },
+        include: {
+          epi: {
+            select: {
+              id: true,
+              nome: true,
+              codigo: true,
+              numeroPatrimonio: true,
+            },
+          },
+        },
       },
     },
   },
@@ -537,6 +546,7 @@ export class OrcamentosService {
         return {
           etapaId: a.etapaId,
           subServicoId: a.subServicoId,
+          titulo: l.titulo ?? null,
           descricao: l.descricao,
           verboId: l.verboId,
           objetoId: l.objetoId,
