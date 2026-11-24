@@ -18,6 +18,7 @@ export interface LookupCrud {
   criar: (data: LookupInput) => Promise<unknown>;
   atualizar: (id: number, data: LookupAtualizacao) => Promise<unknown>;
   desativar: (id: number) => Promise<unknown>;
+  remover: (id: number) => Promise<unknown>;
 }
 
 @Injectable()
@@ -79,6 +80,20 @@ export class LookupService {
 
       desativar: (id: number) =>
         model.update({ where: { id }, data: { ativo: false } }),
+
+      remover: async (id: number) => {
+        try {
+          return await model.delete({ where: { id } });
+        } catch (err: any) {
+          if (err?.code === 'P2003') {
+            throw new AppError(
+              409,
+              `Não é possível remover este item (${label.toLowerCase()}) pois ele possui vínculos com outros registros no sistema.`,
+            );
+          }
+          throw err;
+        }
+      },
     };
   }
 }

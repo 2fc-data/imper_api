@@ -360,6 +360,26 @@ export class CatalogosService {
     return this.crud(recurso).desativar(id);
   }
 
+  async remover(recurso: RecursoCatalogos, id: number) {
+    recurso = this.resolverRecurso(recurso);
+    if (recurso === 'subcategorias') {
+      try {
+        return await this.prisma.subcategoria.delete({
+          where: { id },
+        });
+      } catch (err: any) {
+        if (err?.code === 'P2003') {
+          throw new AppError(
+            409,
+            'Não é possível remover esta subcategoria pois ela possui vínculos com outros registros no sistema.',
+          );
+        }
+        throw err;
+      }
+    }
+    return this.crud(recurso).remover(id);
+  }
+
   private definicao(recurso: RecursoCatalogos) {
     const def = DEFS[recurso];
     if (!def) {

@@ -69,8 +69,8 @@ export class CatalogosController {
 
   @Delete(':recurso/:id')
   @Permissions('gerenciar_catalogo')
-  async desativar(@Param('recurso') recurso: string, @Param('id') id: string) {
-    return this.catalogosService.desativar(
+  async remover(@Param('recurso') recurso: string, @Param('id') id: string) {
+    return this.catalogosService.remover(
       this.catalogosService.resolverRecurso(recurso),
       this.parseId(id),
     );
