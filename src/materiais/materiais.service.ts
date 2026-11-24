@@ -356,13 +356,6 @@ export class MateriaisService {
     };
   }
 
-    if (!material) {
-      throw new NotFoundException(`Material com ID ${id} não encontrado`);
-    }
-
-    return material;
-  }
-
   async criar(dto: MaterialInputDto) {
     const nomeUpper = dto.nome.toUpperCase();
     const exists = await this.prisma.material.findFirst({
@@ -415,6 +408,9 @@ export class MateriaisService {
 
   async atualizar(id: number, dto: MaterialUpdateDto) {
     const atual = await this.detalhar(id);
+    if (!atual) {
+      throw new NotFoundException(`Material com ID ${id} não encontrado`);
+    }
 
     if (dto.nome) {
       const nomeUpper = dto.nome.toUpperCase();

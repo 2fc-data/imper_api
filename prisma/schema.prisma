@@ -904,6 +904,7 @@ model Equipamento {
   descricao           String                @db.VarChar(255)
   modelo              String?               @db.VarChar(120)
   numeroSerie         String?               @db.VarChar(120)
+  custoUnitario       Decimal?              @db.Decimal(12, 2)
   marcaId             Int?
   categoriaId         Int?
   subcategoriaId      Int?
