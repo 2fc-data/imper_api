@@ -8,6 +8,7 @@ type PrismaModel = {
   findFirst(args?: unknown): Promise<unknown>;
   create(args: unknown): Promise<unknown>;
   update(args: unknown): Promise<unknown>;
+  delete(args: unknown): Promise<unknown>;
 };
 
 export type LookupInput = { nome: string; [campo: string]: unknown };

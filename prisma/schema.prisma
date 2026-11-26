@@ -1680,6 +1680,8 @@ model AbastecimentoVeiculo {
   kmDesdeUltimo Decimal? @db.Decimal(9, 2)
   kmPorLitro    Decimal? @db.Decimal(12, 4)
   observacao    String?  @db.VarChar(500)
+  numeroCupon   String?  @db.VarChar(60)
+  numeroSerie   String?  @db.VarChar(120)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

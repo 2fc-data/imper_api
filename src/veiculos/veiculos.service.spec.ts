@@ -403,6 +403,7 @@ describe('VeiculosService', () => {
           odometro: 1050,
           registradoPorId: 1,
         }),
+        omit: { numeroCupon: true, numeroSerie: true },
       });
       expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -428,32 +429,7 @@ describe('VeiculosService', () => {
           veiculoId: 1,
           colaboradorId: 42,
         }),
-      });
-    });
-
-    it('deve registrar km com numeroCupon e numeroSerie', async () => {
-      const veiculo = { id: 1, odometroAtual: 1000 };
-      mockPrisma.veiculo.findUnique.mockResolvedValue(veiculo);
-      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(null);
-      mockPrisma.registroKmVeiculo.create.mockResolvedValue({ id: 1 });
-      mockPrisma.veiculo.update.mockResolvedValue({});
-
-      await servico().registrarKm(
-        1,
-        {
-          data: '2026-10-01',
-          odometro: 1050,
-          numeroCupon: 'CUP-1',
-          numeroSerie: 'SER-9',
-        },
-        1,
-      );
-
-      expect(mockPrisma.registroKmVeiculo.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          numeroCupon: 'CUP-1',
-          numeroSerie: 'SER-9',
-        }),
+        omit: { numeroCupon: true, numeroSerie: true },
       });
     });
 
@@ -527,6 +503,7 @@ describe('VeiculosService', () => {
       expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: expect.objectContaining({ odometro: 1060, kmPercorrido: 60 }),
+        omit: { numeroCupon: true, numeroSerie: true },
       });
       expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -579,6 +556,7 @@ describe('VeiculosService', () => {
       expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: expect.objectContaining({ odometro: 1060, kmPercorrido: 60 }),
+        omit: { numeroCupon: true, numeroSerie: true },
       });
       expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
         where: { id: 2 },
@@ -653,49 +631,7 @@ describe('VeiculosService', () => {
       expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: expect.objectContaining({ colaboradorId: 42 }),
-      });
-    });
-
-    it('deve atualizar numeroCupon e numeroSerie do registro', async () => {
-      const registro = {
-        id: 1,
-        veiculoId: 1,
-        data: new Date('2026-10-05'),
-        odometro: 1050,
-        kmPercorrido: 50,
-      };
-      mockPrisma.registroKmVeiculo.findUnique.mockResolvedValue(registro);
-      mockPrisma.veiculo.findUnique.mockResolvedValue({
-        id: 1,
-        odometroAtual: 1050,
-      });
-      mockPrisma.registroKmVeiculo.findFirst.mockResolvedValue({
-        id: 9,
-        odometro: 1000,
-      });
-      mockPrisma.registroKmVeiculo.findMany.mockResolvedValue([
-        {
-          id: 1,
-          data: new Date('2026-10-05'),
-          odometro: 1050,
-          kmPercorrido: 50,
-        },
-      ]);
-      mockPrisma.registroKmVeiculo.update.mockResolvedValue(registro);
-      mockPrisma.veiculo.update.mockResolvedValue({});
-
-      await servico().atualizarRegistroKm(1, {
-        odometro: 1050,
-        numeroCupon: 'CUP-1',
-        numeroSerie: 'SER-9',
-      });
-
-      expect(mockPrisma.registroKmVeiculo.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: expect.objectContaining({
-          numeroCupon: 'CUP-1',
-          numeroSerie: 'SER-9',
-        }),
+        omit: { numeroCupon: true, numeroSerie: true },
       });
     });
 
@@ -761,6 +697,7 @@ describe('VeiculosService', () => {
           odometro: 1140,
           kmPercorrido: 10,
         }),
+        omit: { numeroCupon: true, numeroSerie: true },
       });
       expect(mockPrisma.veiculo.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -855,6 +792,8 @@ describe('VeiculosService', () => {
             valorTotal: 200,
             odometro: 1050,
             motoristaId: 7,
+            numeroCupon: 'CUP-1',
+            numeroSerie: 'SER-9',
           },
           1,
         );
@@ -868,6 +807,8 @@ describe('VeiculosService', () => {
             odometro: 1050,
             kmDesdeUltimo: 100,
             kmPorLitro: 2.5,
+            numeroCupon: 'CUP-1',
+            numeroSerie: 'SER-9',
             registradoPorId: 1,
             motoristaId: 7,
           }),
@@ -950,6 +891,37 @@ describe('VeiculosService', () => {
     });
 
     describe('listarAbastecimentos', () => {
+      it('deve atualizar numeroCupon e numeroSerie', async () => {
+        const registro = {
+          id: 1,
+          litros: 40,
+          valorTotal: 200,
+          odometro: 1050,
+          numeroCupon: null,
+          numeroSerie: null,
+        };
+        mockPrisma.abastecimentoVeiculo.findUnique.mockResolvedValue(registro);
+        mockPrisma.abastecimentoVeiculo.update.mockResolvedValue({
+          ...registro,
+          numeroCupon: 'CUP-1',
+          numeroSerie: 'SER-9',
+        });
+
+        await servico().atualizarAbastecimento(1, {
+          numeroCupon: 'CUP-1',
+          numeroSerie: 'SER-9',
+        });
+
+        expect(mockPrisma.abastecimentoVeiculo.update).toHaveBeenCalledWith({
+          where: { id: 1 },
+          data: expect.objectContaining({
+            numeroCupon: 'CUP-1',
+            numeroSerie: 'SER-9',
+          }),
+          include: expect.anything(),
+        });
+      });
+
       it('deve listar abastecimentos do veículo', async () => {
         const abastecimentos = [{ id: 1, veiculoId: 1 }];
         mockPrisma.abastecimentoVeiculo.findMany.mockResolvedValue(

@@ -45,8 +45,6 @@ export type RegistroKmInput = {
   odometro: number | string;
   data?: string | number;
   observacao?: string | null;
-  numeroCupon?: string | null;
-  numeroSerie?: string | null;
   colaboradorId?: number | null;
 };
 
@@ -57,6 +55,8 @@ export type AbastecimentoCriarInput = {
   motoristaId?: number | string;
   odometro?: number | string;
   fornecedorId?: number | null;
+  numeroCupon?: string | null;
+  numeroSerie?: string | null;
 };
 
 export type AbastecimentoAtualizarInput = {
@@ -66,6 +66,8 @@ export type AbastecimentoAtualizarInput = {
   motoristaId?: number | string | null;
   odometro?: number | string;
   fornecedorId?: number | null;
+  numeroCupon?: string | null;
+  numeroSerie?: string | null;
 };
 
 type VeiculoBasico = {
@@ -375,11 +377,10 @@ export class VeiculosService {
           kmPercorrido,
           odometro: odometroInformado,
           observacao: data.observacao || null,
-          numeroCupon: data.numeroCupon || null,
-          numeroSerie: data.numeroSerie || null,
           registradoPorId: registradoPorId || null,
           colaboradorId: data.colaboradorId || null,
         },
+        omit: { numeroCupon: true, numeroSerie: true },
       });
       await tx.veiculo.update({
         where: { id: veiculoId },
@@ -408,6 +409,7 @@ export class VeiculosService {
         registradoPor: { select: { id: true, nome: true } },
         colaborador: { select: { id: true, nome: true } },
       },
+      omit: { numeroCupon: true, numeroSerie: true },
       orderBy: { data: 'desc' },
     });
   }
@@ -476,18 +478,13 @@ export class VeiculosService {
         data: {
           ...(data.data !== undefined && { data: dataEfetiva }),
           ...(data.observacao !== undefined && { observacao: data.observacao }),
-          ...(data.numeroCupon !== undefined && {
-            numeroCupon: data.numeroCupon,
-          }),
-          ...(data.numeroSerie !== undefined && {
-            numeroSerie: data.numeroSerie,
-          }),
           ...(data.colaboradorId !== undefined && {
             colaboradorId: data.colaboradorId,
           }),
           odometro: odometroNovo,
           kmPercorrido: kmPercorridoNovo,
         },
+        omit: { numeroCupon: true, numeroSerie: true },
       });
 
       // Recalcular kmPercorrido de todos os registros do veículo em ordem de data.
@@ -532,6 +529,7 @@ export class VeiculosService {
   async excluirRegistroKm(id: number) {
     const registro = await this.prisma.registroKmVeiculo.findUnique({
       where: { id },
+      omit: { numeroCupon: true, numeroSerie: true },
     });
     if (!registro) {
       throw new NotFoundException(`Registro de km com ID ${id} não encontrado`);
@@ -636,6 +634,8 @@ export class VeiculosService {
           odometro,
           kmDesdeUltimo,
           kmPorLitro,
+          numeroCupon: data.numeroCupon || null,
+          numeroSerie: data.numeroSerie || null,
           fornecedorId: data.fornecedorId || null,
           registradoPorId: registradoPorId || null,
           motoristaId,
@@ -725,6 +725,12 @@ export class VeiculosService {
             fornecedorId: data.fornecedorId,
           }),
           ...(data.motoristaId !== undefined && { motoristaId }),
+          ...(data.numeroCupon !== undefined && {
+            numeroCupon: data.numeroCupon,
+          }),
+          ...(data.numeroSerie !== undefined && {
+            numeroSerie: data.numeroSerie,
+          }),
           precoLitro,
           odometro,
         },
