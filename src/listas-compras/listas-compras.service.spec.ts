@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import type { TipoListaCompra } from '@prisma/client';
@@ -33,6 +34,7 @@ const mockPrisma = {
   epi: { findFirst: vi.fn() },
   equipamento: { findFirst: vi.fn() },
   fornecedor: { findMany: vi.fn() },
+  notificacao: { create: vi.fn() },
 };
 
 function servico() {
@@ -43,6 +45,11 @@ const INCLUDE_LISTA = expect.any(Object);
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockPrisma.$transaction.mockImplementation((arg: unknown) =>
+    typeof arg === 'function'
+      ? (arg as (tx: typeof mockPrisma) => unknown)(mockPrisma)
+      : Promise.all(arg as Promise<unknown>[]),
+  );
 });
 
 describe('ListasComprasService — obter', () => {
@@ -642,6 +649,88 @@ describe('transições', () => {
     expect(mockPrisma.listaCompraItem.update).toHaveBeenCalledWith({
       where: { id: 11 },
       data: { status: 'COMPRADO' },
+    });
+  });
+
+  it('listarPendentesAprovacao: retorna listas ENVIADA excluindo as enviadas pelo próprio usuário', async () => {
+    mockPrisma.listaCompra.findMany.mockResolvedValue([{ id: 10, status: 'ENVIADA' }]);
+
+    const res = await servico().listarPendentesAprovacao(42);
+
+    expect(mockPrisma.listaCompra.findMany).toHaveBeenCalledWith({
+      where: {
+        status: 'ENVIADA',
+        NOT: { enviadoPorId: 42 },
+      },
+      include: INCLUDE_LISTA,
+      orderBy: { enviadoEm: 'asc' },
+    });
+    expect(res).toHaveLength(1);
+  });
+
+  it('aprovar: bloqueia autoaprovação (403) e notifica o remetente quando aprovado por outro usuário', async () => {
+    mockPrisma.listaCompra.findUnique.mockResolvedValueOnce({
+      id: 5,
+      status: 'ENVIADA',
+      enviadoPorId: 9,
+    });
+    await expect(servico().aprovar(5, 9)).rejects.toThrow(ForbiddenException);
+
+    mockPrisma.listaCompra.findUnique
+      .mockResolvedValueOnce({
+        id: 5,
+        status: 'ENVIADA',
+        tipo: 'MATERIAL',
+        setor: 'LOJA',
+        mes: 11,
+        ano: 2026,
+        enviadoPorId: 7,
+      })
+      .mockResolvedValueOnce({ id: 5, status: 'APROVADA' });
+    mockPrisma.listaCompra.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.listaCompraItem.findMany.mockResolvedValue([]);
+
+    await servico().aprovar(5, 9);
+
+    expect(mockPrisma.notificacao.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 7,
+        titulo: 'Lista de compras aprovada',
+        link: '/compras',
+      }),
+    });
+  });
+
+  it('recusar: bloqueia autorrecusa (403) e notifica o remetente com motivo', async () => {
+    mockPrisma.listaCompra.findUnique.mockResolvedValueOnce({
+      id: 5,
+      status: 'ENVIADA',
+      enviadoPorId: 9,
+    });
+    await expect(servico().recusar(5, 'Sem verba', 9)).rejects.toThrow(ForbiddenException);
+
+    mockPrisma.listaCompra.findUnique
+      .mockResolvedValueOnce({
+        id: 5,
+        status: 'ENVIADA',
+        tipo: 'EPI',
+        setor: 'ALMOXARIFADO',
+        mes: 11,
+        ano: 2026,
+        enviadoPorId: 7,
+      })
+      .mockResolvedValueOnce({ id: 5, status: 'RECUSADA' });
+    mockPrisma.listaCompra.updateMany.mockResolvedValue({ count: 1 });
+
+    await servico().recusar(5, 'Sem verba no mês', 9);
+
+    expect(mockPrisma.notificacao.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 7,
+        titulo: 'Lista de compras recusada',
+        mensagem: expect.stringContaining('Sem verba no mês'),
+        link: '/compras',
+      }),
     });
   });
 });

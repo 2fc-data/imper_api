@@ -28,3 +28,24 @@ export const atualizarPerfilSchema = z.object({
 });
 
 export type AtualizarPerfilInput = z.infer<typeof atualizarPerfilSchema>;
+
+export const recusarOrcamentoPortalSchema = z.object({
+  motivo: z.string().trim().max(500).optional(),
+});
+
+export type RecusarOrcamentoPortalInput = z.infer<
+  typeof recusarOrcamentoPortalSchema
+>;
+
+export const avaliarAtividadePortalSchema = z.object({
+  nota: z
+    .number()
+    .int('Nota deve ser um número inteiro')
+    .min(0, 'Nota mínima é 0')
+    .max(5, 'Nota máxima é 5'),
+  comentario: z.string().trim().max(1000, 'Comentário deve ter no máximo 1000 caracteres').optional(),
+});
+
+export type AvaliarAtividadePortalInput = z.infer<
+  typeof avaliarAtividadePortalSchema
+>;

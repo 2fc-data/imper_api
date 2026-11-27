@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Prisma, StatusManutencao } from '@prisma/client';
 import {
   normalizarPecas,
@@ -38,12 +44,22 @@ export type ManutencaoVeiculoAtualizarInput = {
   responsavelManutencaoId?: number | null;
 };
 
+const TRANSICOES_STATUS: Record<StatusManutencao, StatusManutencao[]> = {
+  PENDENTE: ['EM_ANDAMENTO', 'CANCELADA'],
+  EM_ANDAMENTO: ['CONCLUIDA', 'CANCELADA'],
+  CONCLUIDA: [],
+  CANCELADA: [],
+  AGUARDANDO_APROVACAO: [],
+};
+
 const includeManutencao = {
   veiculo: {
     select: { id: true, codigo: true, nome: true, placa: true },
   },
   tipo: true,
   responsavelManutencao: { select: { id: true, nome: true } },
+  criadoPor: { select: { id: true, nome: true } },
+  aprovadoPor: { select: { id: true, nome: true } },
   pecas: { orderBy: { id: 'asc' } },
 } satisfies Prisma.ManutencaoVeiculoInclude;
 
@@ -102,7 +118,18 @@ export class ManutencoesVeiculosService {
     return item;
   }
 
-  async criar(data: ManutencaoVeiculoCriarInput) {
+  async listarPendentesAprovacao(usuarioId: number) {
+    return this.prisma.manutencaoVeiculo.findMany({
+      where: {
+        status: 'AGUARDANDO_APROVACAO',
+        NOT: { criadoPorId: usuarioId },
+      },
+      include: includeManutencao,
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async criar(data: ManutencaoVeiculoCriarInput, usuarioId: number) {
     const pecas = normalizarPecas(data.pecas);
     const custoPecas = pecas
       ? somarPecas(pecas)
@@ -128,7 +155,8 @@ export class ManutencoesVeiculosService {
         proximaManutencao: data.proximaManutencao
           ? new Date(data.proximaManutencao)
           : null,
-        status: data.status || 'PENDENTE',
+        status: 'AGUARDANDO_APROVACAO',
+        criadoPorId: usuarioId,
         responsavelManutencaoId: data.responsavelManutencaoId || null,
         ...(pecas && pecas.length > 0 && { pecas: { create: pecas } }),
       },
@@ -139,6 +167,24 @@ export class ManutencoesVeiculosService {
   async atualizar(id: number, data: ManutencaoVeiculoAtualizarInput) {
     const atual = await this.detalhar(id);
     const pecas = normalizarPecas(data.pecas);
+
+    if (data.status !== undefined && data.status !== atual.status) {
+      if (atual.status === 'AGUARDANDO_APROVACAO') {
+        throw new ConflictException(
+          'Manutenções aguardando aprovação só podem ser alteradas pelos endpoints de aprovação ou recusa',
+        );
+      }
+      if (data.status === 'AGUARDANDO_APROVACAO') {
+        throw new BadRequestException(
+          'Não é possível definir o status AGUARDANDO_APROVACAO manualmente',
+        );
+      }
+      if (!TRANSICOES_STATUS[atual.status].includes(data.status)) {
+        throw new BadRequestException(
+          `Transição inválida de ${atual.status} para ${data.status}`,
+        );
+      }
+    }
 
     let custoPecas: number | undefined;
     let custoMaoDeObra: number | undefined;
@@ -200,6 +246,111 @@ export class ManutencoesVeiculosService {
             responsavelManutencaoId: data.responsavelManutencaoId,
           }),
         },
+        include: includeManutencao,
+      });
+    });
+  }
+
+  async aprovar(id: number, usuarioId: number) {
+    const atual = await this.prisma.manutencaoVeiculo.findUnique({
+      where: { id },
+      include: includeManutencao,
+    });
+    if (!atual) {
+      throw new NotFoundException(
+        `Manutenção de veículo com ID ${id} não encontrada`,
+      );
+    }
+    if (atual.status !== 'AGUARDANDO_APROVACAO') {
+      throw new ConflictException('Manutenção não está aguardando aprovação');
+    }
+    if (atual.criadoPorId === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode aprovar sua própria manutenção',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const resultado = await tx.manutencaoVeiculo.updateMany({
+        where: { id, status: 'AGUARDANDO_APROVACAO' },
+        data: {
+          status: 'PENDENTE',
+          aprovadoPorId: usuarioId,
+          decididoEm: new Date(),
+          motivoDecisao: null,
+        },
+      });
+      if (resultado.count === 0) {
+        throw new ConflictException('Manutenção já foi decidida');
+      }
+      if (atual.criadoPorId) {
+        await tx.notificacao.create({
+          data: {
+            userId: atual.criadoPorId,
+            titulo: 'Manutenção aprovada',
+            mensagem: `Sua manutenção do veículo ${atual.veiculo.nome} (${atual.veiculo.placa}) foi aprovada.`,
+            link: '/manutencoes-veiculos',
+          },
+        });
+      }
+      return tx.manutencaoVeiculo.findUniqueOrThrow({
+        where: { id },
+        include: includeManutencao,
+      });
+    });
+  }
+
+  async recusar(id: number, motivo: string, usuarioId: number) {
+    const motivoLimpo = (motivo ?? '').trim();
+    if (motivoLimpo.length < 5) {
+      throw new BadRequestException(
+        'Informe um motivo com pelo menos 5 caracteres',
+      );
+    }
+
+    const atual = await this.prisma.manutencaoVeiculo.findUnique({
+      where: { id },
+      include: includeManutencao,
+    });
+    if (!atual) {
+      throw new NotFoundException(
+        `Manutenção de veículo com ID ${id} não encontrada`,
+      );
+    }
+    if (atual.status !== 'AGUARDANDO_APROVACAO') {
+      throw new ConflictException('Manutenção não está aguardando aprovação');
+    }
+    if (atual.criadoPorId === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode recusar sua própria manutenção',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const resultado = await tx.manutencaoVeiculo.updateMany({
+        where: { id, status: 'AGUARDANDO_APROVACAO' },
+        data: {
+          status: 'CANCELADA',
+          aprovadoPorId: usuarioId,
+          decididoEm: new Date(),
+          motivoDecisao: motivoLimpo,
+        },
+      });
+      if (resultado.count === 0) {
+        throw new ConflictException('Manutenção já foi decidida');
+      }
+      if (atual.criadoPorId) {
+        await tx.notificacao.create({
+          data: {
+            userId: atual.criadoPorId,
+            titulo: 'Manutenção recusada',
+            mensagem: `Sua manutenção do veículo ${atual.veiculo.nome} (${atual.veiculo.placa}) foi recusada: ${motivoLimpo}`,
+            link: '/manutencoes-veiculos',
+          },
+        });
+      }
+      return tx.manutencaoVeiculo.findUniqueOrThrow({
+        where: { id },
         include: includeManutencao,
       });
     });

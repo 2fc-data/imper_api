@@ -17,6 +17,7 @@ import { ExecucaoModule } from './execucao/execucao.module.js';
 import { ListasComprasModule } from './listas-compras/listas-compras.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
 import { ManutencoesVeiculosModule } from './manutencoes-veiculos/manutencoes-veiculos.module.js';
+import { NotificacoesModule } from './notificacoes/notificacoes.module.js';
 import { MateriaisModule } from './materiais/materiais.module.js';
 import { ObrasModule } from './obras/obras.module.js';
 import { OrcamentoVocabularioModule } from './orcamento-vocabulario/orcamento-vocabulario.module.js';
@@ -51,6 +52,7 @@ import { WhatsAppService } from './whatsapp/whatsapp.service.js';
     ObrasModule,
     OrcamentoVocabularioModule,
     OrcamentosModule,
+    NotificacoesModule,
     PortalModule,
     PublicoModule,
     RbacModule,

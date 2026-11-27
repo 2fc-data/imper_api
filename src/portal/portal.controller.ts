@@ -15,6 +15,10 @@ import { AppError } from '../lib/errors.js';
 import {
   type AtualizarPerfilInput,
   atualizarPerfilSchema,
+  type AvaliarAtividadePortalInput,
+  avaliarAtividadePortalSchema,
+  type RecusarOrcamentoPortalInput,
+  recusarOrcamentoPortalSchema,
 } from '../schemas/portal.js';
 import { PortalService } from './portal.service.js';
 
@@ -68,6 +72,20 @@ export class PortalController {
     );
   }
 
+  @Post('orcamentos/:id/recusar')
+  recusarOrcamento(
+    @CurrentUser() user: UsuarioReq,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(recusarOrcamentoPortalSchema))
+    body: RecusarOrcamentoPortalInput,
+  ) {
+    return this.portal.recusarOrcamento(
+      user.id,
+      this.parseId(id, 'Orçamento não encontrado'),
+      body?.motivo,
+    );
+  }
+
   @Get('obras')
   listarObras(@CurrentUser() user: UsuarioReq) {
     return this.portal.listarObras(user.id);
@@ -78,6 +96,22 @@ export class PortalController {
     return this.portal.detalharObra(
       user.id,
       this.parseId(id, 'Obra não encontrada'),
+    );
+  }
+
+  @Post('obras/:obraId/atividades/:atividadeId/avaliar')
+  avaliarAtividade(
+    @CurrentUser() user: UsuarioReq,
+    @Param('obraId') obraId: string,
+    @Param('atividadeId') atividadeId: string,
+    @Body(new ZodValidationPipe(avaliarAtividadePortalSchema))
+    data: AvaliarAtividadePortalInput,
+  ) {
+    return this.portal.avaliarAtividade(
+      user.id,
+      this.parseId(obraId, 'Obra não encontrada'),
+      atividadeId,
+      data,
     );
   }
 

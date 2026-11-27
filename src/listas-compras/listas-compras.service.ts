@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -292,6 +293,17 @@ export class ListasComprasService {
     return this.buscarOuFalhar(id);
   }
 
+  async listarPendentesAprovacao(usuarioId: number) {
+    return this.prisma.listaCompra.findMany({
+      where: {
+        status: 'ENVIADA',
+        NOT: { enviadoPorId: usuarioId },
+      },
+      include: INCLUDE_LISTA,
+      orderBy: { enviadoEm: 'asc' },
+    });
+  }
+
   async aprovar(id: number, usuarioId: number) {
     const lista = await this.buscarOuFalhar(id);
     if (lista.status !== 'ENVIADA') {
@@ -299,19 +311,40 @@ export class ListasComprasService {
         'Somente listas enviadas podem ser aprovadas',
       );
     }
-    const r = await this.prisma.listaCompra.updateMany({
-      where: { id, status: 'ENVIADA' },
-      data: {
-        status: 'APROVADA',
-        aprovadoPorId: usuarioId,
-        aprovadoEm: new Date(),
-      },
-    });
-    if (r.count === 0) {
-      throw new ConflictException(
-        'Somente listas enviadas podem ser aprovadas',
+    if (lista.enviadoPorId && lista.enviadoPorId === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode aprovar uma lista enviada por você mesmo',
       );
     }
+
+    const agora = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const r = await tx.listaCompra.updateMany({
+        where: { id, status: 'ENVIADA' },
+        data: {
+          status: 'APROVADA',
+          aprovadoPorId: usuarioId,
+          aprovadoEm: agora,
+        },
+      });
+      if (r.count === 0) {
+        throw new ConflictException(
+          'Somente listas enviadas podem ser aprovadas',
+        );
+      }
+
+      if (lista.enviadoPorId) {
+        await tx.notificacao.create({
+          data: {
+            userId: lista.enviadoPorId,
+            titulo: 'Lista de compras aprovada',
+            mensagem: `Sua lista de compras (${lista.tipo} - ${lista.setor}) referente a ${String(lista.mes).padStart(2, '0')}/${lista.ano} foi aprovada.`,
+            link: '/compras',
+          },
+        });
+      }
+    });
+
     await this.marcarCompradaSeNecessario(id);
     return this.buscarOuFalhar(id);
   }
@@ -323,20 +356,41 @@ export class ListasComprasService {
         'Somente listas enviadas podem ser recusadas',
       );
     }
-    const r = await this.prisma.listaCompra.updateMany({
-      where: { id, status: 'ENVIADA' },
-      data: {
-        status: 'RECUSADA',
-        motivoRecusa: motivo,
-        aprovadoPorId: usuarioId,
-        aprovadoEm: new Date(),
-      },
-    });
-    if (r.count === 0) {
-      throw new ConflictException(
-        'Somente listas enviadas podem ser recusadas',
+    if (lista.enviadoPorId && lista.enviadoPorId === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode recusar uma lista enviada por você mesmo',
       );
     }
+
+    const agora = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const r = await tx.listaCompra.updateMany({
+        where: { id, status: 'ENVIADA' },
+        data: {
+          status: 'RECUSADA',
+          motivoRecusa: motivo,
+          aprovadoPorId: usuarioId,
+          aprovadoEm: agora,
+        },
+      });
+      if (r.count === 0) {
+        throw new ConflictException(
+          'Somente listas enviadas podem ser recusadas',
+        );
+      }
+
+      if (lista.enviadoPorId) {
+        await tx.notificacao.create({
+          data: {
+            userId: lista.enviadoPorId,
+            titulo: 'Lista de compras recusada',
+            mensagem: `Sua lista de compras (${lista.tipo} - ${lista.setor}) referente a ${String(lista.mes).padStart(2, '0')}/${lista.ano} foi recusada. Motivo: ${motivo}`,
+            link: '/compras',
+          },
+        });
+      }
+    });
+
     return this.buscarOuFalhar(id);
   }
 

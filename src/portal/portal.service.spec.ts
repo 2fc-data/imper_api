@@ -12,16 +12,22 @@ const mockAgendamentos = {
 const mockOrcamentos = {
   listarDoUsuario: vi.fn(),
   detalharParaUsuario: vi.fn(),
+  aprovar: vi.fn(),
+  recusar: vi.fn(),
 };
 const mockPrisma = {
   user: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
   obra: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
+  },
+  notificacao: {
+    createMany: vi.fn(),
   },
 };
 
@@ -255,6 +261,65 @@ describe('PortalService', () => {
           },
         }),
       );
+    });
+  });
+
+  describe('decisão do orçamento pelo cliente', () => {
+    it('aprovarOrcamento exige status ENVIADO, aprova e notifica admins', async () => {
+      mockOrcamentos.detalharParaUsuario.mockResolvedValue({
+        id: 10,
+        codigo: 'ORC-010',
+        status: 'RASCUNHO',
+      });
+      await expect(criarService().aprovarOrcamento(7, 10)).rejects.toThrow(
+        'Somente orçamentos enviados podem ser aprovados pelo cliente',
+      );
+
+      mockOrcamentos.detalharParaUsuario.mockResolvedValue({
+        id: 10,
+        codigo: 'ORC-010',
+        status: 'ENVIADO',
+      });
+      mockOrcamentos.aprovar.mockResolvedValue({
+        orcamento: { id: 10, status: 'APROVADO' },
+        obra: { id: 99, codigo: 'OBR-099' },
+      });
+      mockPrisma.user.findMany.mockResolvedValue([{ id: 1 }]);
+
+      const res = await criarService().aprovarOrcamento(7, 10);
+      expect(res.obra).toEqual({ id: 99, codigo: 'OBR-099' });
+      expect(mockOrcamentos.aprovar).toHaveBeenCalledWith(10, 7);
+      expect(mockPrisma.notificacao.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            userId: 1,
+            titulo: 'Orçamento ORC-010 aprovado pelo cliente',
+            link: '/obras/99',
+          }),
+        ],
+      });
+    });
+
+    it('recusarOrcamento exige status ENVIADO, aceita motivo opcional e notifica admins', async () => {
+      mockOrcamentos.detalharParaUsuario.mockResolvedValue({
+        id: 10,
+        codigo: 'ORC-010',
+        status: 'ENVIADO',
+      });
+      mockOrcamentos.recusar.mockResolvedValue({ id: 10, status: 'RECUSADO' });
+      mockPrisma.user.findMany.mockResolvedValue([{ id: 1 }]);
+
+      await criarService().recusarOrcamento(7, 10, undefined);
+      expect(mockOrcamentos.recusar).toHaveBeenCalledWith(10, undefined);
+      expect(mockPrisma.notificacao.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            userId: 1,
+            titulo: 'Orçamento ORC-010 recusado pelo cliente',
+            link: '/orcamentos?abrir=10',
+          }),
+        ],
+      });
     });
   });
 });

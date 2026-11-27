@@ -181,6 +181,16 @@ const PERMISSOES = [
     descricao: 'Gerenciar veículos, abastecimentos e manutenções',
     categoria: 'frota',
   },
+  {
+    chave: 'aprovar_manutencao_frota',
+    descricao: 'Aprovar/recusar manutenção de frota',
+    categoria: 'frota',
+  },
+  {
+    chave: 'aprovar_manutencao_equipamento',
+    descricao: 'Aprovar/recusar manutenção de equipamentos',
+    categoria: 'estoque',
+  },
 ];
 
 // ── Mapeamento papel → permissões concedidas ────────────────────────────────
@@ -241,6 +251,8 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'aprovar_aditivo',
     'visualizar_frota',
     'ativar_usuario',
+    'aprovar_manutencao_frota',
+    'aprovar_manutencao_equipamento',
   ],
 
   CONTABIL: [
@@ -249,6 +261,8 @@ const PAPEL_PERMISSOES: Record<string, string[]> = {
     'ver_obras',
     'visualizar_frota',
     'ativar_usuario',
+    'aprovar_manutencao_frota',
+    'aprovar_manutencao_equipamento',
   ],
 
   VENDAS: [

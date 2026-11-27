@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Prisma, StatusManutencao } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -36,6 +42,14 @@ export type ManutencaoAtualizarInput = {
   status?: StatusManutencao;
 };
 
+const TRANSICOES_STATUS: Record<StatusManutencao, StatusManutencao[]> = {
+  PENDENTE: ['EM_ANDAMENTO', 'CANCELADA'],
+  EM_ANDAMENTO: ['CONCLUIDA', 'CANCELADA'],
+  CONCLUIDA: [],
+  CANCELADA: [],
+  AGUARDANDO_APROVACAO: [],
+};
+
 const includeManutencao = {
   equipamento: {
     select: {
@@ -47,6 +61,18 @@ const includeManutencao = {
   },
   tipo: true,
   responsavelManutencao: {
+    select: {
+      id: true,
+      nome: true,
+    },
+  },
+  criadoPor: {
+    select: {
+      id: true,
+      nome: true,
+    },
+  },
+  aprovadoPor: {
     select: {
       id: true,
       nome: true,
@@ -106,7 +132,18 @@ export class ManutencoesService {
     return item;
   }
 
-  async criar(data: ManutencaoCriarInput) {
+  async listarPendentesAprovacao(usuarioId: number) {
+    return this.prisma.manutencao.findMany({
+      where: {
+        status: 'AGUARDANDO_APROVACAO',
+        NOT: { criadoPorId: usuarioId },
+      },
+      orderBy: { data: 'asc' },
+      include: includeManutencao,
+    });
+  }
+
+  async criar(data: ManutencaoCriarInput, usuarioId?: number) {
     const pecas = normalizarPecas(data.pecas);
     const custoPecas = pecas ? somarPecas(pecas) : 0;
     const custoMaoDeObra =
@@ -133,7 +170,8 @@ export class ManutencoesService {
         proximaManutencao: data.proximaManutencao
           ? new Date(data.proximaManutencao)
           : null,
-        status: data.status || 'PENDENTE',
+        status: 'AGUARDANDO_APROVACAO',
+        criadoPorId: usuarioId ?? null,
         ...(pecas && pecas.length > 0 && { pecas: { create: pecas } }),
       },
       include: includeManutencao,
@@ -142,6 +180,21 @@ export class ManutencoesService {
 
   async atualizar(id: number, data: ManutencaoAtualizarInput) {
     const atual = await this.detalhar(id);
+
+    if (data.status && data.status !== atual.status) {
+      if (atual.status === 'AGUARDANDO_APROVACAO') {
+        throw new ConflictException(
+          'Esta manutenção está aguardando aprovação e deve ser aprovada ou recusada pelo fluxo de aprovação',
+        );
+      }
+      const permitidos = TRANSICOES_STATUS[atual.status];
+      if (!permitidos.includes(data.status)) {
+        throw new BadRequestException(
+          `Transição de status inválida: de ${atual.status} para ${data.status}`,
+        );
+      }
+    }
+
     const pecas = normalizarPecas(data.pecas);
 
     let custoPecas: number | undefined;
@@ -202,6 +255,111 @@ export class ManutencoesService {
           }),
           ...(data.status !== undefined && { status: data.status }),
         },
+        include: includeManutencao,
+      });
+    });
+  }
+
+  async aprovar(id: number, usuarioId: number) {
+    const atual = await this.prisma.manutencao.findUnique({
+      where: { id },
+      include: includeManutencao,
+    });
+    if (!atual) {
+      throw new NotFoundException(
+        `Manutenção com ID ${id} não encontrada`,
+      );
+    }
+    if (atual.status !== 'AGUARDANDO_APROVACAO') {
+      throw new ConflictException('Manutenção não está aguardando aprovação');
+    }
+    if (atual.criadoPorId === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode aprovar sua própria manutenção',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const resultado = await tx.manutencao.updateMany({
+        where: { id, status: 'AGUARDANDO_APROVACAO' },
+        data: {
+          status: 'PENDENTE',
+          aprovadoPorId: usuarioId,
+          decididoEm: new Date(),
+          motivoDecisao: null,
+        },
+      });
+      if (resultado.count === 0) {
+        throw new ConflictException('Manutenção já foi decidida');
+      }
+      if (atual.criadoPorId) {
+        await tx.notificacao.create({
+          data: {
+            userId: atual.criadoPorId,
+            titulo: 'Manutenção de equipamento aprovada',
+            mensagem: `Sua manutenção do equipamento ${atual.equipamento.codigo} (${atual.equipamento.descricao}) foi aprovada.`,
+            link: '/manutencoes',
+          },
+        });
+      }
+      return tx.manutencao.findUniqueOrThrow({
+        where: { id },
+        include: includeManutencao,
+      });
+    });
+  }
+
+  async recusar(id: number, motivo: string, usuarioId: number) {
+    const motivoLimpo = (motivo ?? '').trim();
+    if (motivoLimpo.length < 5) {
+      throw new BadRequestException(
+        'Informe um motivo com pelo menos 5 caracteres',
+      );
+    }
+
+    const atual = await this.prisma.manutencao.findUnique({
+      where: { id },
+      include: includeManutencao,
+    });
+    if (!atual) {
+      throw new NotFoundException(
+        `Manutenção com ID ${id} não encontrada`,
+      );
+    }
+    if (atual.status !== 'AGUARDANDO_APROVACAO') {
+      throw new ConflictException('Manutenção não está aguardando aprovação');
+    }
+    if (atual.criadoPorId === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode recusar sua própria manutenção',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const resultado = await tx.manutencao.updateMany({
+        where: { id, status: 'AGUARDANDO_APROVACAO' },
+        data: {
+          status: 'CANCELADA',
+          aprovadoPorId: usuarioId,
+          decididoEm: new Date(),
+          motivoDecisao: motivoLimpo,
+        },
+      });
+      if (resultado.count === 0) {
+        throw new ConflictException('Manutenção já foi decidida');
+      }
+      if (atual.criadoPorId) {
+        await tx.notificacao.create({
+          data: {
+            userId: atual.criadoPorId,
+            titulo: 'Manutenção de equipamento recusada',
+            mensagem: `Sua manutenção do equipamento ${atual.equipamento.codigo} (${atual.equipamento.descricao}) foi recusada: ${motivoLimpo}`,
+            link: '/manutencoes',
+          },
+        });
+      }
+      return tx.manutencao.findUniqueOrThrow({
+        where: { id },
         include: includeManutencao,
       });
     });

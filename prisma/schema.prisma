@@ -55,6 +55,8 @@ model User {
   execucoesAtribuidas            ExecucaoAtividade[]     @relation("ExecucaoAtribuidoA")
   lancamentos                    LancamentoFinanceiro[]  @relation("LancamentoCriadoPor")
   manutencoesResponsaveis        Manutencao[]            @relation("ManutencaoResponsavel")
+  manutencoesCriadas             Manutencao[]            @relation("ManutencaoCriador")
+  manutencoesAprovadas           Manutencao[]            @relation("ManutencaoAprovador")
   movimentos                     MovimentoEstoque[]      @relation("MovimentoRegistradoPor")
   notificacoes                   Notificacao[]
   orcamentosUser                 Orcamento[]             @relation("OrcamentoUser")
@@ -82,7 +84,9 @@ model User {
   registrosKmColaborador         RegistroKmVeiculo[]     @relation("RegistroKmColaborador")
   abastecimentosVeiculos         AbastecimentoVeiculo[]  @relation("AbastecimentoRegistradoPor")
   abastecimentosMotorista        AbastecimentoVeiculo[]  @relation("AbastecimentoMotorista")
-  manutencoesVeiculos            ManutencaoVeiculo[]
+  manutencoesVeiculosResponsaveis ManutencaoVeiculo[] @relation("ManutencaoVeiculoResponsavel")
+  manutencoesVeiculosCriadas     ManutencaoVeiculo[] @relation("ManutencaoVeiculoCriador")
+  manutencoesVeiculosAprovadas   ManutencaoVeiculo[] @relation("ManutencaoVeiculoAprovador")
   listasCompraEnviadas           ListaCompra[]           @relation("ListaCompraEnviadoPor")
   listasCompraAprovadas          ListaCompra[]           @relation("ListaCompraAprovadoPor")
   notasFiscalEnviadasListaCompra ListaCompra[]           @relation("NotaFiscalEnviadoPor")
@@ -980,6 +984,12 @@ model Manutencao {
   status                  StatusManutencao @default(PENDENTE)
   responsavelManutencaoId Int?
   proximaManutencao       DateTime?
+  criadoPorId             Int?
+  criadoPor               User?            @relation("ManutencaoCriador", fields: [criadoPorId], references: [id])
+  aprovadoPorId           Int?
+  aprovadoPor             User?            @relation("ManutencaoAprovador", fields: [aprovadoPorId], references: [id])
+  decididoEm              DateTime?
+  motivoDecisao           String?          @db.VarChar(500)
   createdAt               DateTime         @default(now())
   updatedAt               DateTime         @updatedAt
   equipamento             Equipamento      @relation(fields: [equipamentoId], references: [id], onDelete: Cascade)
@@ -989,6 +999,8 @@ model Manutencao {
 
   @@index([equipamentoId])
   @@index([status])
+  @@index([criadoPorId])
+  @@index([aprovadoPorId])
   @@index([responsavelManutencaoId], map: "manutencoes_responsavelManutencaoId_fkey")
   @@index([tipoId], map: "manutencoes_tipoId_fkey")
   @@map("manutencoes")
@@ -1552,6 +1564,9 @@ model ObraAtividade {
   cancelada           Boolean                 @default(false)
   dataDisparoWhatsapp DateTime?
   statusWhatsapp      String?                 @default("PENDENTE") @db.VarChar(30)
+  avaliacaoCliente    Int?
+  comentarioAvaliacao String?                 @db.VarChar(1000)
+  avaliadoEm          DateTime?
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
   obraEtapa           ObraEtapa               @relation(fields: [obraEtapaId], references: [id], onDelete: Cascade)
@@ -1710,6 +1725,12 @@ model ManutencaoVeiculo {
   status            StatusManutencao @default(PENDENTE)
   proximaManutencao DateTime?        @db.Date
   dataSaida         DateTime?        @db.Date
+  criadoPorId       Int?
+  criadoPor         User? @relation("ManutencaoVeiculoCriador", fields: [criadoPorId], references: [id])
+  aprovadoPorId      Int?
+  aprovadoPor        User? @relation("ManutencaoVeiculoAprovador", fields: [aprovadoPorId], references: [id])
+  decididoEm         DateTime?
+  motivoDecisao      String? @db.VarChar(500)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -1718,11 +1739,13 @@ model ManutencaoVeiculo {
   tipoId                  Int
   tipo                    TipoManutencao          @relation(fields: [tipoId], references: [id])
   responsavelManutencaoId Int?
-  responsavelManutencao   User?                   @relation(fields: [responsavelManutencaoId], references: [id])
+  responsavelManutencao   User?                   @relation("ManutencaoVeiculoResponsavel", fields: [responsavelManutencaoId], references: [id])
   pecas                   ManutencaoVeiculoPeca[]
 
   @@index([veiculoId])
   @@index([status])
+  @@index([criadoPorId])
+  @@index([aprovadoPorId])
   @@map("manutencoes_veiculo")
 }
 
@@ -1902,6 +1925,7 @@ enum StatusManutencao {
   EM_ANDAMENTO
   CONCLUIDA
   CANCELADA
+  AGUARDANDO_APROVACAO
 }
 
 enum AcaoPecaManutencao {
@@ -1920,6 +1944,7 @@ enum EnumStatusExecucaoAtividade {
   PENDENTE
   EM_ANDAMENTO
   CONCLUIDA
+  REFAZER
   CANCELADA
 }
 

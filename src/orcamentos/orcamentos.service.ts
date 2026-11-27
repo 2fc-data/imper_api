@@ -596,7 +596,7 @@ export class OrcamentosService {
     });
   }
 
-  async recusar(id: number, motivo: string) {
+  async recusar(id: number, motivo?: string | null) {
     const orcamento = await this.prisma.orcamento.findUnique({
       where: { id },
     });
@@ -607,9 +607,11 @@ export class OrcamentosService {
         `Orçamento não pode ser recusado (status: ${orcamento.status})`,
       );
 
+    const motivoNormalizado = motivo?.trim() || null;
+
     return this.prisma.orcamento.update({
       where: { id },
-      data: { status: 'RECUSADO', motivoRejeicao: motivo },
+      data: { status: 'RECUSADO', motivoRejeicao: motivoNormalizado },
       include: includeResumo,
     });
   }

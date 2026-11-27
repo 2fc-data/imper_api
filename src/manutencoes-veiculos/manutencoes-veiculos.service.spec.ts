@@ -78,13 +78,14 @@ describe('ManutencoesVeiculosService', () => {
         ...data,
         custoTotal: 150,
       });
-      const result = await servico().criar(data);
+      const result = await servico().criar(data, 10);
       expect(result.custoTotal).toBe(150);
       expect(mockPrisma.manutencaoVeiculo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             custoTotal: 150,
-            status: 'PENDENTE',
+            status: 'AGUARDANDO_APROVACAO',
+            criadoPorId: 10,
           }),
         }),
       );
@@ -203,6 +204,7 @@ describe('ManutencoesVeiculosService', () => {
     it('não deve tocar nas peças nem nos totais ao mudar apenas o status', async () => {
       mockPrisma.manutencaoVeiculo.findUnique.mockResolvedValue({
         id: 1,
+        status: 'PENDENTE',
         data: new Date('2026-10-01'),
         custoPecas: 100,
         custoMaoDeObra: 50,

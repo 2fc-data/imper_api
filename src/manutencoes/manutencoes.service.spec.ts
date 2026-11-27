@@ -8,9 +8,14 @@ const mockPrisma = {
   manutencao: {
     findMany: vi.fn(),
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
+  },
+  notificacao: {
+    create: vi.fn(),
   },
   manutencaoPeca: {
     deleteMany: vi.fn(),
@@ -134,6 +139,7 @@ describe('ManutencoesService', () => {
         data: new Date('2026-10-01'),
         custoPecas: 230,
         custoMaoDeObra: 70,
+        status: 'PENDENTE',
       });
       mockPrisma.manutencao.update.mockResolvedValue({ id: 1 });
 
@@ -171,6 +177,7 @@ describe('ManutencoesService', () => {
       mockPrisma.manutencao.findUnique.mockResolvedValue({
         id: 1,
         data: new Date('2026-10-01'),
+        status: 'PENDENTE',
       });
       mockPrisma.manutencao.update.mockResolvedValue({ id: 1 });
 
@@ -187,6 +194,7 @@ describe('ManutencoesService', () => {
         custoPecas: 230,
         custoMaoDeObra: 70,
         dataSaida: null,
+        status: 'PENDENTE',
       });
       mockPrisma.manutencao.update.mockResolvedValue({ id: 1 });
 
@@ -197,6 +205,95 @@ describe('ManutencoesService', () => {
       expect(chamada.data).not.toHaveProperty('custo');
       expect(chamada.data).not.toHaveProperty('dataSaida');
       expect(chamada.data).toMatchObject({ status: 'EM_ANDAMENTO' });
+    });
+  });
+
+  describe('aprovar e recusar', () => {
+    it('deve aprovar manutenção com sucesso e criar notificação', async () => {
+      mockPrisma.manutencao.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'AGUARDANDO_APROVACAO',
+        criadoPorId: 2,
+        equipamento: { codigo: 'EQ-01', descricao: 'Betoneira' },
+      });
+      mockPrisma.manutencao.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.manutencao.findUniqueOrThrow.mockResolvedValue({
+        id: 1,
+        status: 'PENDENTE',
+      });
+
+      const res = await servico().aprovar(1, 3);
+      expect(res.status).toBe('PENDENTE');
+      expect(mockPrisma.manutencao.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1, status: 'AGUARDANDO_APROVACAO' },
+          data: expect.objectContaining({
+            status: 'PENDENTE',
+            aprovadoPorId: 3,
+          }),
+        }),
+      );
+      expect(mockPrisma.notificacao.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 2,
+            titulo: 'Manutenção de equipamento aprovada',
+          }),
+        }),
+      );
+    });
+
+    it('não deve permitir auto-aprovação', async () => {
+      mockPrisma.manutencao.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'AGUARDANDO_APROVACAO',
+        criadoPorId: 2,
+      });
+
+      await expect(servico().aprovar(1, 2)).rejects.toThrow(
+        'Você não pode aprovar sua própria manutenção',
+      );
+    });
+
+    it('deve recusar com motivo e criar notificação', async () => {
+      mockPrisma.manutencao.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'AGUARDANDO_APROVACAO',
+        criadoPorId: 2,
+        equipamento: { codigo: 'EQ-01', descricao: 'Betoneira' },
+      });
+      mockPrisma.manutencao.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.manutencao.findUniqueOrThrow.mockResolvedValue({
+        id: 1,
+        status: 'CANCELADA',
+      });
+
+      const res = await servico().recusar(1, 'Custo muito elevado', 3);
+      expect(res.status).toBe('CANCELADA');
+      expect(mockPrisma.manutencao.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1, status: 'AGUARDANDO_APROVACAO' },
+          data: expect.objectContaining({
+            status: 'CANCELADA',
+            aprovadoPorId: 3,
+            motivoDecisao: 'Custo muito elevado',
+          }),
+        }),
+      );
+      expect(mockPrisma.notificacao.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 2,
+            titulo: 'Manutenção de equipamento recusada',
+          }),
+        }),
+      );
+    });
+
+    it('deve exigir motivo de recusa com no mínimo 5 caracteres', async () => {
+      await expect(servico().recusar(1, 'abc', 3)).rejects.toThrow(
+        'Informe um motivo com pelo menos 5 caracteres',
+      );
     });
   });
 });

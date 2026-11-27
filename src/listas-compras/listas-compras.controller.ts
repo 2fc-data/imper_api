@@ -63,6 +63,12 @@ export class ListasComprasController {
     );
   }
 
+  @Get('pendentes-aprovacao')
+  @Permissions('aprovar_lista_compras')
+  async listarPendentesAprovacao(@Req() req: RequestWithUser) {
+    return this.service.listarPendentesAprovacao(req.user?.id ?? 0);
+  }
+
   @Get(':id')
   async buscar(@Param('id') id: string) {
     return this.service.buscarOuFalhar(Number(id));
